@@ -9,7 +9,7 @@ services:
     environment:
       FLASK_APP: prod
     env_file:
-        - ./.env
+    - ./.env
   web:
     build: ./pikpak-plus-client
     ports:
@@ -17,4 +17,4 @@ services:
     volumes:
     - ./pikpak-plus-client:/user/src/app
     env_file:
-        - ./.env
+    - ./.env
