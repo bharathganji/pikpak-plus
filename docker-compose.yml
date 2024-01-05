@@ -7,10 +7,14 @@ services:
     volumes:
     - ./pikpak-plus-server:/app
     environment:
-      FLASK_APP: development
+      FLASK_APP: prod
+    env_file:
+        - ./.env
   web:
     build: ./pikpak-plus-client
     ports:
       - '3001:3001'
     volumes:
     - ./pikpak-plus-client:/user/src/app
+    env_file:
+        - ./.env
