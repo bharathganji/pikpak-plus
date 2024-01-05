@@ -1,0 +1,31 @@
+.custom-auth-container {
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 90%;
+  margin: auto auto;
+}
+.content-container {
+  display: flex;
+  gap: 1.125rem;
+  flex-direction: column;
+}
+.content-container-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  column-gap: 0.25rem;
+}
+.flex-container-end {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Media query for devices larger than tablets (e.g., desktops) */
+@media (min-width: 768px) {
+  .custom-auth-container {
+    width: 50%;
+
+    margin: auto auto;
+  }
+}

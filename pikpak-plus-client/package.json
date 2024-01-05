@@ -1,0 +1,53 @@
+{
+  "name": "pikpak-plus",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@ionic/react": "^7.6.2",
+    "@ionic/react-router": "^7.6.2",
+    "ag-grid-community": "^31.0.1",
+    "ag-grid-enterprise": "^31.0.1",
+    "ag-grid-react": "^31.0.1",
+    "axios": "^1.6.2",
+    "bootstrap": "^5.3.2",
+    "dotenv": "^16.3.1",
+    "gsap": "^3.12.4",
+    "react": "^18.2.0",
+    "react-block-ui": "^1.3.6",
+    "react-bootstrap": "^2.9.1",
+    "react-dom": "^18.2.0",
+    "react-loader-spinner": "^6.1.6",
+    "react-router-dom": "^5.3.4",
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@types/react-router": "^5.1.20",
+    "@types/react-router-dom": "^5.3.3",
+    "@typescript-eslint/eslint-plugin": "^6.14.0",
+    "@typescript-eslint/parser": "^6.14.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "eslint": "^8.55.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.8"
+  },
+  "proxy": "http://127.0.0.1:5000",
+  "optionalDependencies": {
+    "@rollup/rollup-linux-arm64-musl": "^4.9.2",
+    "@rollup/rollup-linux-x64-gnu": "^4.9.2",
+    "@rollup/rollup-linux-x64-musl": "^4.9.2",
+    "i": "^0.3.7",
+    "npm": "^10.2.5"
+  }
+}

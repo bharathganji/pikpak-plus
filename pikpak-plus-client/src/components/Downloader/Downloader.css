@@ -1,0 +1,52 @@
+.hover-effect {
+  cursor: pointer;
+  /* Add your hover effect styles here */
+}
+.button-container {
+  display: flex;
+  justify-content: space-evenly;
+}
+
+.flex-container {
+  display: flex;
+  align-items: center;
+}
+.flex-container-top {
+  margin-top: 0.5rem;
+  display: flex;
+  /* align-content: space-between; */
+  flex-wrap: nowrap;
+  justify-content: space-between;
+}
+
+ion-alert.custom-alert {
+  --backdrop-opacity: 0.7;
+}
+
+.custom-alert .alert-button-group {
+  padding: 8px;
+}
+
+button.alert-button.alert-button-confirm {
+  background-color: #2dd36f;
+  color: #ffffff;
+}
+
+.md button.alert-button.alert-button-confirm {
+  border-radius: 4px;
+}
+
+.ios .custom-alert button.alert-button {
+  border: 0.55px solid rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.2);
+}
+
+.ios button.alert-button.alert-button-cancel {
+  border-right: 0;
+  border-bottom-left-radius: 13px;
+  border-top-left-radius: 13px;
+}
+
+.ios button.alert-button.alert-button-confirm {
+  border-bottom-right-radius: 13px;
+  border-top-right-radius: 13px;
+}

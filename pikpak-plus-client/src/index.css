@@ -1,0 +1,16 @@
+ion-label {
+  overflow-wrap: anywhere;
+}
+
+ion-icon[slot='end'] {
+  margin-inline: 0px;
+}
+ion-list {
+  padding-bottom: 3.125rem !important;
+}
+.ag-paging-panel {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  flex-wrap: wrap;
+}

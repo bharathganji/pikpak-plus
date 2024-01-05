@@ -1,0 +1,22 @@
+.centered-element {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+  }
+  
+
+  .container {
+    position: relative;
+    height: 5rem;
+    margin: 0rem 1rem; /* Adjust the default margin as needed */
+  }
+  
+  /* Media query for devices larger than tablets (e.g., desktops) */
+  @media (min-width: 768px) {
+    .container {
+      margin: auto 5rem auto 5rem;
+    }
+  }
+  
+  

@@ -1,0 +1,7 @@
+flask
+requests
+flask_cors
+supabase
+gotrue
+python-dotenv
+gunicorn
