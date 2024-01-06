@@ -61,13 +61,13 @@ export const prepareColumnDefs = (): ColDef[] => {
   return [
     {
       headerName: 'Name',
-      field: 'Name',
+      field: 'name',
       filter: 'agTextColumnFilter',
       width: 325,
     },
     {
       headerName: 'Size',
-      field: 'Size',
+      field: 'size',
       filter: true,
       width: 120,
       comparator: sizeComparator,
@@ -75,79 +75,60 @@ export const prepareColumnDefs = (): ColDef[] => {
     },
     {
       headerName: 'Seeders',
-      field: 'Seeders',
+      field: 'seeders',
       filter: 'agNumberColumnFilter',
       width: 130,
-
       comparator: seedersComparator,
     },
     {
       headerName: 'Leechers',
-      field: 'Leechers',
+      field: 'leechers',
       filter: 'agNumberColumnFilter',
       width: 120,
     },
     {
       headerName: 'Magnet/Torrent',
-      field: 'MagnetOrTorrent',
+      field: 'magnetOrTorrent',
       filter: true,
     },
-    { headerName: 'Type', field: 'Type', filter: true, width: 100 },
-    { headerName: 'Url', field: 'Url', filter: true },
-  ].map((data) => ({ ...data, suppressMovable: true }))
-}
+    { headerName: 'Type', field: 'type', filter: true, width: 100 },
+    { headerName: 'Url', field: 'url', filter: true },
+  ].map((data) => ({ ...data, suppressMovable: true }));
+};
 
-// Function to prepare row data dynamically// Function to prepare row data dynamically
 export const prepareRowData = (data: GenericData): any[] => {
-  const rows: any[] = []
+  const rows: any[] = [];
 
-  if (data.Files && data.Files.length) {
-    data.Files.forEach((file) => {
-      const fileRow: any = { ...data } // Copy parent data
+  if (data.torrents && data.torrents.length) {
+    data.torrents.forEach((file) => {
+      const fileRow: any = { ...data }; // Copy parent data
 
-      // Check for the presence of either 'Magnet' or 'Torrent' key in 'Files'
-      const magnetOrTorrentKey = file.Magnet
-        ? 'Magnet'
-        : file.Torrent
-        ? 'Torrent'
-        : ''
+      const magnetOrTorrentKey = file.magnet ? 'magnet' : file.torrent ? 'torrent' : '';
 
-      // Include 'Magnet' or 'Torrent' data in the row
       if (magnetOrTorrentKey) {
-        fileRow.MagnetOrTorrent = file[magnetOrTorrentKey]
+        fileRow.magnetOrTorrent = file[magnetOrTorrentKey];
       }
 
-      // Include 'Files' data in the row
       Object.entries(file).forEach(([fileKey, fileValue]) => {
-        fileRow[fileKey] = fileValue
-      })
+        fileRow[fileKey] = fileValue;
+      });
 
-      rows.push(fileRow)
-    })
+      rows.push(fileRow);
+    });
   } else {
-    // Add a single row for all data
-    // Check for the presence of either 'Magnet' or 'Torrent' key in the main data
-    const magnetOrTorrentKey = data.Magnet
-      ? 'Magnet'
-      : data.Torrent
-      ? 'Torrent'
-      : ''
+    const magnetOrTorrentKey = data.magnet ? 'magnet' : data.torrent ? 'torrent' : '';
 
-    // Include 'Magnet' or 'Torrent' data in the row
     if (magnetOrTorrentKey) {
-      const singleRow: any = {
-        ...data,
-        MagnetOrTorrent: data[magnetOrTorrentKey],
-      }
-      rows.push(singleRow)
+      const singleRow: any = { ...data, magnetOrTorrent: data[magnetOrTorrentKey] };
+      rows.push(singleRow);
     } else {
-      // Add a single row for all data
-      const singleRow: any = { ...data }
-      rows.push(singleRow)
+      const singleRow: any = { ...data };
+      rows.push(singleRow);
     }
   }
-  return rows
-}
+
+  return rows;
+};
 export function getauthCookie() {
   const authCookie = document.cookie
     .split(';')

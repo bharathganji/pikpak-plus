@@ -229,39 +229,40 @@ export interface CreateFolderResponse {
 }
 
 export type SearchInfo = {
-  Name: string
-  Poster: string
-  Category: string
-  Url: string
-  UploadedBy: string
-  Size: string
-  Seeders: string
-  Leechers: string
-  DateUploaded: string
-  Torrent: string
-  Magnet: string
+  name: string
+  poster: string
+  category: string
+  url: string
+  uploadedBy: string
+  size: string
+  seeders: string
+  leechers: string
+  dateUploaded: string
+  torrent: string
+  magnet: string
   error: string
-  Files: any
+  torrents: any
 }
 
 export type YtsData = {
-  Name: string
-  ReleasedDate: string
-  Genre: string
-  Rating: string
-  Likes: string
-  Runtime: string
-  Magnet: string
-  Torrent: string
-  Language: string
-  Url: string
-  Poster: string
+  name: string
+  releasedDate: string
+  genre: string
+  rating: string
+  likes: string
+  runtime: string
+  magnet: string
+  torrent: string
+  language: string
+  url: string
+  poster: string
   error: string
-  Files: {
-    Quality: string
-    Type: string
-    Size: string
-    Torrent: string
-    Magnet: string
+  torrents: {
+    quality: string
+    type: string
+    size: string
+    torrent: string
+    magnet: string
   }[]
 }
+

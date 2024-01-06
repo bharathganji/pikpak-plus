@@ -36,21 +36,21 @@ const AgGrid: React.FC<AgGridProps> = ({ searchInfoList }) => {
   }
   const shareColumn: ColDef = {
     headerName: 'Share',
-    field: 'Url', // Replace 'ShareField' with the actual field name from your data
+    field: 'url', // Replace 'ShareField' with the actual field name from your data
     cellRenderer: 'shareCellRenderer',
     width: 100,
   }
 
   const copyColumn: ColDef = {
     headerName: 'Copy',
-    field: 'MagnetOrTorrent',
+    field: 'magnetOrTorrent',
     cellRenderer: 'copyCellRenderer',
     width: 100,
   }
 
   const openUrlColumn: ColDef = {
     headerName: 'Open URL',
-    field: 'Url',
+    field: 'url',
     cellRenderer: 'openUrlCellRenderer',
     width: 100,
   }

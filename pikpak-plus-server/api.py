@@ -94,8 +94,6 @@ def get_directory_id(email):
             directory_id = data[0]['directory_id']
             return {'directory_id': directory_id}
         else:
-            print(30000)
-            
             return {'error': 'Email not found'}
 
     except Exception as e:
@@ -137,8 +135,6 @@ def browse(user):
     #     abort(401, description="Client not initialized. Call initialize_client first.")
     
     try:
-        print(50000)
-        
         # Get JSON data from the request
         data = request.get_json()
         print(data)

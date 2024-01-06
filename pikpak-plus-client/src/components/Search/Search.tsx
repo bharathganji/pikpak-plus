@@ -1,5 +1,5 @@
 // Search.tsx
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import axios from 'axios'
 import './Search.css'
 import { IonContent, IonToast } from '@ionic/react'
@@ -28,9 +28,13 @@ export default function Search() {
   }, [])
 
   const fetchData = async (searchTerm: string) => {
+    const SITE = 'piratebay'
     try {
-      const response = await axios.get(`/api/all/${searchTerm}`)
-      const data: SearchInfo[] = response.data
+      const response = await axios.get(
+        `/api/v1/search?site=${SITE}&query=${searchTerm}&limit=0&page=1`,
+      )
+      // const response = await axios.get(`/api/v1/all/search?query=${searchTerm}&limit=5`)
+      const data: SearchInfo[] = response.data.data
 
       console.log(data)
       data.forEach((item) => {
@@ -52,10 +56,10 @@ export default function Search() {
       setLoading(false)
     }
   }
-
-  const handleTextChange = (value: string) => {
-    settext(value!)
-  }
+  // Memoize the handleTextChange function
+  const handleTextChange = useCallback((value: string) => {
+    settext(value)
+  }, []) // Empty dependency array as there are no external dependencies
 
   const handleSubmit = (text: string) => {
     const trimmedText = text.trim()
@@ -73,7 +77,7 @@ export default function Search() {
     settext('')
   }
 
-  const SearchGridMemoized = React.memo(SearchGrid)
+  // const SearchGridMemoized = React.memo(SearchGrid)
   const CheckboxMemoized = React.memo(Checkbox)
 
   const [SelectedWebsite, setSelectedWebsite] = useState<string[]>([])
@@ -97,7 +101,7 @@ export default function Search() {
         />
         {/* Use the new SearchLoader component */}
         <BlockUiLoader loading={loading}>
-          <SearchGridMemoized searchInfoList={searchInfoList} />
+          <SearchGrid searchInfoList={searchInfoList} />
         </BlockUiLoader>
         <IonToast
           isOpen={!!showToast}

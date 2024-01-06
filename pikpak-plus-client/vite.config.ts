@@ -13,12 +13,15 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 3001,
+    proxy: {
+      '/api': 'https://torrent-api-py-tt6i.onrender.com/',
+    },
   },
   preview: {
     host: '0.0.0.0',
     port: 3002,
-  },
-  proxy: {
-    '/api': 'https://torrent-api-py-tt6i.onrender.com/',
-  },
+    proxy: {
+      '/api': 'https://torrent-api-py-tt6i.onrender.com/',
+    },
+  }
 })
