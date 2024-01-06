@@ -4,8 +4,8 @@ WORKDIR /user/src/app
 
 COPY package.json package-lock.json ./
 RUN npm i -g vite
-RUN npm install --legacy-peer-deps 
-RUN ln -s /usr/local/lib/node_modules/ ../node_modules
+RUN npm install 
+# RUN ln -s /usr/local/lib/node_modules/ ../node_modules
 EXPOSE 3001
 
 COPY . .

@@ -6,7 +6,7 @@ import '@ionic/react/css/core.css'
 import { setupIonicReact } from '@ionic/react'
 import 'ag-grid-community/styles/ag-grid.css' // Core CSS
 import 'ag-grid-community/styles/ag-theme-quartz.css' // Theme
-import 'react-block-ui/style.css'
+import '@availity/block-ui/src/BlockUi.css'
 
 setupIonicReact()
 

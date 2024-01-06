@@ -1,6 +1,7 @@
 // SearchLoader.tsx
 import React from 'react'
-import BlockUi from 'react-block-ui'
+import BlockUi from '@availity/block-ui'
+
 import { DNA } from 'react-loader-spinner'
 
 interface SearchLoaderProps {
