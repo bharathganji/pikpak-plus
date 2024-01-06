@@ -14,14 +14,32 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 3001,
     proxy: {
-      '/api': 'https://torrent-api-py-tt6i.onrender.com/',
+      '/torrent': {
+        target: 'https://torrent-api-py-tt6i.onrender.com/',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/torrent/, ''),
+      },
+      '/api': {
+        target: 'http://localhost:5000/api/',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
     },
   },
   preview: {
     host: '0.0.0.0',
     port: 3002,
     proxy: {
-      '/api': 'https://torrent-api-py-tt6i.onrender.com/',
+      '/torrent': {
+        target: 'https://torrent-api-py-tt6i.onrender.com/',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/torrent/, ''),
+      },
+      '/api': {
+        target: 'http://localhost:5000/api/',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
     },
-  }
+  },
 })

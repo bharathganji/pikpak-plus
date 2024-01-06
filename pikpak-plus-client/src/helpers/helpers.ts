@@ -175,7 +175,7 @@ export const makeRequest = async (
     // Make the request
     const response = await axios({
       method,
-      url: `${CONSTANTS.api_url}/${url}`,
+      url: `/api/${url}`,
 
       data,
       headers: {

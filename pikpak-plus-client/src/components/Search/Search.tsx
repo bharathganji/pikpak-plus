@@ -31,7 +31,7 @@ export default function Search() {
     const SITE = 'piratebay'
     try {
       const response = await axios.get(
-        `/api/v1/search?site=${SITE}&query=${searchTerm}&limit=0&page=1`,
+        `/torrent/api/v1/search?site=${SITE}&query=${searchTerm}&limit=0&page=1`,
       )
       // const response = await axios.get(`/api/v1/all/search?query=${searchTerm}&limit=5`)
       const data: SearchInfo[] = response.data.data
