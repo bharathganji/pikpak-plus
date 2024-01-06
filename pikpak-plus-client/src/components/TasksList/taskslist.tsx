@@ -8,7 +8,6 @@ import {
   IonProgressBar,
 } from '@ionic/react'
 import { DownloadListResponse, Task } from '../../types/sharedTypes'
-import { CONSTANTS } from '../../constants/constants'
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner'
 import CustomIonHeader from '../CustomIonHeader/CustomIonHeader'
 import { getEmailandDirectory } from '../../helpers/helpers'

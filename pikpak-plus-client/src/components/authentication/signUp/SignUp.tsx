@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { CONSTANTS } from '../../../constants/constants'
 import SignUpCard from './SignUpCard/SignUpCard'
 import { IonToast } from '@ionic/react'
 import BlockUiLoader from '../../BlockUiLoader/BlockUiLoader'

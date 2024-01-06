@@ -1,5 +1,4 @@
 import { useState } from 'react'
-// import { CONSTANTS } from '../../../constants/constants'
 import {
   makeRequest,
   setCookie,
