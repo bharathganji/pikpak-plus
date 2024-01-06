@@ -1,13 +1,17 @@
-FROM node:18.19-slim
+FROM node:18-slim
 
-WORKDIR /user/src/app
+RUN mkdir -p /app/
+WORKDIR /app/
+WORKDIR /app/
+RUN chmod -R 777 /app/
+COPY package*.json /app/
+COPY tsconfig.json /app/
+COPY tsconfig.node.json /app/
+RUN npm ci
 
-COPY package.json package-lock.json ./
-RUN npm i -g vite
-RUN npm install 
-# RUN ln -s /usr/local/lib/node_modules/ ../node_modules
+EXPOSE 3002
 EXPOSE 3001
 
-COPY . .
+COPY ./ /app/
 
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "preview"]

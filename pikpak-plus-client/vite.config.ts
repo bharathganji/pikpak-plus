@@ -13,8 +13,11 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 3001,
-    proxy: {
-      '/api': 'https://torrent-searcher-api-with-website.bharathganji.repl.co/',
-    },
+  },
+  preview: {
+    port: 3002,
+  },
+  proxy: {
+    '/api': 'https://torrent-api-py-tt6i.onrender.com/',
   },
 })
