@@ -34,7 +34,7 @@ const DownloadList = () => {
 
   const fetchDownloadData = () => {
     setIsLoading(true)
-    fetch(`/api/tasks`)
+    fetch(`/flaskapi/api/tasks`)
       .then((response) => {
         if (!response.ok) {
           throw new Error('Unauthorized')

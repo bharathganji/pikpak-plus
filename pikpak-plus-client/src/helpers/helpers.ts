@@ -174,7 +174,7 @@ export const makeRequest = async (
     // Make the request
     const response = await axios({
       method,
-      url: `/api/${url}`,
+      url: `/flaskapi/api/${url}`,
 
       data,
       headers: {

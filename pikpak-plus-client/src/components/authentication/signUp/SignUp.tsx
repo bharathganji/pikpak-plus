@@ -13,7 +13,7 @@ function SignUp() {
   async function signUp(email: string, password: string) {
     try {
       setLoading(true)
-      const response = await fetch(`/api/signup`, {
+      const response = await fetch(`/flaskapi/api/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

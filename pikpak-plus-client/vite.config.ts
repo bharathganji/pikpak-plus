@@ -19,7 +19,7 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/torrent/, ''),
       },
-      '/api': {
+      '/flaskapi': {
         target: 'http://localhost:5000/api/',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
@@ -35,10 +35,10 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/torrent/, ''),
       },
-      '/api': {
-        target: 'http://127.0.0.1:5000/api/' ,
+      '/flaskapi': {
+        target: 'https://api.pikpak-plus.com' ,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        rewrite: (path) => path.replace(/^\/flaskapi/, ''),
       },
     },
   },
