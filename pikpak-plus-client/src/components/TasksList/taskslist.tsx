@@ -35,7 +35,7 @@ const DownloadList = () => {
 
   const fetchDownloadData = () => {
     setIsLoading(true)
-    fetch(`${CONSTANTS.api_url}/tasks`)
+    fetch(`/api/tasks`)
       .then((response) => {
         if (!response.ok) {
           throw new Error('Unauthorized')

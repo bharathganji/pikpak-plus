@@ -14,7 +14,7 @@ function SignUp() {
   async function signUp(email: string, password: string) {
     try {
       setLoading(true)
-      const response = await fetch(`${CONSTANTS.api_url}/signup`, {
+      const response = await fetch(`/api/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

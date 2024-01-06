@@ -1,7 +1,6 @@
 import { ColDef, SortDirection } from 'ag-grid-community'
 import { YtsData, SearchInfo } from '../types/sharedTypes' // Update the path accordingly
 import axios from 'axios'
-import { CONSTANTS } from '../constants/constants'
 
 export type GenericData = YtsData | SearchInfo
 
