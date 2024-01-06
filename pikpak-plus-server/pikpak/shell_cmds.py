@@ -53,7 +53,7 @@ def listdir(client, param, parentdir):
         #print(json.dumps(ff, indent=4))
     i=0
     for pp in ffs:
-        print(f"{i}: ", pp['name'], f"{pp['size']}")
+        # print(f"{i}: ", pp['name'], f"{pp['size']}")
         i+=1
     #print("=" * 30, end="\n\n")
     _files=ffs
@@ -62,8 +62,8 @@ def listdir(client, param, parentdir):
 
 def changedir(client, param):
     global _curdir, _parent
-    print("Current dir: ", _curdir)
-    print("Parent dir: ", _parent)
+    # print("Current dir: ", _curdir)
+    # print("Parent dir: ", _parent)
     if not param: # 空， do nothing
         return 1
     if param=='..': # parent
@@ -74,7 +74,7 @@ def changedir(client, param):
         ii=int(param)
         _curdir=_files[ii]['id']
         _parent=_files[ii]['parent']
-        print("Current dir: ", _files[ii]['name'])
+        # print("Current dir: ", _files[ii]['name'])
     except Exception as e:
         print("No such directory", e, param, _files)
 
@@ -90,7 +90,7 @@ def cleardir():
 # 我是谁？
 def myself(client, param):
     info=client.get_user_info()
-    print(info['username'])
+    # print(info['username'])
     return 0
 
 # 添加一个远程下载任务
@@ -99,12 +99,12 @@ def offline_task(client, file_url,user_dir):
     # param 中是下载的URL
     try:
         # print("Downloading: ", file_url)
-        print("to: ", user_dir)
+        # print("to: ", user_dir)
         a=client.offline_download(file_url,user_dir)
-        print(a)
+        # print(a)
         return a
     except Exception as e:
-        print("Error: ", e)
+        # print("Error: ", e)
         return e
     #b=client.offline_list() # list offline tasks
     return 0
@@ -114,9 +114,9 @@ def list_task(client, param):
     b=client.offline_list() # list offline tasks
     i=0
     for task in b['tasks']:
-        print(i,':', task['name'])
-        print(" -- ", str(task['progress']) + "%") 
-        print(" -- ", task['message'])
+        # print(i,':', task['name'])
+        # print(" -- ", str(task['progress']) + "%") 
+        # print(" -- ", task['message'])
         i+=1
     #print(b)
     return b
@@ -131,7 +131,7 @@ def trash(client, param):
         
         a=client.delete_to_trash([id])
         #a=client.delete_forever([id])
-        print(a)
+        # print(a)
     except Exception as e:
         print("Error: ", e)
     return 0
@@ -146,7 +146,7 @@ def remove(client, param):
         id=_files[ii]['id']
         #a=client.delete_to_trash([id])
         a=client.delete_forever([id])
-        print(a)
+        # print(a)
     except Exception as e:
         print("Error: ", e)
     return 0
@@ -159,7 +159,7 @@ def download(client, param, id):
         # ii=int(param.strip())
         # id=_files[ii]['id']
         #a=client.delete_to_trash([id])
-        print(id)
+        # print(id)
         files=client.get_download_url(str(id))
         # with open("down.bash", "w") as f:
         #     f.write("#!/bin/bash\n")
@@ -167,7 +167,7 @@ def download(client, param, id):
         #     f.write(f"\nwget -O \"{files['name']}\" \"{files['web_content_link']}\"")
         #     f.write("\n")
         # print(f"usage: . down.bash\n")
-        print("link: ", files['web_content_link'])
+        # print("link: ", files['web_content_link'])
     except Exception as e:
         print("Error: ", e)
     return files
@@ -175,10 +175,10 @@ def download(client, param, id):
 def create_folder(client, user_dir):
     if not user_dir: # 空， do nothing
         return 1
-    print("user_dir: ", user_dir)
+    # print("user_dir: ", user_dir)
     try:
         res = client.create_folder(user_dir)
-        print(res['file'])
+        # print(res['file'])
     except Exception as e:
         print("Error: ", e)
         return e

@@ -36,7 +36,7 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/torrent/, ''),
       },
       '/api': {
-        target: 'http://localhost:5000/api/',
+        target: 'http://127.0.0.1:5000/api/' ,
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },

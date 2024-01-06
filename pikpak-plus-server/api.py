@@ -31,11 +31,11 @@ def user_route(enforce_login=False):
             supabase_user = None
             if jwt and jwt.startswith('Bearer '):
                 jwt = jwt.replace('Bearer ', '')
-                print(f"JWT: {jwt}")
+                # print(f"JWT: {jwt}")
 
                 try:
                     supabase_user = supabase.auth.get_user(jwt)
-                    print("successfully got user")
+                    # print("successfully got user")
                 except Exception as e:
                     
                     return jsonify({"error": "signIn failed"}), 401
@@ -63,7 +63,7 @@ def initialize_client(cred_filename):
         return jsonify({"error": "Invalid login credentials"}), 401
 
     # Print user information
-    print(json.dumps(client.get_user_info(), indent=4))
+    # print(json.dumps(client.get_user_info(), indent=4))
 
     return client
 
@@ -84,12 +84,12 @@ def get_directory_id(email):
     try:
         # Fetch data from the 'pikpak_data' table based on the email
         response = supabase.table('pikpak_data').select('directory_id').eq('email', email).execute()
-        print(10000)
+        # print(10000)
         data = response.data
 
         # Check if the email is found
         if data:
-            print(20000)
+            # print(20000)
             
             directory_id = data[0]['directory_id']
             return {'directory_id': directory_id}
@@ -137,7 +137,7 @@ def browse(user):
     try:
         # Get JSON data from the request
         data = request.get_json()
-        print(data)
+        # print(data)
         item_index = data.get('item_index')
 
   
@@ -159,7 +159,7 @@ def add_url(user):
     data = request.get_json()
     url = data.get('url')
     user_dir = data.get('user_dir')
-    print("crated with parent", user_dir)
+    # print("crated with parent", user_dir)
 
     if not url:
         return jsonify({"error": "URL parameter is missing"}), 400
@@ -167,7 +167,7 @@ def add_url(user):
     try:
         # Execute the 'fetch' command with the initialized client
         res = cmd.cmds["fetch"](initialized_client, url,user_dir)
-        print(res)
+        # print(res)
         return jsonify({"result": res})
     except Exception as e:
         initialize_client_route()
@@ -202,7 +202,7 @@ def create_folder(user_email):
 
         return res
     except Exception as e:
-        print('called 3')
+        # print('called 3')
         
         return jsonify({"error": str(e)}), 500
 
@@ -213,7 +213,7 @@ def download(user):
     # Get the URL from the request data
     data = request.get_json()
     id = data.get('id')
-    print("id",id)
+    # print("id",id)
     if not id:
         return jsonify({"error": "URL parameter is missing"}), 400
 
@@ -244,19 +244,19 @@ def login():
             if email and password:
                 data = supabase.auth.sign_in_with_password({'email': email, 'password': password})
                 dir_id = get_directory_id(email)
-                print(dir_id)
+                # print(dir_id)
                 response = jsonify({'redirect': '/create',"dir":dir_id['directory_id'], "auth": data.session.access_token})
                 supabase.auth.sign_out()
-                print(1111111111111)
+                # print(1111111111111)
                 initialize_client_route()
                 
-                print(222222222222222)
+                # print(222222222222222)
                 return response
             else:
-                print(333333333333)
+                # print(333333333333)
                 return jsonify({"error": "provide email and passowrd"}), 401
         except AuthApiError:
-            print(44444444444)
+            # print(44444444444)
             return jsonify({"error": "auth failed"}), 401
 
 
@@ -269,10 +269,10 @@ def signup():
         try:
             user = supabase.auth.sign_up(
                 {"email": email, "password": password})
-            print(user)
+            # print(user)
             initialize_client_route()
             res = create_folder(email)
-            print(res, "res")
+            # print(res, "res")
            
             return jsonify({'result': 'success signUp'}), 200
         except AuthApiError:
