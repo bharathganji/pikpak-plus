@@ -12,7 +12,7 @@ import {
   folderOpen,
   document,
   arrowBack,
-  trash,
+  // trash,
   cloudDownload,
 } from 'ionicons/icons'
 import { FileListResponse } from '../../types/sharedTypes'
@@ -135,6 +135,7 @@ const BrowseFolders: React.FC = () => {
             <IonList>
               {browseData?.files.map((item) => (
                 <IonItem
+                  color="light"
                   key={item.id}
                   onClick={() =>
                     handleItemClick(item.id, item.kind, item.parent_id)
@@ -170,7 +171,7 @@ const BrowseFolders: React.FC = () => {
                       </IonButton>
                     </>
                   )}
-                  <IonButton
+                  {/* <IonButton
                     color="danger"
                     slot="end"
                     style={{ fontSize: '1.125rem' }}
@@ -180,7 +181,7 @@ const BrowseFolders: React.FC = () => {
                     }}
                   >
                     <IonIcon icon={trash} size="default" slot="end"></IonIcon>
-                  </IonButton>
+                  </IonButton> */}
                 </IonItem>
               ))}
             </IonList>

@@ -62,7 +62,7 @@ export const prepareColumnDefs = (): ColDef[] => {
       headerName: 'Name',
       field: 'name',
       filter: 'agTextColumnFilter',
-      width: 325,
+      width: 250,
     },
     {
       headerName: 'Size',
@@ -73,24 +73,24 @@ export const prepareColumnDefs = (): ColDef[] => {
       sort: 'desc' as SortDirection,
     },
     {
-      headerName: 'Seeders',
+      headerName: 'Seedr',
       field: 'seeders',
       filter: 'agNumberColumnFilter',
-      width: 130,
+      width: 90,
       comparator: seedersComparator,
     },
     {
-      headerName: 'Leechers',
+      headerName: 'Leechr',
       field: 'leechers',
       filter: 'agNumberColumnFilter',
-      width: 120,
+      width: 100,
     },
     {
       headerName: 'Magnet/Torrent',
       field: 'magnetOrTorrent',
       filter: true,
     },
-    { headerName: 'Type', field: 'type', filter: true, width: 100 },
+    // { headerName: 'Type', field: 'type', filter: true, width: 100 },
     { headerName: 'Url', field: 'url', filter: true },
   ].map((data) => ({ ...data, suppressMovable: true }));
 };
