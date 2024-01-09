@@ -1,5 +1,16 @@
 version: '3.9'
 services:
+  web:
+    build: ./pikpak-plus-client
+    depends_on:
+    - server
+    ports:
+      - '3002:3002'
+      - '3001:3001'
+    volumes:
+    - ./pikpak-plus-client:/user/src/app
+    env_file:
+    - ./.env
   server:
     build: ./pikpak-plus-server
     ports:
@@ -8,13 +19,5 @@ services:
     - ./pikpak-plus-server:/app
     environment:
       FLASK_APP: prod
-    env_file:
-    - ./.env
-  web:
-    build: ./pikpak-plus-client
-    ports:
-      - '3002:3002'
-    volumes:
-    - ./pikpak-plus-client:/user/src/app
     env_file:
     - ./.env

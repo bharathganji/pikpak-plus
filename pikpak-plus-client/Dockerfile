@@ -1,7 +1,6 @@
-FROM node:18-slim
+FROM node:18.16.0-buster-slim
 
 RUN mkdir -p /app/
-WORKDIR /app/
 WORKDIR /app/
 RUN chmod -R 777 /app/
 COPY . /app/
