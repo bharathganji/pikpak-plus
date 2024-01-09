@@ -29,3 +29,24 @@
     margin: auto auto;
   }
 }
+
+.backg {
+  background-image: linear-gradient(
+    315deg,
+    hsl(0deg 0% 100%) 1%,
+    hsl(205deg 100% 98%) 40%,
+    hsl(205deg 100% 96%) 48%,
+    hsl(205deg 100% 93%) 51%,
+    hsl(204deg 100% 91%) 51%,
+    hsl(204deg 100% 88%) 50%,
+    hsl(203deg 100% 86%) 50%,
+    hsl(203deg 100% 83%) 49%,
+    hsl(202deg 100% 79%) 49%,
+    hsl(201deg 100% 76%) 52%,
+    hsl(200deg 100% 71%) 60%,
+    hsl(199deg 100% 66%) 99%
+  );
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
