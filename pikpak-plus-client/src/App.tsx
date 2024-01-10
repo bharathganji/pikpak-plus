@@ -17,6 +17,7 @@ import {
 } from 'ionicons/icons'
 import { Redirect, Route } from 'react-router'
 import { getauthCookie, isJWTValid } from './helpers/helpers'
+import LoadingSpinner from './components/LoadingSpinner/LoadingSpinner'
 
 const DownloadList = lazy(() => import('./components/TasksList/taskslist'))
 const AddUrlForm = lazy(() => import('./components/AddURL/addUrl'))
@@ -37,7 +38,7 @@ const App: React.FC = () => {
       path={path}
       render={() =>
         isEnable !== isIgnoreList.includes(path) ? (
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<LoadingSpinner />}>
             {React.createElement(component)}
           </Suspense>
         ) : isEnable ? (

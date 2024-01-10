@@ -1,6 +1,7 @@
 import { ColDef, SortDirection } from 'ag-grid-community'
 import { YtsData, SearchInfo } from '../types/sharedTypes' // Update the path accordingly
 import axios from 'axios'
+import { logoGithub, heart } from 'ionicons/icons'
 
 export type GenericData = YtsData | SearchInfo
 
@@ -92,42 +93,53 @@ export const prepareColumnDefs = (): ColDef[] => {
     },
     // { headerName: 'Type', field: 'type', filter: true, width: 100 },
     { headerName: 'Url', field: 'url', filter: true },
-  ].map((data) => ({ ...data, suppressMovable: true }));
-};
+  ].map((data) => ({ ...data, suppressMovable: true }))
+}
 
 export const prepareRowData = (data: GenericData): any[] => {
-  const rows: any[] = [];
+  const rows: any[] = []
 
   if (data.torrents && data.torrents.length) {
     data.torrents.forEach((file) => {
-      const fileRow: any = { ...data }; // Copy parent data
+      const fileRow: any = { ...data } // Copy parent data
 
-      const magnetOrTorrentKey = file.magnet ? 'magnet' : file.torrent ? 'torrent' : '';
+      const magnetOrTorrentKey = file.magnet
+        ? 'magnet'
+        : file.torrent
+        ? 'torrent'
+        : ''
 
       if (magnetOrTorrentKey) {
-        fileRow.magnetOrTorrent = file[magnetOrTorrentKey];
+        fileRow.magnetOrTorrent = file[magnetOrTorrentKey]
       }
 
       Object.entries(file).forEach(([fileKey, fileValue]) => {
-        fileRow[fileKey] = fileValue;
-      });
+        fileRow[fileKey] = fileValue
+      })
 
-      rows.push(fileRow);
-    });
+      rows.push(fileRow)
+    })
   } else {
-    const magnetOrTorrentKey = data.magnet ? 'magnet' : data.torrent ? 'torrent' : '';
+    const magnetOrTorrentKey = data.magnet
+      ? 'magnet'
+      : data.torrent
+      ? 'torrent'
+      : ''
 
     if (magnetOrTorrentKey) {
-      const singleRow: any = { ...data, magnetOrTorrent: data[magnetOrTorrentKey] };
-      rows.push(singleRow);
+      const singleRow: any = {
+        ...data,
+        magnetOrTorrent: data[magnetOrTorrentKey],
+      }
+      rows.push(singleRow)
     } else {
-      const singleRow: any = { ...data };
-      rows.push(singleRow);
+      const singleRow: any = { ...data }
+      rows.push(singleRow)
     }
   }
 
-  return rows;
-};
+  return rows
+}
 export function getauthCookie() {
   const authCookie = document.cookie
     .split(';')
@@ -214,3 +226,23 @@ export function isJWTValid(jwt) {
     return false
   }
 }
+
+export const usefullLinks = [
+  {
+    link: 'Github',
+    value: 'https://github.com/bharathganji/pikpak-plus',
+    icon: logoGithub,
+  },
+  {
+    link: 'Support US',
+    value: 'https://www.buymeacoffee.com/bharathganji',
+    icon: heart,
+  },
+]
+export const help = [
+  'Download torrent links to cloud ⚡',
+  'Cumulative download quota 4TB/month',
+  'Storage capacity of 10TB',
+  'Search feature to search multiple Torrent Indexers',
+  'Share files with your friends',
+]
