@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from 'react'
-import { IonToast, IonContent } from '@ionic/react'
-import { addSharp } from 'ionicons/icons'
+import { IonToast, IonContent, IonIcon } from '@ionic/react'
+import { addSharp, informationCircleOutline, star, flash } from 'ionicons/icons'
 import './addUrlForm.css'
 import CustomInput from '../CustomInput/CustomInput'
-import { getEmailandDirectory, makeRequest } from '../../helpers/helpers'
+import {
+  getEmailandDirectory,
+  help,
+  makeRequest,
+  usefullLinks,
+} from '../../helpers/helpers'
 import CustomIonHeader from '../CustomIonHeader/CustomIonHeader'
+import HelperCard from '../HelperCard/HelperCard'
 
 const AddUrlForm: React.FC = () => {
   const [text, settext] = useState<string>('')
@@ -71,32 +77,82 @@ const AddUrlForm: React.FC = () => {
     }
   }
 
+  const usefullLinksList = usefullLinks.map((item) => (
+    <p>
+      <IonIcon icon={item.icon} />
+      <a
+        href={item?.value}
+        target="_blank"
+        style={{ textDecoration: 'none', color: 'black', cursor: 'pointer' }}
+      >
+        &nbsp; {item?.link}
+      </a>
+    </p>
+  ))
+  const helpList = help.map((item) => (
+    <p>
+      <IonIcon icon={star} /> {item}
+    </p>
+  ))
+
   return (
     <>
       <CustomIonHeader title="Create Cloud Task" />
-      <IonContent>
-        <div className="custom-container">
-          <div className="container-welcome">
-            <span className="email-welcome">
-              <b>H</b>ello..!
-            </span>
-            {email}
+
+      <IonContent fullscreen={true}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            paddingBottom: '6rem',
+          }}
+        >
+          <div className="custom-container">
+            <div className="container-welcome">
+              <span className="email-welcome">
+                <b>
+                  <i>H</i>
+                </b>
+                ello..!
+              </span>
+              {email}
+            </div>
+            <CustomInput
+              text={text}
+              handleTextChange={handleTextChange}
+              handleSubmit={handleSubmit}
+              icon={addSharp}
+              customPlaceholder=" Enter magnet URL"
+            />
           </div>
-          <CustomInput
-            text={text}
-            handleTextChange={handleTextChange}
-            handleSubmit={handleSubmit}
-            icon={addSharp}
-            customPlaceholder="   Enter magnet URL"
+          <HelperCard
+            cardTitle="Helper Card"
+            cardSubtitle={helpList}
+            cardSubTitleStyle={{
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+            icon={informationCircleOutline}
+            titleColor="primary"
+          />
+          <HelperCard
+            cardTitle="Useful Links"
+            cardSubtitle={usefullLinksList}
+            cardSubTitleStyle={{
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+            icon={flash}
+            titleColor="success"
+          />
+          <IonToast
+            isOpen={!!showToast}
+            onDidDismiss={() => setShowToast(null)}
+            message={showToast?.message}
+            duration={3000}
+            color={showToast?.color}
           />
         </div>
-        <IonToast
-          isOpen={!!showToast}
-          onDidDismiss={() => setShowToast(null)}
-          message={showToast?.message}
-          duration={3000}
-          color={showToast?.color}
-        />
       </IonContent>
     </>
   )

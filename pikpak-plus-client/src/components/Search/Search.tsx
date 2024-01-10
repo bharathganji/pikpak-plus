@@ -86,7 +86,7 @@ export default function Search() {
     <>
       <CustomIonHeader title="Search" />
 
-      <IonContent fullscreen={true} >
+      <IonContent fullscreen={true}>
         <CheckboxMemoized
           customData={WEBSITES}
           SelectedWebsite={SelectedWebsite}
@@ -96,15 +96,14 @@ export default function Search() {
           text={text}
           handleTextChange={handleTextChange}
           handleSubmit={handleSubmit}
-          customPlaceholder="   Search..."
+          customPlaceholder=" Search... eg: avengers"
           icon={search}
         />
         {/* Use the new SearchLoader component */}
         <BlockUiLoader loading={loading}>
-        <div className='container'>
-
-        <SearchGrid searchInfoList={searchInfoList} />
-        </div>
+          <div className="container">
+            <SearchGrid searchInfoList={searchInfoList} />
+          </div>
         </BlockUiLoader>
         <IonToast
           isOpen={!!showToast}
