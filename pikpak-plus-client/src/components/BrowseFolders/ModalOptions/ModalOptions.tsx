@@ -217,7 +217,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
   }
 
   const handleDelete = async (itemId: string): Promise<any> => {
-    console.log('Delete logic')
+    console.log('Delete logic' + itemId)
   }
 
   const actionFunctionMap: Record<string, (itemId: string) => Promise<any>> = {
