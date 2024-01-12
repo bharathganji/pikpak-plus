@@ -223,6 +223,22 @@ def download(user):
         return jsonify(res)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@app.route('/api/share', methods=['POST'])
+def share():
+    # Get the URL from the request data
+    data = request.get_json()
+    id = data.get('id')
+    if not id:
+        return jsonify({"error": "id parameter is missing"}), 400
+    try:
+        # Execute the 'fetch' command with the initialized client
+        res = cmd.cmds["share"](initialized_client, id)
+        return jsonify(res)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+        
 # -------------------------------------------------------------------------------------------------------------
 
 

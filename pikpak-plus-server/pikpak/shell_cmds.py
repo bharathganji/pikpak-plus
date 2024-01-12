@@ -16,6 +16,7 @@ tasks: list offline task
 trash [file index]: throw file or folder into trash
 del [file index]: delete file or folder forever
 download [file index]: get url for download file
+share [file index]: get url for share file
 """
 
 def listdir(client, param, parentdir):
@@ -144,6 +145,8 @@ def remove(client, param):
     try:
         ii=int(param.strip())
         id=_files[ii]['id']
+        if id == '':
+            return 1
         #a=client.delete_to_trash([id])
         a=client.delete_forever([id])
         # print(a)
@@ -153,6 +156,8 @@ def remove(client, param):
 
 # 获取文件下载链接
 def download(client, param, id):
+    if id == '':
+        return 1
     if not param: # 空， do nothing
         return 1
     try:
@@ -184,7 +189,17 @@ def create_folder(client, user_dir):
         return e
         
     return res['file']
-
+def share(client, dir_id):
+    if not dir_id: 
+        return 1
+    try:
+        res = client.get_share_url(dir_id)
+        print(res['share_url'])
+    except Exception as e:
+        print("Error: ", e)
+        return e
+    return res
+    
 cmds={
     "help": helpme,
     "ls": listdir,
@@ -196,5 +211,6 @@ cmds={
     "del": remove,
     "download": download,
     "cleardir": cleardir,
-    "create_folder": create_folder
+    "create_folder": create_folder,
+    "share": share
 }

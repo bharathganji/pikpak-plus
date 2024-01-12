@@ -6,41 +6,58 @@ import {
   IonLabel,
   IonContent,
   IonButton,
-  IonToast, // Import IonToast for error handling
+  IonToast,
+  IonModal,
+  IonItemDivider,
+  IonChip, 
 } from '@ionic/react'
 import {
   folderOpen,
   document,
   arrowBack,
-  // trash,
-  cloudDownload,
+  ellipsisVerticalCircleOutline,
 } from 'ionicons/icons'
-import { FileListResponse } from '../../types/sharedTypes'
+import { FileItem, FileListResponse } from '../../types/sharedTypes'
 import './BrowseFolders.css'
-import { useHistory } from 'react-router'
-import { getEmailandDirectory, makeRequest } from '../../helpers/helpers'
+import {
+  formatFileSize,
+  getEmailandDirectory,
+  makeRequest,
+} from '../../helpers/helpers'
 import CustomIonHeader from '../CustomIonHeader/CustomIonHeader'
 import BlockUiLoader from '../BlockUiLoader/BlockUiLoader'
+import ModalOptions from './ModalOptions/ModalOptions'
 
 const BrowseFolders: React.FC = () => {
   const [browseData, setBrowseData] = useState<FileListResponse | null>(null)
   const [parentStack, setParentStack] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [errorToast, setErrorToast] = useState<string | null>(null) // State for error toast
-  const history = useHistory()
   const [directory, setDirectory] = useState<string | null>(null)
+  const [selectedItem, setSelectedItem] = useState<FileItem | null>(null)
+  const [showModal, setShowModal] = useState(false)
 
+  // Effect hook to set initial directory on component mount
   useEffect(() => {
     const { dir } = getEmailandDirectory()
     setDirectory(dir)
   }, [])
 
+  useEffect(() => {}, [selectedItem])
+
+  // Effect hook to fetch browseData when directory changes
   useEffect(() => {
     if (directory) {
       fetchBrowseData(directory)
     }
   }, [directory])
 
+  // Function to close the modal
+  function closeModal() {
+    setShowModal(false)
+  }
+
+  // Function to fetch browse data from the server
   const fetchBrowseData = async (itemIndex: string | null) => {
     try {
       setIsLoading(true)
@@ -56,6 +73,8 @@ const BrowseFolders: React.FC = () => {
       setIsLoading(false)
     }
   }
+
+  // Function to make a browse request to the server
   const makeBrowseRequest = async (itemIndex: string | null) => {
     try {
       const response = await makeRequest('browse', 'POST', {
@@ -69,6 +88,7 @@ const BrowseFolders: React.FC = () => {
     }
   }
 
+  // Function to handle item click, fetching data for folders
   const handleItemClick = async (
     index: string | null = directory,
     kind: string,
@@ -92,6 +112,7 @@ const BrowseFolders: React.FC = () => {
     }
   }
 
+  // Function to handle going back to the previous folder
   const handleBackClick = () => {
     const newStack = [...parentStack]
     const parent_id = newStack.pop()
@@ -102,19 +123,12 @@ const BrowseFolders: React.FC = () => {
     fetchBrowseData(parent_id || '')
   }
 
-  const handleDownloadClick = (itemId: string) => (e: React.MouseEvent) => {
-    e.stopPropagation()
-
-    // Navigate to /downloader route with query parameter item.id
-    history.push(`/downloader?itemId=${itemId}`)
-  }
-
   return (
     <>
       <CustomIonHeader title="Browse Folders" />
 
-      <IonContent fullscreen={true}>
-        <BlockUiLoader loading={isLoading}>
+      <BlockUiLoader loading={isLoading}>
+        <IonContent fullscreen={true}>
           <>
             {errorToast && (
               <IonToast
@@ -132,62 +146,85 @@ const BrowseFolders: React.FC = () => {
                 </IonLabel>
               </IonItem>
             )}
-            <IonList>
-              {browseData?.files.map((item) => (
-                <IonItem
-                  color="light"
-                  key={item.id}
-                  onClick={() =>
-                    handleItemClick(item.id, item.kind, item.parent_id)
-                  }
-                  className={item.kind === 'drive#folder' ? 'hover-effect' : ''}
-                >
-                  <IonIcon
-                    slot="start"
-                    icon={item.kind === 'drive#folder' ? folderOpen : document}
-                  />
-                  <IonLabel>{item.name}</IonLabel>
-
-                  {item.kind !== 'drive#folder' && (
-                    <>
-                      <IonLabel slot="end">
-                        {`Size: ${(
-                          (parseInt(item?.size) || 0) /
-                          1024 /
-                          1024
-                        ).toFixed(2)} Mb`}
-                      </IonLabel>
-                      <IonButton
-                        color="tertiary"
+            <div className="browse-list">
+              <IonList>
+                {browseData?.files.map((item) => (
+                  <IonItem
+                    color="light"
+                    key={item.id}
+                    onClick={() =>
+                      handleItemClick(item.id, item.kind, item.parent_id)
+                    }
+                    className={
+                      item.kind === 'drive#folder' ? 'hover-effect' : ''
+                    }
+                  >
+                    <IonIcon
+                      slot="start"
+                      icon={
+                        item.kind === 'drive#folder' ? folderOpen : document
+                      }
+                    />
+                    <IonLabel>{item.name}</IonLabel>
+                    <IonButton
+                      color="tertiary"
+                      slot="end"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedItem(item)
+                        setShowModal(true) // Open modal on button click
+                      }}
+                      // id="show-modal"
+                      style={{ fontSize: '1.125rem' }}
+                    >
+                      <IonIcon
+                        icon={ellipsisVerticalCircleOutline}
+                        size="default"
                         slot="end"
-                        onClick={handleDownloadClick(item.id)}
-                        style={{ marginRight: '1rem', fontSize: '1.125rem' }}
-                      >
-                        <IonIcon
-                          icon={cloudDownload}
-                          size="default"
-                          slot="end"
-                        ></IonIcon>
-                      </IonButton>
+                      ></IonIcon>
+                    </IonButton>
+                  </IonItem>
+                ))}
+              </IonList>
+            </div>
+
+            {/* IonModal component for displaying additional options */}
+            <IonModal
+              isOpen={showModal}
+              keepContentsMounted={true}
+              onDidDismiss={closeModal}
+              initialBreakpoint={1}
+              breakpoints={[0, 1]}
+            >
+              <IonItemDivider color={'light'}>
+                <h3 className="ion-text">
+                  {selectedItem?.name}
+                  {selectedItem?.kind !== 'drive#folder' && (
+                    <>
+                      <IonChip color={'warning'}>
+                        {`${
+                          selectedItem &&
+                          selectedItem.size &&
+                          (parseInt(selectedItem.size) || 0) > 1024 * 1024
+                            ? formatFileSize(parseInt(selectedItem.size))
+                            : formatFileSize(
+                                parseInt(selectedItem?.size || '') || 0,
+                              )
+                        }`}
+                      </IonChip>
                     </>
                   )}
-                  {/* <IonButton
-                    color="danger"
-                    slot="end"
-                    style={{ fontSize: '1.125rem' }}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      alert(item.id)
-                    }}
-                  >
-                    <IonIcon icon={trash} size="default" slot="end"></IonIcon>
-                  </IonButton> */}
-                </IonItem>
-              ))}
-            </IonList>
+                </h3>
+              </IonItemDivider>
+              <ModalOptions
+                item={selectedItem}
+                setShowModal={setShowModal}
+                setIsLoading={setIsLoading}
+              />
+            </IonModal>
           </>
-        </BlockUiLoader>
-      </IonContent>
+        </IonContent>
+      </BlockUiLoader>
     </>
   )
 }

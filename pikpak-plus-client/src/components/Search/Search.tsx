@@ -65,7 +65,6 @@ export default function Search() {
     const trimmedText = text.trim()
     settext(trimmedText)
     console.log('text: ', trimmedText)
-    setLoading(true)
     if (!trimmedText || trimmedText === '') {
       setShowToast({
         message: 'Please enter a valid text.',
@@ -73,6 +72,7 @@ export default function Search() {
       })
       return
     }
+    setLoading(true)
     fetchData(trimmedText)
     settext('')
   }

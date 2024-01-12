@@ -99,7 +99,7 @@ export type FileListResponse = {
   sync_time: string
 }
 
-type FileItem = {
+export type FileItem = {
   kind: string
   id: string
   parent_id: string
@@ -266,3 +266,11 @@ export type YtsData = {
   }[]
 }
 
+export type ShareData = {
+  pass_code: string
+  share_error_files: string[]
+  share_id: string
+  share_list: any[] // You may want to replace 'any' with a more specific type if you know the structure
+  share_text: string
+  share_url: string
+}

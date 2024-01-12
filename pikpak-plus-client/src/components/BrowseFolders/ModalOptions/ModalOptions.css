@@ -1,23 +1,4 @@
-.hover-effect {
-  cursor: pointer;
-  /* Add your hover effect styles here */
-}
-.button-container {
-  display: flex;
-  justify-content: space-evenly;
-}
-
-.flex-container {
-  display: flex;
-  align-items: center;
-}
-.flex-container-top {
-  margin-top: 0.5rem;
-  display: flex;
-  /* align-content: space-between; */
-  flex-wrap: nowrap;
-  justify-content: space-between;
-}
+/* custom alert */
 
 ion-alert.custom-alert {
   --backdrop-opacity: 0.7;

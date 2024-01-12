@@ -77,8 +77,8 @@ const AddUrlForm: React.FC = () => {
     }
   }
 
-  const usefullLinksList = usefullLinks.map((item) => (
-    <p>
+  const usefullLinksList = usefullLinks.map((item, index) => (
+    <p key={index}>
       <IonIcon icon={item.icon} />
       <a
         href={item?.value}
@@ -89,8 +89,8 @@ const AddUrlForm: React.FC = () => {
       </a>
     </p>
   ))
-  const helpList = help.map((item) => (
-    <p>
+  const helpList = help.map((item, index) => (
+    <p key={index}>
       <IonIcon icon={star} /> {item}
     </p>
   ))
