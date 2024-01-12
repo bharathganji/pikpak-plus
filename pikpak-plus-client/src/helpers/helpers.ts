@@ -20,6 +20,10 @@ const convertToBytes = (value: string): number => {
       return numericValue * 1024 * 1024
     case 'gb':
       return numericValue * 1024 * 1024 * 1024
+    case 'mib':
+      return numericValue * 1024 * 1024
+    case 'gib':
+      return numericValue * 1024 * 1024 * 1024
     default:
       return numericValue
   }
@@ -224,6 +228,17 @@ export function isJWTValid(jwt) {
     // Handle any errors that occur during decoding or checks
     console.error('Error checking JWT validity:', error)
     return false
+  }
+}
+
+export function formatFileSize(sizeInBytes: number): string {
+  const sizeInMB = sizeInBytes / (1024 * 1024)
+  const sizeInGB = sizeInBytes / (1024 * 1024 * 1024)
+
+  if (sizeInGB >= 1) {
+    return `${sizeInGB.toFixed(1)} GB`
+  } else {
+    return `${sizeInMB.toFixed(1)} MB`
   }
 }
 

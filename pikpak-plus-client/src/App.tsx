@@ -8,13 +8,7 @@ import {
   IonLabel,
 } from '@ionic/react'
 import { IonReactRouter } from '@ionic/react-router'
-import {
-  cloudDownload,
-  listCircle,
-  folderOpen,
-  magnetOutline,
-  search,
-} from 'ionicons/icons'
+import { listCircle, folderOpen, magnetOutline, search } from 'ionicons/icons'
 import { Redirect, Route } from 'react-router'
 import { getauthCookie, isJWTValid } from './helpers/helpers'
 import LoadingSpinner from './components/LoadingSpinner/LoadingSpinner'
@@ -24,7 +18,6 @@ const AddUrlForm = lazy(() => import('./components/AddURL/addUrl'))
 const BrowseFolders = lazy(
   () => import('./components/BrowseFolders/BrowseFolders'),
 )
-const Downloader = lazy(() => import('./components/Downloader/Downloader'))
 const Search = lazy(() => import('./components/Search/Search'))
 const Login = lazy(() => import('./components/authentication/login/Login'))
 const SignUp = lazy(() => import('./components/authentication/signUp/SignUp'))
@@ -69,14 +62,12 @@ const App: React.FC = () => {
             {renderRoute('/create', AddUrlForm)}
             {renderRoute('/login', Login)}
             {renderRoute('/signup', SignUp)}
-            {renderRoute('/downloader', Downloader)}
             {renderRoute('/browse', BrowseFolders)}
             {renderRoute('/search', Search)}
           </IonRouterOutlet>
 
           <IonTabBar slot="bottom">
             {renderTabButton('tasks', listCircle, 'Tasks')}
-            {renderTabButton('downloader', cloudDownload, 'Downloader')}
             {renderTabButton('create', magnetOutline, 'Magnet')}
             {renderTabButton('browse', folderOpen, 'Folders')}
             {renderTabButton('search', search, 'Search')}

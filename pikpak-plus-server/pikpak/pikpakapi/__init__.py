@@ -391,4 +391,19 @@ class PikPakApi:
         )
         return result
 
+    def get_share_url(self, id: str) -> Dict[str, Any]:
+        """
+        id: str - 文件id
+        获取文件的下载链接
+        """
+        url = f"https://{self.PIKPAK_API_HOST}/drive/v1/share"
+        
+        result = self._request_post(
+            url, 
+            {"file_ids":[id],"share_to":"publiclink","expiration_days":-1,"pass_code_option":"NOT_REQUIRED"},
+            self.get_headers(),
+            self.proxy
+        )
+        return result
+
 

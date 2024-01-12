@@ -8,3 +8,14 @@ ion-item::part(native) {
   border-width: 2px;
   border-radius: 15px;
 }
+
+.browse-list {
+  padding-bottom: 6rem;
+}
+
+.ion-text {
+  margin: 1rem 0.125rem 1rem 0.125rem;
+  text-wrap: wrap;
+  text-align: justify;
+  color: var(--color-primary);
+}

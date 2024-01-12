@@ -25,7 +25,7 @@ def client_from_credit(credfile, proxy=None):
         client.access_token=conf['access']
         try:
             result=client.offline_list()
-            print(result) # 看看access token 是否有效
+            # print(result) # 看看access token 是否有效
             print("Access token valid")
             print(__name__, "-"*20)
             return client, conf
@@ -98,7 +98,7 @@ async def create_client(credfile, username, password, proxy=None):
         client.access_token=conf['access']
         try:
             result=await client.offline_list()
-            print(result) # 看看access token 是否有效
+            # print(result) # 看看access token 是否有效
             return client
         except Exception as e:
             print("Access token error: ", e)
