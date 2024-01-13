@@ -13,6 +13,9 @@ import {
 import './AuthCard.css'
 import { logInOutline, personCircleOutline } from 'ionicons/icons'
 
+// @ts-expect-error Description of why the @ts-expect-error is necessary
+import { ReactComponent as Logo } from '../../../assets/pikpkak_plus.svg'
+
 type nextTitleType = {
   text: string
   redirect: string
@@ -49,6 +52,7 @@ const AuthCard: React.FC<AuthProps> = ({
     }
 
     if (!passwordRegex.test(password)) {
+      setPassword('')
       setShowToast({
         message: 'Password should be at least 6 characters',
         color: 'danger',
@@ -60,64 +64,67 @@ const AuthCard: React.FC<AuthProps> = ({
   }
 
   return (
-    
-      <div className="backg">
-        <IonCard color="light" className="custom-auth-container ">
-          <IonCardHeader className="content-container">
-            <IonCardTitle className="content-container-title">
-              {titleHeading}
-              <IonIcon size={'default'} icon={personCircleOutline}></IonIcon>
-            </IonCardTitle>
-            <IonCardSubtitle>Enter your credentials</IonCardSubtitle>
-          </IonCardHeader>
+    <div className="backg">
+      <Logo />
+      <IonCard color="light" className="custom-auth-container ">
+        <IonCardHeader className="content-container">
+          <IonCardTitle className="content-container-title">
+            {titleHeading}
+            <IonIcon size={'default'} icon={personCircleOutline}></IonIcon>
+          </IonCardTitle>
+          <IonCardSubtitle>Enter your credentials</IonCardSubtitle>
+        </IonCardHeader>
 
-          <IonCardContent className="content-container">
-            <IonInput
-              placeholder="Enter Email"
-              label="Email"
-              labelPlacement="floating"
-              fill="outline"
-              value={email}
-              onIonChange={(e) => setEmail(e.detail.value!)}
-            />
-            <IonInput
-              placeholder="Enter Password"
-              label="Password"
-              labelPlacement="floating"
-              fill="outline"
-              type="password"
-              value={password}
-              onIonChange={(e) => setPassword(e.detail.value!)}
-            />
-            <IonButton
-              shape="round"
-              expand="full"
-              color={'secondary'}
-              onClick={handleSignIn}
-            >
-              Submit
-            </IonButton>
-          </IonCardContent>
-          <div className="flex-container-end ">
-            <IonButton
-              fill="clear"
-              color={'primary'}
-              className="content-container-title"
-              href={nextTitle.redirect}
-            >
-              <span>{nextTitle.text}</span>{' '}
-              <IonIcon icon={logInOutline}></IonIcon>
-            </IonButton>
-          </div>
-          <IonToast
-            isOpen={!!showToast}
-            onDidDismiss={() => setShowToast(null)}
-            message={showToast?.message}
-            duration={3000}
-            color={showToast?.color}
+        <IonCardContent className="content-container">
+          <IonInput
+            placeholder="Enter Email"
+            label="Email"
+            labelPlacement="floating"
+            fill="outline"
+            // clearInput={true}
+            value={email}
+            onIonInput={(e) => setEmail(e.detail.value!)}
           />
-        </IonCard>
-      </div>
+          <IonInput
+            placeholder="Enter Password"
+            label="Password"
+            labelPlacement="floating"
+            fill="outline"
+            type="password"
+            value={password}
+            // clearInput={true}
+            onIonChange={(e) => setPassword(e.detail.value!)}
+          />
+          <IonButton
+            shape="round"
+            expand="full"
+            color={'tertiary'}
+            onClick={handleSignIn}
+          >
+            Submit
+          </IonButton>
+          <IonButton
+            fill="clear"
+            expand="full"
+            color={'tertiary'}
+            shape="round"
+            className="content-container-title1"
+            href={nextTitle.redirect}
+          >
+            <span>{nextTitle.text}</span>
+            <IonIcon icon={logInOutline}></IonIcon>
+          </IonButton>
+        </IonCardContent>
+
+        <IonToast
+          isOpen={!!showToast}
+          onDidDismiss={() => setShowToast(null)}
+          message={showToast?.message}
+          duration={3000}
+          color={showToast?.color}
+        />
+      </IonCard>
+    </div>
   )
 }
 
