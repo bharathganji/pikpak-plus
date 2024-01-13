@@ -46,7 +46,7 @@ const App: React.FC = () => {
 
   const renderTabButton = (tab: string, icon: string, label: string) => (
     <IonTabButton tab={tab} href={`/${tab}`}>
-      <IonIcon icon={icon} />
+      <IonIcon icon={icon} color="black" />
       <IonLabel>{label}</IonLabel>
     </IonTabButton>
   )
