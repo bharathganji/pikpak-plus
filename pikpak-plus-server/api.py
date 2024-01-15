@@ -124,6 +124,22 @@ def get_tasks():
     # Assuming tasks command returns a dictionary, modify accordingly
     return jsonify(res)
 
+
+@app.route('/api/completedTasks', methods=['GET'])
+# @user_route(enforce_login=True)
+def get_tasks_completed():
+    global initialized_client
+
+    if initialized_client is None:
+        abort(401, description="Client not initialized. Call initialize_client first.")
+
+    # Execute the tasks command using initialized_client
+    res = cmd.cmds["tasks_completed"](initialized_client, "param")
+
+    # Assuming tasks command returns a dictionary, modify accordingly
+    return jsonify(res)
+
+
 @app.route('/api/browse', methods=['POST'])
 @user_route(enforce_login=True)
 def browse(user):

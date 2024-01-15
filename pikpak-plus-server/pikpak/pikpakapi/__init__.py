@@ -235,7 +235,27 @@ class PikPakApi:
             "limit": size,
             "next_page_token": next_page_token,
             "filters": """{"phase": {"in": "PHASE_TYPE_RUNNING,PHASE_TYPE_ERROR"}}""",
-        }
+        }                                   
+
+        result = self._request_get(list_url, list_data, self.get_headers(), self.proxy)
+        return result
+
+    def offline_list_completed(
+        self, size: int = 10000, next_page_token: str = None
+    ) -> Dict[str, Any]:
+        """
+        size: int - 每次请求的数量
+        next_page_token: str - 下一页的page token
+        获取离线下载列表
+        """
+        list_url = f"https://{self.PIKPAK_API_HOST}/drive/v1/tasks"
+        list_data = {
+            "type": "offline",
+            "thumbnail_size": "SIZE_SMALL",
+            "limit": size,
+            "next_page_token": next_page_token,
+            "filters": """{"phase": {"in": "PHASE_TYPE_COMPLETE"}}""",
+        }                                   
         result = self._request_get(list_url, list_data, self.get_headers(), self.proxy)
         return result
 

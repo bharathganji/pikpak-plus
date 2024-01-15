@@ -242,6 +242,23 @@ export function formatFileSize(sizeInBytes: number): string {
   }
 }
 
+export const formatCreationTime = (creationTime) => {
+  if (!creationTime) return '' // handle the case when creationTime is undefined or null
+
+  const formattedDate = new Date(creationTime).toLocaleString('en-US', {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    timeZoneName: 'short',
+  })
+
+  return formattedDate
+}
+
 export const usefullLinks = [
   {
     link: 'Github',

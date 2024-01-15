@@ -1,8 +1,3 @@
-.hover-effect {
-  cursor: pointer;
-  /* Add your hover effect styles here */
-}
-
 ion-item::part(native) {
   border-color: #fff;
   border-width: 2px;

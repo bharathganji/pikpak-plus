@@ -80,7 +80,7 @@ export type Task = {
   progress: number
   icon_link: string
   callback: string
-  reference_resource: ReferenceResource
+  reference_resource: ReferenceResource | null
   space: string
 }
 

@@ -26,9 +26,7 @@ const CustomIonHeader: React.FC<CustomIonHeaderProps> = ({ title }) => {
     color: string
   } | null>(null)
   const [isLoading, setIsLoading] = useState(false) // State for loader
-  useEffect(() => {
-    console.log('here', isLoading)
-  }, [isLoading])
+  useEffect(() => {}, [isLoading])
 
   async function signOut() {
     try {

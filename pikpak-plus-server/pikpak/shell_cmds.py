@@ -122,6 +122,11 @@ def list_task(client, param):
     #print(b)
     return b
 
+def list_task_completed(client, param):
+    b=client.offline_list_completed() # list offline tasks completed
+    return b
+
+
 # 删除一个文件，或文件夹
 def trash(client, param):
     if not param: # 空， do nothing
@@ -207,6 +212,7 @@ cmds={
     "me": myself,
     "fetch": offline_task,
     "tasks": list_task,
+    "tasks_completed": list_task_completed,
     "trash": trash,
     "del": remove,
     "download": download,

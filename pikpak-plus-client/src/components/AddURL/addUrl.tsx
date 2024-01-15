@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { IonToast, IonContent, IonIcon } from '@ionic/react'
-import { addSharp, informationCircleOutline, star, flash } from 'ionicons/icons'
+import { IonToast, IonContent, IonIcon, IonText } from '@ionic/react'
+import {
+  addSharp,
+  informationCircleOutline,
+  sparklesOutline,
+  star,
+  flash,
+} from 'ionicons/icons'
 import './addUrlForm.css'
 import CustomInput from '../CustomInput/CustomInput'
 import {
@@ -95,6 +101,9 @@ const AddUrlForm: React.FC = () => {
     </p>
   ))
 
+  const colors = ['success', 'tertiary', 'primary', 'secondary', 'warning']
+  const randomColor = colors[Math.floor(Math.random() * colors.length)]
+
   return (
     <>
       <CustomIonHeader title="Create Cloud Task" />
@@ -110,10 +119,16 @@ const AddUrlForm: React.FC = () => {
           <div className="custom-container">
             <div className="container-welcome">
               <span className="email-welcome">
-                <b>
-                  <i>H</i>
-                </b>
-                ello..!
+                <IonText>
+                  <span>
+                    Welcome..
+                    <IonIcon
+                      color={randomColor}
+                      size="default"
+                      icon={sparklesOutline}
+                    />
+                  </span>
+                </IonText>
               </span>
               {email}
             </div>
