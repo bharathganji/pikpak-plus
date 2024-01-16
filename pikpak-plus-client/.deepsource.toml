@@ -1,0 +1,9 @@
+# .deepsource.toml
+
+version = 2
+
+[[analyzers]]
+name = "javascript"
+
+  [analyzers.config]
+  node = "12"
