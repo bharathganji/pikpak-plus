@@ -17,6 +17,7 @@ import {
 } from '../../helpers/helpers'
 import CustomIonHeader from '../CustomIonHeader/CustomIonHeader'
 import HelperCard from '../HelperCard/HelperCard'
+import BlockUiLoader from '../BlockUiLoader/BlockUiLoader' // Import BlockUiLoader
 
 const AddUrlForm: React.FC = () => {
   const [text, settext] = useState<string>('')
@@ -26,6 +27,7 @@ const AddUrlForm: React.FC = () => {
     message: string
     color: string
   } | null>(null)
+  const [isLoading, setIsLoading] = useState<boolean>(false) // Add loading state
 
   const handleTextChange = (value: string) => {
     settext(value!)
@@ -42,6 +44,9 @@ const AddUrlForm: React.FC = () => {
   }, [directory])
 
   const handleSubmit = async () => {
+    // Set loading to true
+    setIsLoading(true)
+
     // Check if the input is a valid magnet URL
     const isMagnetURL = /^magnet:\?xt=urn:btih:[0-9a-fA-F]{40}/.test(text)
 
@@ -51,6 +56,8 @@ const AddUrlForm: React.FC = () => {
         message: 'Invalid magnet URL. Please enter a valid magnet URL.',
         color: 'danger',
       })
+      // Set loading to false
+      setIsLoading(false)
       return
     }
 
@@ -80,11 +87,14 @@ const AddUrlForm: React.FC = () => {
       console.error('Error:', error)
       // Display a red toast for errors
       setShowToast({ message: 'Error adding task', color: 'danger' })
+    } finally {
+      // Set loading to false regardless of success or failure
+      setIsLoading(false)
     }
   }
 
   const usefullLinksList = usefullLinks.map((item, index) => (
-    <p key={index}>
+    <IonText key={index}>
       <IonIcon icon={item.icon} />
       <a
         href={item?.value}
@@ -93,12 +103,12 @@ const AddUrlForm: React.FC = () => {
       >
         &nbsp; {item?.link}
       </a>
-    </p>
+    </IonText>
   ))
   const helpList = help.map((item, index) => (
-    <p key={index}>
+    <IonText key={index}>
       <IonIcon icon={star} /> {item}
-    </p>
+    </IonText>
   ))
 
   const colors = ['success', 'tertiary', 'primary', 'secondary', 'warning']
@@ -109,65 +119,67 @@ const AddUrlForm: React.FC = () => {
       <CustomIonHeader title="Create Cloud Task" />
 
       <IonContent fullscreen={true}>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            paddingBottom: '6rem',
-          }}
-        >
-          <div className="custom-container">
-            <div className="container-welcome">
-              <span className="email-welcome">
-                <IonText>
-                  <span>
-                    Welcome..
-                    <IonIcon
-                      color={randomColor}
-                      size="default"
-                      icon={sparklesOutline}
-                    />
-                  </span>
-                </IonText>
-              </span>
-              {email}
+        <BlockUiLoader loading={isLoading}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              paddingBottom: '6rem',
+            }}
+          >
+            <div className="custom-container">
+              <div className="container-welcome">
+                <span className="email-welcome">
+                  <IonText>
+                    <span>
+                      Welcome..
+                      <IonIcon
+                        color={randomColor}
+                        size="default"
+                        icon={sparklesOutline}
+                      />
+                    </span>
+                  </IonText>
+                </span>
+                {email}
+              </div>
+              <CustomInput
+                text={text}
+                handleTextChange={handleTextChange}
+                handleSubmit={handleSubmit}
+                icon={addSharp}
+                customPlaceholder=" Enter magnet URL"
+              />
             </div>
-            <CustomInput
-              text={text}
-              handleTextChange={handleTextChange}
-              handleSubmit={handleSubmit}
-              icon={addSharp}
-              customPlaceholder=" Enter magnet URL"
+            <HelperCard
+              cardTitle="Helper Card"
+              cardSubtitle={helpList}
+              cardSubTitleStyle={{
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+              icon={informationCircleOutline}
+              titleColor="primary"
+            />
+            <HelperCard
+              cardTitle="Useful Links"
+              cardSubtitle={usefullLinksList}
+              cardSubTitleStyle={{
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+              icon={flash}
+              titleColor="success"
+            />
+            <IonToast
+              isOpen={!!showToast}
+              onDidDismiss={() => setShowToast(null)}
+              message={showToast?.message}
+              duration={3000}
+              color={showToast?.color}
             />
           </div>
-          <HelperCard
-            cardTitle="Helper Card"
-            cardSubtitle={helpList}
-            cardSubTitleStyle={{
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-            icon={informationCircleOutline}
-            titleColor="primary"
-          />
-          <HelperCard
-            cardTitle="Useful Links"
-            cardSubtitle={usefullLinksList}
-            cardSubTitleStyle={{
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-            icon={flash}
-            titleColor="success"
-          />
-          <IonToast
-            isOpen={!!showToast}
-            onDidDismiss={() => setShowToast(null)}
-            message={showToast?.message}
-            duration={3000}
-            color={showToast?.color}
-          />
-        </div>
+        </BlockUiLoader>
       </IonContent>
     </>
   )
