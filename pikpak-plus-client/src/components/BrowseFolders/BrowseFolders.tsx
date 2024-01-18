@@ -9,7 +9,7 @@ import {
   IonToast,
   IonModal,
   IonItemDivider,
-  IonChip, 
+  IonChip,
 } from '@ionic/react'
 import {
   folderOpen,

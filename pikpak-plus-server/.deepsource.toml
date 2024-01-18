@@ -1,9 +1,0 @@
-# .deepsource.toml
-
-version = 2
-
-[[analyzers]]
-name = "python"
-
-  [analyzers.config]
-  python = 3.8
