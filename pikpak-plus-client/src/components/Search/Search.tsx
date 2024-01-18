@@ -35,8 +35,6 @@ export default function Search() {
       )
       // const response = await axios.get(`/api/v1/all/search?query=${searchTerm}&limit=5`)
       const data: SearchInfo[] = response.data.data
-
-      console.log(data)
       data.forEach((item) => {
         if (item && item.error) {
           setShowToast({

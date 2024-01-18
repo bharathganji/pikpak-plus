@@ -98,6 +98,7 @@ const AddUrlForm: React.FC = () => {
       <IonIcon icon={item.icon} />
       <a
         href={item?.value}
+        rel="noopener noreferrer"
         target="_blank"
         style={{ textDecoration: 'none', color: 'black', cursor: 'pointer' }}
       >

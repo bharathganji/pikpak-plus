@@ -35,7 +35,6 @@ const CustomIonHeader: React.FC<CustomIonHeaderProps> = ({ title }) => {
 
       const response = await makeRequest('logout', 'POST')
       const data = response.data
-      console.log(data)
 
       if (!data) {
         console.error('Sign-out failed:', data.error)
