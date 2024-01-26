@@ -2,7 +2,7 @@ import { ColDef, SortDirection } from 'ag-grid-community'
 import { YtsData, SearchInfo } from '../types/sharedTypes' // Update the path accordingly
 import axios from 'axios'
 import { logoGithub, heart } from 'ionicons/icons'
-
+import telegram from '../assets/telegram.svg'
 export type GenericData = YtsData | SearchInfo
 
 // Function to prepare column definitions dynamicallyimport { ColDef } from "ag-grid-community";
@@ -96,7 +96,7 @@ export const prepareColumnDefs = (): ColDef[] => {
       filter: true,
     },
     // { headerName: 'Type', field: 'type', filter: true, width: 100 },
-    { headerName: 'Url', field: 'url', filter: true },
+    { headerName: 'URL', field: 'url', filter: true },
   ].map((data) => ({ ...data, suppressMovable: true }))
 }
 
@@ -269,6 +269,11 @@ export const usefullLinks = [
     link: 'Support US',
     value: 'https://www.buymeacoffee.com/bharathganji',
     icon: heart,
+  },
+  {
+    link: 'Telegram',
+    value: 'https://t.me/pikpak_plus',
+    icon: telegram,
   },
 ]
 export const help = [

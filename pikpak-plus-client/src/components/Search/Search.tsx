@@ -28,7 +28,7 @@ export default function Search() {
   }, [])
 
   const fetchData = async (searchTerm: string) => {
-    const SITE = 'piratebay'
+    const SITE = 'yts'
     try {
       const response = await axios.get(
         `/torrent/api/v1/search?site=${SITE}&query=${searchTerm}&limit=0&page=1`,
@@ -71,14 +71,15 @@ export default function Search() {
       return
     }
     setLoading(true)
-    fetchData(trimmedText)
     settext('')
+    fetchData(trimmedText)
   }
 
   // const SearchGridMemoized = React.memo(SearchGrid)
   const CheckboxMemoized = React.memo(Checkbox)
 
   const [SelectedWebsite, setSelectedWebsite] = useState<string[]>([])
+  console.log('hi')
 
   return (
     <>
@@ -97,7 +98,6 @@ export default function Search() {
           customPlaceholder=" Search... eg: avengers"
           icon={search}
         />
-        {/* Use the new SearchLoader component */}
         <BlockUiLoader loading={loading}>
           <div className="container">
             <SearchGrid searchInfoList={searchInfoList} />
@@ -107,7 +107,7 @@ export default function Search() {
           isOpen={!!showToast}
           onDidDismiss={() => setShowToast(null)}
           message={showToast?.message}
-          duration={3000}
+          duration={1000}
           color={showToast?.color}
         />
       </IonContent>

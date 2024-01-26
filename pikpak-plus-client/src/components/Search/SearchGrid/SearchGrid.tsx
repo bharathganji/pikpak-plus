@@ -35,7 +35,7 @@ const AgGrid: React.FC<AgGridProps> = ({ searchInfoList }) => {
     rowHeight: 45, // Set the desired row height here
   }
   const shareColumn: ColDef = {
-    headerName: 'Share',
+    headerName: 'Share URL',
     field: 'url', // Replace 'ShareField' with the actual field name from your data
     cellRenderer: 'shareCellRenderer',
     width: 100,
