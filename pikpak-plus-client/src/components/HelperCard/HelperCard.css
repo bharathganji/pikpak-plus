@@ -1,5 +1,5 @@
 .helper-card {
   height: auto;
   z-index: 1;
-  width: -webkit-fill-available;
+  /* width: -webkit-fill-available; */
 }

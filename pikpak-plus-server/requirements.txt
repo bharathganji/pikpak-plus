@@ -4,4 +4,5 @@ flask_cors
 supabase
 gotrue
 python-dotenv
+pandas
 gunicorn

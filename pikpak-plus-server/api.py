@@ -1,18 +1,16 @@
-import json
 import os
 from gotrue.errors import AuthApiError
 import functools
-from flask import session
 from supabase_client import supabase
 from flask import Flask, request, jsonify, abort
 from flask_cors import CORS
 from pikpak import client as pik
 from pikpak import shell_cmds as cmd
-import logging
+import logging, random, string
+import apiscrape
 
-
-app = Flask(__name__)
-app.secret_key = "super secret key"
+app=Flask(__name__)
+app.config['SECRET_KEY']=''.join(random.choice(string.ascii_uppercase + string.digits))
 
 CORS(app)
 
@@ -317,6 +315,28 @@ def logout():
     supabase.auth.sign_out()
     return response
 
+# ---------- torrent api ----------------
+
+@app.route('/api/searchFields', methods=['GET', 'POST'])
+def searchFields():
+    return apiscrape.indexerList()
+   
+@app.route('/api/search', methods=['GET', 'POST'])
+def searchform():
+    if request.method == "POST":
+        req = request.get_json()
+        query = req.get("query")    
+        categoryList = req.get("categoryList")    
+        indexerList = req.get("indexerList")    
+        
+        df = apiscrape.searchQuery(query, categoryList, indexerList)
+
+        if df is not "Empty":
+            json_data = df.to_json(orient='records')
+            return json_data 
+        return "No results found"
+
+# ---------- torret api end -------------
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)

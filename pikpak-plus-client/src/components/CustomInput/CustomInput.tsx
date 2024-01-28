@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { IonInput, IonButton, IonIcon } from '@ionic/react'
 import './CustomInput.css'
 
@@ -8,31 +9,35 @@ export default function CustomInput({
   icon,
   customPlaceholder,
 }: any) {
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLIonInputElement>) => {
-    if (event.key === 'Enter') {
-      handleSubmit(text)
-    }
-  }
-  return (
-    <div className="container">
-      <div className="centered-element">
-        <IonInput
-          type="text"
-          // fill="outline"
-          placeholder={customPlaceholder}
-          value={text}
-          onIonInput={(e) => handleTextChange(e.detail.value!)}
-          style={{ background: '#e0e0e0' }}
-          onKeyDown={handleKeyDown}
-        />
+  const inputRef = useRef<HTMLIonInputElement>(null) // Adjust the ref type
 
-        <IonButton
-          onClick={() => handleSubmit(text)}
-          style={{ minHeight: '44px', margin: 0 }}
-        >
-          <IonIcon icon={icon}></IonIcon>
-        </IonButton>
+  const handleInputChange = (event: CustomEvent) => {
+    const newValue = (event.target as HTMLInputElement).value
+    handleTextChange(newValue)
+  }
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        handleSubmit(inputRef.current?.value)
+      }}
+    >
+      <div className="container ">
+        <div className="centered-element">
+          <IonInput
+            type="text"
+            placeholder={customPlaceholder}
+            value={text}
+            ref={inputRef}
+            onIonChange={handleInputChange}
+            style={{ background: '#e0e0e0' }}
+          />
+          <IonButton type="submit" style={{ minHeight: '44px', margin: 0 }}>
+            <IonIcon icon={icon}></IonIcon>
+          </IonButton>
+        </div>
       </div>
-    </div>
+    </form>
   )
 }

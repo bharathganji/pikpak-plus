@@ -1,4 +1,5 @@
-export const branches = ['main']
+export const branches = ['main'];
+export const defaultBranch = 'main';
 export const plugins = [
   '@semantic-release/commit-analyzer',
   '@semantic-release/release-notes-generator',
@@ -7,6 +8,6 @@ export const plugins = [
   '@semantic-release/github',
   '@semantic-release/git',
   '@semantic-release/exec',
-]
-export const preset = 'angular'
-export const ci = false
+];
+export const preset = 'angular';
+export const ci = false;

@@ -28,7 +28,6 @@ function SignUp() {
         console.error('Ping failed:', errorData.error)
       } else {
         const successData = await response.json()
-        console.log('Ping successful:', successData.result)
         setShowToast({
           message: successData.result + ', check your mail',
           color: 'success',

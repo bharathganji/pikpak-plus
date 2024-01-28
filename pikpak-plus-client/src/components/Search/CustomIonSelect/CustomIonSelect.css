@@ -1,0 +1,5 @@
+
+ion-select::part(icon) {
+    color: #2dd36f;
+    opacity: 1;
+  }
