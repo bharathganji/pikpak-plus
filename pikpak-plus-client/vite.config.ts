@@ -23,7 +23,7 @@ export default ({ mode }) => {
       eslintPlugin(),
       ViteImageOptimizer({}),
       Sitemap({
-        hostname: env.VITE_HOSTNAME,
+        hostname: env.VITE_HOSTNAME || 'https://pikpak-plus.com',
         dynamicRoutes,
       }),
 
