@@ -5,25 +5,20 @@ import 'ag-grid-community/styles/ag-theme-alpine.css'
 import { ColDef, GridOptions } from 'ag-grid-community'
 import { IonButton, IonIcon } from '@ionic/react'
 import { copy, open, shareSocial } from 'ionicons/icons'
-import {
-  GenericData,
-  prepareColumnDefs,
-  prepareRowData,
-} from '../../../helpers/helpers'
+import { prepareColumnDefs, prepareRowData } from '../../../helpers/helpers'
 import './SearchGrid.css'
 import CommonToast from '../../commonToast/commonToast'
+import { TorrentInfo } from '../../../types/sharedTypes'
 
 export interface AgGridProps {
-  searchInfoList: GenericData[] | null
+  searchInfoList: TorrentInfo[] | null
 }
 
-const AgGrid: React.FC<AgGridProps> = ({ searchInfoList }) => {
+const SearchGrid: React.FC<AgGridProps> = ({ searchInfoList }) => {
   const columnDefs: ColDef[] = useMemo(() => prepareColumnDefs(), [])
-  const rowData: any[] = useMemo(
-    () =>
-      searchInfoList
-        ? searchInfoList.flat().flatMap((item) => prepareRowData(item))
-        : [],
+
+  const rowData: TorrentInfo[] = useMemo(
+    () => prepareRowData(searchInfoList ? searchInfoList : []),
     [searchInfoList],
   )
 
@@ -31,26 +26,25 @@ const AgGrid: React.FC<AgGridProps> = ({ searchInfoList }) => {
     pagination: true,
     paginationPageSize: 20,
     cacheBlockSize: 20,
-    // height
-    rowHeight: 45, // Set the desired row height here
+    rowHeight: 45,
   }
   const shareColumn: ColDef = {
     headerName: 'Share URL',
-    field: 'url', // Replace 'ShareField' with the actual field name from your data
+    field: 'Details',
     cellRenderer: 'shareCellRenderer',
     width: 100,
   }
 
   const copyColumn: ColDef = {
     headerName: 'Copy',
-    field: 'magnetOrTorrent',
+    field: 'Link',
     cellRenderer: 'copyCellRenderer',
     width: 100,
   }
 
   const openUrlColumn: ColDef = {
     headerName: 'Open URL',
-    field: 'url',
+    field: 'Details',
     cellRenderer: 'openUrlCellRenderer',
     width: 100,
   }
@@ -66,7 +60,7 @@ const AgGrid: React.FC<AgGridProps> = ({ searchInfoList }) => {
     <div className="ag-theme-alpine grid-container">
       <AgGridReact
         columnDefs={[...columnDefs, copyColumn, openUrlColumn, shareColumn]}
-        rowData={rowData?.flat()}
+        rowData={rowData}
         gridOptions={gridOptions}
         components={components}
       />
@@ -90,7 +84,7 @@ const CopyCellRenderer: React.FC<{ value: any }> = ({ value }) => {
   return (
     <>
       <IonButton
-        color="warning"
+        color="success"
         onClick={handleCopy}
         size="small"
         className="ion-no-padding ion-no-margin"
@@ -100,7 +94,7 @@ const CopyCellRenderer: React.FC<{ value: any }> = ({ value }) => {
       <CommonToast
         message="Copied to clipboard"
         color="success"
-        duration={2000}
+        duration={1000}
         showToast={showCopyToast}
         setShowToast={setShowCopyToast}
       />
@@ -127,7 +121,7 @@ const OpenUrlCellRenderer: React.FC<{ value: any }> = ({ value }) => {
   return (
     <>
       <IonButton
-        color="success"
+        color="warning"
         onClick={handleOpenUrl}
         size="small"
         className="ion-no-padding ion-no-margin"
@@ -137,7 +131,7 @@ const OpenUrlCellRenderer: React.FC<{ value: any }> = ({ value }) => {
       <CommonToast
         message="Opened URL in a new tab"
         color="success"
-        duration={2000}
+        duration={1000}
         showToast={showOpenUrlToast}
         setShowToast={setShowOpenUrlToast}
       />
@@ -175,7 +169,7 @@ const ShareCellRenderer: React.FC<{ value: any }> = ({ value }) => {
       <CommonToast
         message="Shared successfully"
         color="primary" // Choose the appropriate color for the toast
-        duration={2000}
+        duration={1000}
         showToast={showShareToast}
         setShowToast={setShowShareToast}
       />
@@ -183,4 +177,4 @@ const ShareCellRenderer: React.FC<{ value: any }> = ({ value }) => {
   )
 }
 
-export default AgGrid
+export default SearchGrid

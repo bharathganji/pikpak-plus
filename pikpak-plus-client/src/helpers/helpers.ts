@@ -1,11 +1,10 @@
 import { ColDef, SortDirection } from 'ag-grid-community'
-import { YtsData, SearchInfo } from '../types/sharedTypes' // Update the path accordingly
+// import { TorrentInfo } from '../types/sharedTypes' // Update the path accordingly
 import axios from 'axios'
 import { logoGithub, heart } from 'ionicons/icons'
 import telegram from '../assets/telegram.svg'
-export type GenericData = YtsData | SearchInfo
+import { TorrentInfo } from '../types/sharedTypes'
 
-// Function to prepare column definitions dynamicallyimport { ColDef } from "ag-grid-community";
 const convertToBytes = (value: string): number => {
   const numericValue = parseFloat(value)
   if (isNaN(numericValue)) {
@@ -36,114 +35,48 @@ const sizeComparator = (valueA: any, valueB: any): number => {
   return bytesA - bytesB
 }
 
-const seedersComparator = (valueA: any, valueB: any): number => {
-  const numericValueA = isNaN(valueA) ? -1 : parseFloat(valueA)
-  const numericValueB = isNaN(valueB) ? -1 : parseFloat(valueB)
-
-  // Handle cases where both values are numbers or neither are numbers
-  if (!isNaN(numericValueA) && !isNaN(numericValueB)) {
-    return numericValueA - numericValueB
-  }
-
-  // Handle cases where only one of the values is a number
-  if (!isNaN(numericValueA)) {
-    return -1 // Numeric values should come first
-  }
-  if (!isNaN(numericValueB)) {
-    return 1 // Numeric values should come first
-  }
-
-  // Handle cases where both values are non-numeric
-  // Use string comparison
-  return String(valueA).localeCompare(String(valueB), undefined, {
-    numeric: true,
-    sensitivity: 'base',
-  })
-}
-
 export const prepareColumnDefs = (): ColDef[] => {
   return [
     {
-      headerName: 'Name',
-      field: 'name',
+      headerName: 'Title',
+      field: 'Title',
       filter: 'agTextColumnFilter',
-      width: 250,
+      width: 400,
     },
     {
       headerName: 'Size',
-      field: 'size',
-      filter: true,
+      field: 'Size',
       width: 120,
       comparator: sizeComparator,
-      sort: 'desc' as SortDirection,
     },
     {
       headerName: 'Seedr',
-      field: 'seeders',
-      filter: 'agNumberColumnFilter',
-      width: 90,
-      comparator: seedersComparator,
-    },
-    {
-      headerName: 'Leechr',
-      field: 'leechers',
-      filter: 'agNumberColumnFilter',
+      field: 'Seeders',
       width: 100,
+      sort: 'desc' as SortDirection,
     },
     {
-      headerName: 'Magnet/Torrent',
-      field: 'magnetOrTorrent',
-      filter: true,
+      headerName: 'Peers',
+      field: 'Peers',
+      width: 90,
     },
-    // { headerName: 'Type', field: 'type', filter: true, width: 100 },
-    { headerName: 'URL', field: 'url', filter: true },
+    { headerName: 'Tracker', field: 'Tracker', filter: true, width: 150 },
+
+    { headerName: 'URL', field: 'Details' },
   ].map((data) => ({ ...data, suppressMovable: true }))
 }
 
-export const prepareRowData = (data: GenericData): any[] => {
-  const rows: any[] = []
-
-  if (data.torrents && data.torrents.length) {
-    data.torrents.forEach((file) => {
-      const fileRow: any = { ...data } // Copy parent data
-
-      const magnetOrTorrentKey = file.magnet
-        ? 'magnet'
-        : file.torrent
-        ? 'torrent'
-        : ''
-
-      if (magnetOrTorrentKey) {
-        fileRow.magnetOrTorrent = file[magnetOrTorrentKey]
-      }
-
-      Object.entries(file).forEach(([fileKey, fileValue]) => {
-        fileRow[fileKey] = fileValue
-      })
-
-      rows.push(fileRow)
-    })
-  } else {
-    const magnetOrTorrentKey = data.magnet
-      ? 'magnet'
-      : data.torrent
-      ? 'torrent'
-      : ''
-
-    if (magnetOrTorrentKey) {
-      const singleRow: any = {
-        ...data,
-        magnetOrTorrent: data[magnetOrTorrentKey],
-      }
-      rows.push(singleRow)
-    } else {
-      const singleRow: any = { ...data }
-      rows.push(singleRow)
+export const prepareRowData = (data: any): TorrentInfo[] => {
+  const formattedData = data.map((item) => {
+    return {
+      ...item,
+      Size: formatFileSize(item.Size),
     }
-  }
+  })
 
-  return rows
+  return formattedData
 }
+
 export function getauthCookie() {
   const authCookie = document.cookie
     .split(';')

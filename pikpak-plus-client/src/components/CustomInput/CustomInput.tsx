@@ -1,6 +1,6 @@
-import  { useRef } from 'react';
-import { IonInput, IonButton, IonIcon } from '@ionic/react';
-import './CustomInput.css';
+import { useRef } from 'react'
+import { IonInput, IonButton, IonIcon } from '@ionic/react'
+import './CustomInput.css'
 
 export default function CustomInput({
   text,
@@ -9,23 +9,21 @@ export default function CustomInput({
   icon,
   customPlaceholder,
 }: any) {
-  const inputRef = useRef<HTMLIonInputElement>(null); // Adjust the ref type
+  const inputRef = useRef<HTMLIonInputElement>(null) // Adjust the ref type
 
   const handleInputChange = (event: CustomEvent) => {
-    const newValue = (event.target as HTMLInputElement).value;
-    handleTextChange(newValue);
-  };
+    const newValue = (event.target as HTMLInputElement).value
+    handleTextChange(newValue)
+  }
 
   return (
     <form
       onSubmit={(e) => {
-        console.log('submitting');
-        
-        e.preventDefault();
-        handleSubmit(inputRef.current?.value);
+        e.preventDefault()
+        handleSubmit(inputRef.current?.value)
       }}
     >
-      <div className="container">
+      <div className="container ">
         <div className="centered-element">
           <IonInput
             type="text"
@@ -41,5 +39,5 @@ export default function CustomInput({
         </div>
       </div>
     </form>
-  );
+  )
 }

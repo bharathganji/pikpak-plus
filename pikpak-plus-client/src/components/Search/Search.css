@@ -1,0 +1,28 @@
+.select-container {
+  padding-bottom: 1rem;
+}
+
+.select-container-inner {
+  display: flex;
+  flex-direction: column;
+  row-gap: 0.5rem;
+}
+.seach-warning{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  margin: 0.5rem 0rem;
+  background-color: #ffca22;
+}
+
+
+@media (min-width: 475px) {
+  .select-container {
+    padding-top: 1rem;
+  }
+  .select-container-inner {
+    flex-direction: row;
+    column-gap: 2rem;
+  }
+}

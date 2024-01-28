@@ -25,7 +25,7 @@ function HelperCard({
   icon,
 }: HelperCardProps) {
   return (
-    <div className="helper-card container">
+    <div className="helper-card">
       <IonCard style={cardStyle}>
         <IonCardHeader>
           <IonCardTitle

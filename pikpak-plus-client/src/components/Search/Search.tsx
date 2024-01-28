@@ -1,53 +1,97 @@
 // Search.tsx
-import React, { useCallback, useEffect, useState } from 'react'
-import axios from 'axios'
+import { useCallback, useEffect, useState } from 'react'
 import './Search.css'
-import { IonContent, IonToast } from '@ionic/react'
+import { IonContent, IonIcon, IonText, IonToast } from '@ionic/react'
 import SearchGrid from './SearchGrid/SearchGrid'
-import { WEBSITES } from '../../constants/constants'
-import { search } from 'ionicons/icons'
+import { search, warningOutline } from 'ionicons/icons'
 import CustomInput from '../CustomInput/CustomInput'
-import Checkbox from '../checkbox/Checkbox'
 import BlockUiLoader from '../BlockUiLoader/BlockUiLoader'
-import { SearchInfo, YtsData } from '../../types/sharedTypes'
+import { SearchFieldsResponse, TorrentInfo } from '../../types/sharedTypes'
 import CustomIonHeader from '../CustomIonHeader/CustomIonHeader'
+import { makeRequest } from '../../helpers/helpers'
+import CustomIonSelect from './CustomIonSelect/CustomIonSelect'
 
 export default function Search() {
   const [searchInfoList, setSearchInfoList] = useState<
-    SearchInfo[] | YtsData[] | null | any
+    TorrentInfo[] | null | any
   >(null)
   const [text, settext] = useState<string>('')
   const [showToast, setShowToast] = useState<{
     message: string
     color: string
   } | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
+
+  const [searchFields, setSearchFields] = useState<SearchFieldsResponse[]>([])
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [selectedTrackers, setSelectedTrackers] = useState<string[]>([])
 
   useEffect(() => {
-    setLoading(false)
+    if (!sessionStorage.getItem('searchFields')) {
+      fetchSearchFields().then((data) => {
+        sessionStorage.setItem('searchFields', JSON.stringify(data))
+        setSearchFields(data)
+      })
+    } else {
+      sessionStorage.getItem('searchFields') &&
+        setSearchFields(JSON.parse(sessionStorage.getItem('searchFields')!))
+      console.log(searchFields)
+    }
   }, [])
 
-  const fetchData = async (searchTerm: string) => {
-    const SITE = 'yts'
+  const fetchSearchFields = async () => {
     try {
-      const response = await axios.get(
-        `/torrent/api/v1/search?site=${SITE}&query=${searchTerm}&limit=0&page=1`,
-      )
-      // const response = await axios.get(`/api/v1/all/search?query=${searchTerm}&limit=5`)
-      const data: SearchInfo[] = response.data.data
-      data.forEach((item) => {
-        if (item && item.error) {
-          setShowToast({
-            message: item.error,
-            color: 'danger',
-          })
-        } else {
-          setSearchInfoList(data)
+      const response = await makeRequest('searchFields', 'GET', {})
+
+      const formattedResponse = response.data.map((item: any) => {
+        const { indexer, categories } = item
+        const formattedCategories = categories.map((category: any) => ({
+          code: category.code,
+          value: category.value,
+        }))
+
+        return {
+          indexer: {
+            code: indexer.code,
+            value: indexer.value,
+          },
+          categories: formattedCategories,
         }
       })
+      console.log(formattedResponse)
+
+      if (formattedResponse) {
+        setShowToast({
+          message: 'categories and indexers fetched successfully.',
+          color: 'success',
+        })
+        return formattedResponse
+      }
+    } catch (error) {
+      console.error('Error fetching search fields:', error)
+    }
+  }
+
+  const fetchData = async (searchTerm: string) => {
+    try {
+      const response = await makeRequest('search', 'POST', {
+        query: searchTerm,
+        categoryList: selectedCategories,
+        indexerList: selectedTrackers,
+      })
+
+      const data: TorrentInfo[] | string = response.data
+      if (data && data != 'No results found') {
+        setShowToast({
+          message: 'Data fetched successfully.',
+          color: 'success',
+        })
+
+        setSearchInfoList(data)
+      }
     } catch (error) {
       setShowToast({
-        message: 'An error occurred while fetching data. Please try again.',
+        message: 'Try Different Categories or Indexers',
         color: 'danger',
       })
     } finally {
@@ -71,26 +115,53 @@ export default function Search() {
       return
     }
     setLoading(true)
-    settext('')
     fetchData(trimmedText)
   }
 
-  // const SearchGridMemoized = React.memo(SearchGrid)
-  const CheckboxMemoized = React.memo(Checkbox)
+  const categoriesOptions = searchFields
+    ?.filter((item) => selectedTrackers.includes(item.indexer.code)) // Filter based on selectedTrackers
+    .map((item) => item.categories)
+    .flat()
+  const trackersOptions = searchFields?.map((item) => item.indexer).flat()
 
-  const [SelectedWebsite, setSelectedWebsite] = useState<string[]>([])
-  console.log('hi')
+  console.log(selectedTrackers.length)
 
   return (
     <>
       <CustomIonHeader title="Search" />
 
       <IonContent fullscreen={true}>
-        <CheckboxMemoized
-          customData={WEBSITES}
-          SelectedWebsite={SelectedWebsite}
-          setSelectedWebsite={setSelectedWebsite}
-        />
+        <div className="container select-container">
+          <div className="centered-element select-container-inner">
+            <CustomIonSelect
+              label="Trackers"
+              placeholder="Trackers (Default: All)"
+              options={trackersOptions}
+              multiple={true}
+              setSelected={setSelectedTrackers}
+            />
+            <CustomIonSelect
+              label="Categories"
+              placeholder="Categories (Default: All)"
+              options={
+                selectedTrackers.length > 1 ? [] : categoriesOptions || []
+              }
+              multiple={true}
+              setSelected={setSelectedCategories}
+              isDisabled={
+                selectedTrackers.length > 1 || selectedTrackers.length === 0
+              }
+            />
+          </div>
+          {selectedTrackers.length > 1 && (
+            <div className="seach-warning">
+              <IonIcon icon={warningOutline} color="danger" />
+              <IonText color={'dark'}>
+                <span>Select single Indexer to use Categories</span>{' '}
+              </IonText>
+            </div>
+          )}
+        </div>
         <CustomInput
           text={text}
           handleTextChange={handleTextChange}
@@ -98,11 +169,11 @@ export default function Search() {
           customPlaceholder=" Search... eg: avengers"
           icon={search}
         />
-        <BlockUiLoader loading={loading}>
-          <div className="container">
-            <SearchGrid searchInfoList={searchInfoList} />
-          </div>
-        </BlockUiLoader>
+        <div className="container">
+          <BlockUiLoader loading={loading}>
+            <SearchGrid searchInfoList={searchInfoList || []} />
+          </BlockUiLoader>
+        </div>
         <IonToast
           isOpen={!!showToast}
           onDidDismiss={() => setShowToast(null)}

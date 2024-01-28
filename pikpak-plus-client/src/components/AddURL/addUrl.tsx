@@ -138,28 +138,30 @@ const AddUrlForm: React.FC = () => {
                 customPlaceholder=" Enter magnet URL"
               />
             </div>
-            <HelperCard
-              cardTitle="Helper Card"
-              cardSubtitle={helpList}
-              cardSubTitleStyle={{
-                display: 'flex',
-                flexDirection: 'column',
-                textAlign: 'justify',
-              }}
-              icon={informationCircleOutline}
-              titleColor="primary"
-            />
-            <HelperCard
-              cardTitle="Useful Links"
-              cardSubtitle={usefullLinksList}
-              cardSubTitleStyle={{
-                display: 'flex',
-                flexDirection: 'column',
-                textAlign: 'justify',
-              }}
-              icon={flash}
-              titleColor="success"
-            />
+            <div className="container">
+              <HelperCard
+                cardTitle="Helper Card"
+                cardSubtitle={helpList}
+                cardSubTitleStyle={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  textAlign: 'justify',
+                }}
+                icon={informationCircleOutline}
+                titleColor="primary"
+              />
+              <HelperCard
+                cardTitle="Useful Links"
+                cardSubtitle={usefullLinksList}
+                cardSubTitleStyle={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  textAlign: 'justify',
+                }}
+                icon={flash}
+                titleColor="success"
+              />
+            </div>
             <IonToast
               isOpen={!!showToast}
               onDidDismiss={() => setShowToast(null)}
