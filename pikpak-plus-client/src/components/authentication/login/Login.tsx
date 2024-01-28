@@ -5,7 +5,6 @@ import {
   setEmailandDirectory,
 } from '../../../helpers/helpers'
 import LoginCard from './LoginCard.tsx/LoginCard'
-// import { useHistory } from 'react-router'
 import { IonToast } from '@ionic/react'
 import BlockUiLoader from '../../BlockUiLoader/BlockUiLoader'
 
@@ -16,23 +15,30 @@ function Login() {
   } | null>(null)
   const [loading, setLoading] = useState(false)
 
-  // const history = useHistory()
-  // useEffect(() => {
-  //   deleteEmailandDirectory()
-  // })
-
   const handleSignInSuccess = (data, email) => {
     // Extract relevant information from the API response
-    const { redirect, auth, dir } = data
+    const { redirect, auth } = data
+    fetchDirectory(email).then((data) => {
+      const dir = data
+      setCookie('auth', auth, 1) // Set the cookie to expire in 1 hour
+      setEmailandDirectory(email, dir)
+      window.location.href = redirect
+    })
+  }
 
-    // Set the access token in a cookie
-    setCookie('auth', auth, 1) // Set the cookie to expire in 1 hour
-
-    console.log(email, dir)
-
-    setEmailandDirectory(email, dir)
-    // Redirect the user to the specified URL
-    window.location.href = redirect
+  const fetchDirectory = async (email: string) => {
+    try {
+      const response = await makeRequest('getDirectoryId', 'POST', {
+        email: email,
+      })
+      const data = response.data.directory_id
+      return data
+    } catch {
+      console.log('error')
+    }
+    finally{
+      setLoading(false)
+    }
   }
 
   async function signIn(email: string, password: string) {
@@ -43,7 +49,6 @@ function Login() {
         email: email,
         password: password,
       })
-
       if (response.status !== 200) {
         const errorData = response.data
         setShowToast({
@@ -63,9 +68,7 @@ function Login() {
         message: `'Error during sign-in:', ${error}`,
         color: 'danger',
       })
-    } finally {
-      setLoading(false)
-    }
+    } 
   }
 
   return (

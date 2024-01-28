@@ -78,33 +78,9 @@ def initialize_client_route():
     return jsonify({"result": "Client initialized successfully"})
 
 
-def get_directory_id(email):
-    try:
-        # Fetch data from the 'pikpak_data' table based on the email
-        response = supabase.table('pikpak_data').select('directory_id').eq('email', email).execute()
-        # print(10000)
-        data = response.data
-
-        # Check if the email is found
-        if data:
-            # print(20000)
-            
-            directory_id = data[0]['directory_id']
-            return {'directory_id': directory_id}
-        else:
-            return {'error': 'Email not found'}
-
-    except Exception as e:
-        return {'error': str(e)}
 
 @app.route('/api/help', methods=['GET'])
 def help():
-    # global initialized_client
-
-    # if initialized_client is None:
-    #     abort(401, description="Client not initialized. Call initialize_client first.")
-
-    # Execute the help command using initialized_client
     res = cmd.cmds["help"](initialized_client, "param")
     return jsonify({"result": res})
 
@@ -260,7 +236,24 @@ def share():
 @app.get("/api/ping")
 def pong():
     return "pong"
-
+ 
+@app.route("/api/getDirectoryId", methods=["GET", "POST"])
+def get_directory_id():
+    try:
+        req = request.get_json() 
+        email = req.get("email")
+        print(email, 'email')
+    
+        response = supabase.table('pikpak_data').select('directory_id').eq('email', email).execute()
+        data = response.data
+        print('data', data)
+        if data:
+            directory_id = data[0]['directory_id']
+            return {'directory_id': directory_id}
+        else:
+            return {'error': 'directory not found'}
+    except Exception as e:
+        return {'error': str(e)}
 
 @app.route("/api/login", methods=["GET", "POST"])
 def login():
@@ -269,24 +262,17 @@ def login():
         req = request.get_json() 
         email = req.get("email")
         password = req.get("password") 
-        
+        print(email, password, "hello////")
         try:
             if email and password:
                 data = supabase.auth.sign_in_with_password({'email': email, 'password': password})
-                dir_id = get_directory_id(email)
-                # print(dir_id)
-                response = jsonify({'redirect': '/create',"dir":dir_id['directory_id'], "auth": data.session.access_token})
+                response = jsonify({'redirect': '/create', "auth": data.session.access_token})
                 supabase.auth.sign_out()
-                # print(1111111111111)
                 initialize_client_route()
-                
-                # print(222222222222222)
                 return response
             else:
-                # print(333333333333)
                 return jsonify({"error": "provide email and passowrd"}), 401
         except AuthApiError:
-            # print(44444444444)
             return jsonify({"error": "auth failed"}), 401
 
 
