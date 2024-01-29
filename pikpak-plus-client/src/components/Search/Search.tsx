@@ -1,5 +1,5 @@
 // Search.tsx
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import './Search.css'
 import { IonContent, IonIcon, IonText, IonToast } from '@ionic/react'
 import SearchGrid from './SearchGrid/SearchGrid'
@@ -15,7 +15,6 @@ export default function Search() {
   const [searchInfoList, setSearchInfoList] = useState<
     TorrentInfo[] | null | any
   >(null)
-  const [text, settext] = useState<string>('')
   const [showToast, setShowToast] = useState<{
     message: string
     color: string
@@ -35,7 +34,6 @@ export default function Search() {
     } else {
       sessionStorage.getItem('searchFields') &&
         setSearchFields(JSON.parse(sessionStorage.getItem('searchFields')!))
-      console.log(searchFields)
     }
   }, [])
 
@@ -98,20 +96,11 @@ export default function Search() {
       setLoading(false)
     }
   }
-  // Memoize the handleTextChange function
-  const handleTextChange = useCallback((value: string) => {
-    settext(value)
-  }, []) // Empty dependency array as there are no external dependencies
 
   const handleSubmit = (text: string) => {
     const trimmedText = text.trim()
-    settext(trimmedText)
-    console.log('text: ', trimmedText)
-    if (!trimmedText || trimmedText === '') {
-      setShowToast({
-        message: 'Please enter a valid text.',
-        color: 'danger',
-      })
+    if (!trimmedText) {
+      setShowToast({ message: 'Please enter a valid text.', color: 'danger' })
       return
     }
     setLoading(true)
@@ -123,8 +112,6 @@ export default function Search() {
     .map((item) => item.categories)
     .flat()
   const trackersOptions = searchFields?.map((item) => item.indexer).flat()
-
-  console.log(selectedTrackers.length)
 
   return (
     <>
@@ -163,8 +150,6 @@ export default function Search() {
           )}
         </div>
         <CustomInput
-          text={text}
-          handleTextChange={handleTextChange}
           handleSubmit={handleSubmit}
           customPlaceholder=" Search... eg: avengers"
           icon={search}
