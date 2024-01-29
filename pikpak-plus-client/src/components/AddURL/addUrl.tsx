@@ -20,7 +20,7 @@ import HelperCard from '../HelperCard/HelperCard'
 import BlockUiLoader from '../BlockUiLoader/BlockUiLoader'
 
 const AddUrlForm: React.FC = () => {
-  const [text, setText] = useState<string>('')
+  // const [text, setText] = useState<string>('')
   const [email, setEmail] = useState<string | null>(null)
   const [directory, setDirectory] = useState<string | null>(null)
   const [showToast, setShowToast] = useState<{
@@ -35,19 +35,12 @@ const AddUrlForm: React.FC = () => {
     setDirectory(dir)
   }, [])
 
-  const handleTextChange = (value: string) => {
-    setText(value)
-  }
-
-  const handleSubmit = async () => {
+  const handleSubmit = async (text: string) => {
     setIsLoading(true)
-
     const isMagnetURL = /^magnet:\?xt=urn:btih:[0-9a-fA-F]{40}/.test(text)
-    setText('')
-
     if (!isMagnetURL) {
       setShowToast({
-        message: 'Invalid magnet URL. Please enter a valid magnet URL.',
+        message: 'Invalid magnet URL',
         color: 'danger',
       })
       setIsLoading(false)
@@ -70,7 +63,6 @@ const AddUrlForm: React.FC = () => {
       console.error('Error:', error)
       setShowToast({ message: 'Error adding task', color: 'danger' })
     } finally {
-      setText('')
       setIsLoading(false)
     }
   }
@@ -131,8 +123,8 @@ const AddUrlForm: React.FC = () => {
                 {email}
               </div>
               <CustomInput
-                text={text}
-                handleTextChange={handleTextChange}
+                // text={text}
+                // handleTextChange={handleTextChange}
                 handleSubmit={handleSubmit}
                 icon={addSharp}
                 customPlaceholder=" Enter magnet URL"

@@ -237,21 +237,34 @@ def share():
 def pong():
     return "pong"
  
-@app.route("/api/getDirectoryId", methods=["GET", "POST"])
-def get_directory_id():
-    try:
-        req = request.get_json() 
-        email = req.get("email")
-        print(email, 'email')
+# @app.route("/api/getDirectoryId", methods=["GET", "POST"])
+# def get_directory_id():
+#     try:
+#         req = request.get_json() 
+#         email = req.get("email")
+#         print(email, 'email')
     
+#         response = supabase.table('pikpak_data').select('directory_id').eq('email', email).execute()
+#         data = response.data
+#         print('data', data)
+#         if data:
+#             directory_id = data[0]['directory_id']
+#             return {'directory_id': directory_id}
+#         else:
+#             return {'error': 'directory not found'}
+#     except Exception as e:
+#         return {'error': str(e)}
+
+def get_directory_id(email):
+    try:
         response = supabase.table('pikpak_data').select('directory_id').eq('email', email).execute()
         data = response.data
-        print('data', data)
+
         if data:
             directory_id = data[0]['directory_id']
             return {'directory_id': directory_id}
         else:
-            return {'error': 'directory not found'}
+            return {'error': 'Email not found'}
     except Exception as e:
         return {'error': str(e)}
 
@@ -262,11 +275,11 @@ def login():
         req = request.get_json() 
         email = req.get("email")
         password = req.get("password") 
-        print(email, password, "hello////")
         try:
             if email and password:
                 data = supabase.auth.sign_in_with_password({'email': email, 'password': password})
-                response = jsonify({'redirect': '/create', "auth": data.session.access_token})
+                dir_id = get_directory_id(email)
+                response = jsonify({'redirect': '/create',"dir":dir_id['directory_id'], "auth": data.session.access_token})                
                 supabase.auth.sign_out()
                 initialize_client_route()
                 return response

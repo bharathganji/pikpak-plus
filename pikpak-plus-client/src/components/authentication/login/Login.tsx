@@ -16,29 +16,11 @@ function Login() {
   const [loading, setLoading] = useState(false)
 
   const handleSignInSuccess = (data, email) => {
-    // Extract relevant information from the API response
-    const { redirect, auth } = data
-    fetchDirectory(email).then((data) => {
-      const dir = data
-      setCookie('auth', auth, 1) // Set the cookie to expire in 1 hour
-      setEmailandDirectory(email, dir)
-      window.location.href = redirect
-    })
-  }
+    const { redirect, auth, dir } = data
 
-  const fetchDirectory = async (email: string) => {
-    try {
-      const response = await makeRequest('getDirectoryId', 'POST', {
-        email: email,
-      })
-      const data = response.data.directory_id
-      return data
-    } catch {
-      console.log('error')
-    }
-    finally{
-      setLoading(false)
-    }
+    setCookie('auth', auth, 1) // Set the cookie to expire in 1 hour
+    setEmailandDirectory(email, dir)
+    window.location.href = redirect
   }
 
   async function signIn(email: string, password: string) {
@@ -68,7 +50,9 @@ function Login() {
         message: `'Error during sign-in:', ${error}`,
         color: 'danger',
       })
-    } 
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
