@@ -61,7 +61,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
     },
     copyDownloadLink: {
       color: 'tertiary',
-      header: 'Copy Download Link',
+      header: 'Copy Download/Stream Link',
       message: `Are you sure you want to copy the download link for: ${fileName}?`,
       icon: copyOutline,
     },

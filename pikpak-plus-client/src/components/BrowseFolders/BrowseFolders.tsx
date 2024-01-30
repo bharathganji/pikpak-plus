@@ -5,17 +5,17 @@ import {
   IonIcon,
   IonLabel,
   IonContent,
-  IonButton,
   IonToast,
   IonModal,
   IonItemDivider,
   IonChip,
+  IonText,
 } from '@ionic/react'
 import {
-  folderOpen,
-  document,
-  arrowBack,
-  ellipsisVerticalCircleOutline,
+  folderOpenOutline,
+  documentOutline,
+  chevronUpCircleOutline,
+  ellipsisVerticalSharp,
 } from 'ionicons/icons'
 import { FileItem, FileListResponse } from '../../types/sharedTypes'
 import './BrowseFolders.css'
@@ -138,16 +138,21 @@ const BrowseFolders: React.FC = () => {
                 duration={3000}
               />
             )}
-            {parentStack.length > 0 && (
-              <IonItem onClick={handleBackClick} className="hover-effect">
-                <IonIcon slot="start" icon={arrowBack} />
-                <IonLabel>
-                  <strong>..</strong>
-                </IonLabel>
-              </IonItem>
-            )}
+
             <div className="browse-list">
               <IonList>
+                {parentStack.length > 0 && (
+                  <IonItem
+                    onClick={handleBackClick}
+                    color="light"
+                    className="hover-effect"
+                  >
+                    <IonIcon slot="start" icon={chevronUpCircleOutline} />
+                    <IonLabel>
+                      <IonText>Folder Up</IonText>
+                    </IonLabel>
+                  </IonItem>
+                )}
                 {browseData?.files.map((item) => (
                   <IonItem
                     color="light"
@@ -161,28 +166,27 @@ const BrowseFolders: React.FC = () => {
                   >
                     <IonIcon
                       slot="start"
+                      color="primary"
                       icon={
-                        item.kind === 'drive#folder' ? folderOpen : document
+                        item.kind === 'drive#folder'
+                          ? folderOpenOutline
+                          : documentOutline
                       }
                     />
                     <IonLabel>{item.name}</IonLabel>
-                    <IonButton
-                      color="tertiary"
+
+                    <IonIcon
+                      color="primary"
+                      icon={ellipsisVerticalSharp}
+                      size="default"
+                      className="hover-effect"
                       slot="end"
                       onClick={(e) => {
                         e.stopPropagation()
                         setSelectedItem(item)
                         setShowModal(true) // Open modal on button click
                       }}
-                      // id="show-modal"
-                      style={{ fontSize: '1.125rem' }}
-                    >
-                      <IonIcon
-                        icon={ellipsisVerticalCircleOutline}
-                        size="default"
-                        slot="end"
-                      ></IonIcon>
-                    </IonButton>
+                    ></IonIcon>
                   </IonItem>
                 ))}
               </IonList>

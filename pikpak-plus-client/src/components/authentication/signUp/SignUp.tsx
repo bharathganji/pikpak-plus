@@ -2,6 +2,7 @@ import { useState } from 'react'
 import SignUpCard from './SignUpCard/SignUpCard'
 import { IonToast } from '@ionic/react'
 import BlockUiLoader from '../../BlockUiLoader/BlockUiLoader'
+import { makeRequest } from '../../../helpers/helpers'
 
 function SignUp() {
   const [showToast, setShowToast] = useState<{
@@ -13,21 +14,19 @@ function SignUp() {
   async function signUp(email: string, password: string) {
     try {
       setLoading(true)
-      const response = await fetch(`/flaskapi/api/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: email,
-          password: password,
-        }),
+      const response = await makeRequest('signup', 'POST', {
+        email: email,
+        password: password,
       })
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error('Ping failed:', errorData.error)
+
+      if (response.status !== 200) {
+        const errorData = response.data
+        setShowToast({
+          message: errorData.error,
+          color: 'danger',
+        })
       } else {
-        const successData = await response.json()
+        const successData = await response.data
         setShowToast({
           message: successData.result + ', check your mail',
           color: 'success',

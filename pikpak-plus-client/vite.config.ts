@@ -38,23 +38,23 @@ export default ({ mode }) => {
       host: '0.0.0.0',
       port: parseInt(env.VITE_DEVELOPMENT_PORT) || 3001,
       proxy: {
-        '/flaskapi': {
+        '/api': {
           target: 'http://127.0.0.1:5000/',
           changeOrigin: true,
           secure: false,
-          rewrite: (path) => path.replace(/^\/flaskapi/, ''),
+          rewrite: (path) => path.replace(/^\/api/, ''),
         },
       },
     },
     preview: {
       host: '0.0.0.0',
-      port: parseInt(env.VITE_PRODUCTION_PORT) || 3001,
+      port: parseInt(env.VITE_PRODUCTION_PORT) || 3002,
       proxy: {
-        '/flaskapi': {
+        '/api': {
           target: env.VITE_PIKPAK_PLUS_API,
           changeOrigin: true,
           secure: false,
-          rewrite: (path) => path.replace(/^\/flaskapi/, ''),
+          rewrite: (path) => path.replace(/^\/api/, ''),
         },
       },
     },
