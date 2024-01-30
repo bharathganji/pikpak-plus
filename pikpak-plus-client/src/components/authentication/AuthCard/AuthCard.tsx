@@ -86,7 +86,6 @@ const AuthCard: React.FC<AuthProps> = ({
               placeholder="Enter Email"
               label="Email"
               labelPlacement="floating"
-              autocomplete={nextTitle.text === 'Sign Up' ? 'off' : 'on'}
               fill="outline"
               value={email}
               onIonInput={(e) => setEmail(e.detail.value!)}
@@ -98,7 +97,6 @@ const AuthCard: React.FC<AuthProps> = ({
               fill="outline"
               type="password"
               value={password}
-              autocomplete={nextTitle.text === 'Sign Up' ? 'off' : 'on'}
               onIonChange={(e) => setPassword(e.detail.value!)}
             />
             <IonButton
