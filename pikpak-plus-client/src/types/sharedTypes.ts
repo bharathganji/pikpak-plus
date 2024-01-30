@@ -229,34 +229,34 @@ export interface CreateFolderResponse {
 }
 
 export type TorrentInfo = {
-  CategoryDesc: string;
-  Details: string;
-  Files: any;
-  Link: string;
-  Peers: number;
-  PublishDate: string;
-  Publisher: any;
-  Seeders: number;
-  Size: any;
-  Title: string;
-  Tracker: string;
-  Year: number;
-};
+  CategoryDesc: string
+  Details: string
+  Files: any
+  Link: string
+  Peers: number
+  PublishDate: string
+  Publisher: any
+  Seeders: number
+  Size: any
+  Title: string
+  Tracker: string
+  Year: number
+}
 
 export type Category = {
-  code: string;
-  value: string;
-};
+  code: string
+  value: string
+}
 
 export type Indexer = {
-  code: string;
-  value: string;
-};
+  code: string
+  value: string
+}
 
 export type SearchFieldsResponse = {
-  categories: Category[];
-  indexer: Indexer;
-};
+  categories: Category[]
+  indexer: Indexer
+}
 
 export type ShareData = {
   pass_code: string

@@ -20,6 +20,7 @@ export default function Search() {
     color: string
   } | null>(null)
   const [loading, setLoading] = useState(false)
+  const [selectLoading, setSelectLoading] = useState(false)
 
   const [searchFields, setSearchFields] = useState<SearchFieldsResponse[]>([])
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
@@ -27,10 +28,19 @@ export default function Search() {
 
   useEffect(() => {
     if (!sessionStorage.getItem('searchFields')) {
-      fetchSearchFields().then((data) => {
-        sessionStorage.setItem('searchFields', JSON.stringify(data))
-        setSearchFields(data)
-      })
+      fetchSearchFields()
+        .then((data) => {
+          if (data) {
+            sessionStorage.setItem('searchFields', JSON.stringify(data))
+            setSearchFields(data)
+          }
+        })
+        .catch((error) => {
+          setShowToast({
+            message: 'Error fetching search fields: ' + error,
+            color: 'danger',
+          })
+        })
     } else {
       sessionStorage.getItem('searchFields') &&
         setSearchFields(JSON.parse(sessionStorage.getItem('searchFields')!))
@@ -39,6 +49,7 @@ export default function Search() {
 
   const fetchSearchFields = async () => {
     try {
+      setSelectLoading(true)
       const response = await makeRequest('searchFields', 'GET', {})
 
       const formattedResponse = response.data.map((item: any) => {
@@ -67,6 +78,8 @@ export default function Search() {
       }
     } catch (error) {
       console.error('Error fetching search fields:', error)
+    } finally {
+      setSelectLoading(false)
     }
   }
 
@@ -120,25 +133,27 @@ export default function Search() {
       <IonContent fullscreen={true}>
         <div className="container select-container">
           <div className="centered-element select-container-inner">
-            <CustomIonSelect
-              label="Trackers"
-              placeholder="Trackers (Default: All)"
-              options={trackersOptions}
-              multiple={true}
-              setSelected={setSelectedTrackers}
-            />
-            <CustomIonSelect
-              label="Categories"
-              placeholder="Categories (Default: All)"
-              options={
-                selectedTrackers.length > 1 ? [] : categoriesOptions || []
-              }
-              multiple={true}
-              setSelected={setSelectedCategories}
-              isDisabled={
-                selectedTrackers.length > 1 || selectedTrackers.length === 0
-              }
-            />
+            <BlockUiLoader loading={selectLoading}>
+              <CustomIonSelect
+                label="Trackers"
+                placeholder="Trackers (Default: All)"
+                options={trackersOptions}
+                multiple={true}
+                setSelected={setSelectedTrackers}
+              />
+            </BlockUiLoader>
+              <CustomIonSelect
+                label="Categories"
+                placeholder="Categories (Default: All)"
+                options={
+                  selectedTrackers.length > 1 ? [] : categoriesOptions || []
+                }
+                multiple={true}
+                setSelected={setSelectedCategories}
+                isDisabled={
+                  selectedTrackers.length > 1 || selectedTrackers.length === 0
+                }
+              />
           </div>
           {selectedTrackers.length > 1 && (
             <div className="seach-warning">

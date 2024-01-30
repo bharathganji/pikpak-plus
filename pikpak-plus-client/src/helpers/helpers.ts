@@ -61,7 +61,6 @@ export const prepareColumnDefs = (): ColDef[] => {
       width: 90,
     },
     { headerName: 'Tracker', field: 'Tracker', filter: true, width: 150 },
-
     { headerName: 'URL', field: 'Details' },
   ].map((data) => ({ ...data, suppressMovable: true }))
 }
@@ -123,7 +122,7 @@ export const makeRequest = async (
     // Make the request
     const response = await axios({
       method,
-      url: `/flaskapi/api/${url}`,
+      url: `/api/${url}`,
 
       data,
       headers: {
@@ -210,9 +209,9 @@ export const usefullLinks = [
   },
 ]
 export const help = [
-  'Download torrent links to cloud ⚡',
+  'Download torrent links to Cloud ⚡',
   'Cumulative download quota 4TB/month',
   'Storage capacity of 10TB',
-  'Search feature to search multiple Torrent Indexers',
+  'Search multiple Torrent Indexers',
   'Share files with your friends',
 ]

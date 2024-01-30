@@ -79,12 +79,12 @@ def initialize_client_route():
 
 
 
-@app.route('/api/help', methods=['GET'])
+@app.route('/help', methods=['GET'])
 def help():
     res = cmd.cmds["help"](initialized_client, "param")
     return jsonify({"result": res})
 
-@app.route('/api/tasks', methods=['GET'])
+@app.route('/tasks', methods=['GET'])
 # @user_route(enforce_login=True)
 def get_tasks():
     global initialized_client
@@ -99,7 +99,7 @@ def get_tasks():
     return jsonify(res)
 
 
-@app.route('/api/completedTasks', methods=['GET'])
+@app.route('/completedTasks', methods=['GET'])
 # @user_route(enforce_login=True)
 def get_tasks_completed():
     global initialized_client
@@ -114,7 +114,7 @@ def get_tasks_completed():
     return jsonify(res)
 
 
-@app.route('/api/browse', methods=['POST'])
+@app.route('/browse', methods=['POST'])
 @user_route(enforce_login=True)
 def browse(user):
     # global initialized_client
@@ -142,7 +142,7 @@ def browse(user):
         logging.error("An error occurred during browse request: %s", str(e))
         return jsonify({"error": "An error occurred"}), 500
 
-@app.route('/api/addURL', methods=['POST'])
+@app.route('/addURL', methods=['POST'])
 @user_route(enforce_login=True)
 def add_url(user):
     # Get the URL from the request data
@@ -197,7 +197,7 @@ def create_folder(user_email):
         return jsonify({"error": str(e)}), 500
 
 
-@app.route('/api/download', methods=['POST'])
+@app.route('/download', methods=['POST'])
 @user_route(enforce_login=True)
 def download(user):
     # Get the URL from the request data
@@ -214,7 +214,7 @@ def download(user):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
-@app.route('/api/share', methods=['POST'])
+@app.route('/share', methods=['POST'])
 def share():
     # Get the URL from the request data
     data = request.get_json()
@@ -233,7 +233,7 @@ def share():
 
 
 
-@app.get("/api/ping")
+@app.get("/ping")
 def pong():
     return "pong"
  
@@ -268,7 +268,7 @@ def get_directory_id(email):
     except Exception as e:
         return {'error': str(e)}
 
-@app.route("/api/login", methods=["GET", "POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         data = None
@@ -289,7 +289,7 @@ def login():
             return jsonify({"error": "auth failed"}), 401
 
 
-@app.route("/api/signup", methods=["GET", "POST"])
+@app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
         req = request.get_json()
@@ -307,7 +307,7 @@ def signup():
         except AuthApiError:
             return jsonify({"error": "signUp failed try again"}), 401
 
-@app.route('/api/logout', methods=["GET", "POST"])
+@app.route('/logout', methods=["GET", "POST"])
 def logout():
     response = jsonify({'redirect': '/login'})
     # response.delete_cookie('auth')
@@ -316,11 +316,11 @@ def logout():
 
 # ---------- torrent api ----------------
 
-@app.route('/api/searchFields', methods=['GET', 'POST'])
+@app.route('/searchFields', methods=['GET', 'POST'])
 def searchFields():
     return apiscrape.indexerList()
    
-@app.route('/api/search', methods=['GET', 'POST'])
+@app.route('/search', methods=['GET', 'POST'])
 def searchform():
     if request.method == "POST":
         req = request.get_json()
