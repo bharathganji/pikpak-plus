@@ -12,8 +12,8 @@ import {
   IonText,
 } from '@ionic/react'
 import {
-  folderOpenOutline,
-  documentOutline,
+  folderOpen,
+  document,
   chevronUpCircleOutline,
   ellipsisVerticalSharp,
 } from 'ionicons/icons'
@@ -169,8 +169,8 @@ const BrowseFolders: React.FC = () => {
                       color="primary"
                       icon={
                         item.kind === 'drive#folder'
-                          ? folderOpenOutline
-                          : documentOutline
+                          ? folderOpen
+                          : document
                       }
                     />
                     <IonLabel>{item.name}</IonLabel>

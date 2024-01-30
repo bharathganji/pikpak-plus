@@ -17,7 +17,5 @@ services:
     - '5000:5000'
     volumes:
     - ./pikpak-plus-server:/app
-    environment:
-      FLASK_APP: prod
     env_file:
     - ./.env

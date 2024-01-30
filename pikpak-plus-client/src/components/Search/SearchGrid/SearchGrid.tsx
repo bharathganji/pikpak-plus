@@ -156,6 +156,7 @@ const ShareCellRenderer: React.FC<{ value: any }> = ({ value }) => {
       console.log('Share API is not supported in this browser')
     }
   }
+
   return (
     <>
       <IonButton

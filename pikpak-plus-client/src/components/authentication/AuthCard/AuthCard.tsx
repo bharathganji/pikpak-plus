@@ -62,6 +62,12 @@ const AuthCard: React.FC<AuthProps> = ({
 
     callbackFunc(email, password)
   }
+  const handleOnSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    if (email && password) {
+      event.preventDefault()
+      handleSignIn()
+    }
+  }
 
   return (
     <div className="backg">
@@ -75,12 +81,7 @@ const AuthCard: React.FC<AuthProps> = ({
           <IonCardSubtitle>Enter your credentials</IonCardSubtitle>
         </IonCardHeader>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            handleSignIn()
-          }}
-        >
+        <form onSubmit={handleOnSubmit}>
           <IonCardContent className="content-container">
             <IonInput
               placeholder="Enter Email"
