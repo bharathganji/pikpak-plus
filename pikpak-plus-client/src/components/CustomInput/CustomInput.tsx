@@ -3,20 +3,11 @@ import { IonInput, IonButton, IonIcon } from '@ionic/react'
 import './CustomInput.css'
 
 export default function CustomInput({
-  // text,
-  // handleTextChange,
   handleSubmit,
   icon,
   customPlaceholder,
 }: any) {
   const inputRef = useRef<HTMLIonInputElement>(null) // Adjust the ref type
-
-  // const handleInputChange = (event: CustomEvent) => {
-
-  //   const newValue = (event.target as HTMLInputElement).value
-  //   console.log(newValue);
-  //   handleTextChange(newValue)
-  // }
 
   return (
     <form

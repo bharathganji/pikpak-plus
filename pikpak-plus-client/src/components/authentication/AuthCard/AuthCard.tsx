@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import {
   IonCard,
   IonCardContent,
@@ -12,7 +12,6 @@ import {
 } from '@ionic/react'
 import './AuthCard.css'
 import { logInOutline, personCircleOutline } from 'ionicons/icons'
-
 // @ts-expect-error Description of why the @ts-expect-error is necessary
 import { ReactComponent as Logo } from '../../../assets/pikpkak_plus.svg'
 
@@ -32,18 +31,21 @@ const AuthCard: React.FC<AuthProps> = ({
   nextTitle,
   callbackFunc,
 }: AuthProps) => {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const emailRef = useRef<HTMLIonInputElement>(null)
+  const passwordRef = useRef<HTMLIonInputElement>(null)
   const [showToast, setShowToast] = useState<{
     message: string
     color: string
   } | null>(null)
 
   const handleSignIn = () => {
+    const email = emailRef.current?.value || ''
+    const password = passwordRef.current?.value || ''
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     const passwordRegex = /^.{6,}$/
 
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(email.toString().trim())) {
       setShowToast({
         message: 'Invalid Email',
         color: 'danger',
@@ -51,8 +53,8 @@ const AuthCard: React.FC<AuthProps> = ({
       return
     }
 
-    if (!passwordRegex.test(password)) {
-      setPassword('')
+    if (!passwordRegex.test(password.toString())) {
+      passwordRef.current!.value = '' // Clear the password field
       setShowToast({
         message: 'Password should be at least 6 characters',
         color: 'danger',
@@ -62,11 +64,10 @@ const AuthCard: React.FC<AuthProps> = ({
 
     callbackFunc(email, password)
   }
+
   const handleOnSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    if (email && password) {
-      event.preventDefault()
-      handleSignIn()
-    }
+    event.preventDefault()
+    handleSignIn()
   }
 
   return (
@@ -88,8 +89,7 @@ const AuthCard: React.FC<AuthProps> = ({
               label="Email"
               labelPlacement="floating"
               fill="outline"
-              value={email}
-              onIonInput={(e) => setEmail(e.detail.value!)}
+              ref={emailRef}
             />
             <IonInput
               placeholder="Enter Password"
@@ -97,8 +97,7 @@ const AuthCard: React.FC<AuthProps> = ({
               labelPlacement="floating"
               fill="outline"
               type="password"
-              value={password}
-              onIonChange={(e) => setPassword(e.detail.value!)}
+              ref={passwordRef}
             />
             <IonButton
               shape="round"
@@ -126,7 +125,7 @@ const AuthCard: React.FC<AuthProps> = ({
           isOpen={!!showToast}
           onDidDismiss={() => setShowToast(null)}
           message={showToast?.message}
-          duration={3000}
+          duration={2000}
           color={showToast?.color}
         />
       </IonCard>

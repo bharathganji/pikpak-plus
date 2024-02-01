@@ -40,7 +40,6 @@ const CustomIonHeader: React.FC<CustomIonHeaderProps> = ({ title }) => {
         console.error('Sign-out failed:', data.error)
         setShowToast({ message: 'Error adding task', color: 'danger' })
       } else {
-        console.log(data.redirect)
         deleteEmailandDirectory()
         setShowToast({ message: 'Sign-out successful', color: 'success' })
         window.location.href = data.redirect
