@@ -197,3 +197,19 @@ Project Link: [https://github.com/bharathganji/pikpak-plus](https://github.com/b
 
 - https://github.com/sudozid/jackett-metasearch-flask
 - https://github.com/n-wall/pikpak/
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+
+[contributors-shield]: https://img.shields.io/github/contributors/bharathganji/pikpak-plus.svg?style=for-the-badge
+[contributors-url]: https://github.com/bharathganji/pikpak-plus/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/bharathganji/pikpak-plus.svg?style=for-the-badge
+[forks-url]: https://github.com/bharathganji/pikpak-plus/network/members
+[stars-shield]: https://img.shields.io/github/stars/bharathganji/pikpak-plus.svg?style=for-the-badge
+[stars-url]: https://github.com/bharathganji/pikpak-plus/stargazers
+[issues-shield]: https://img.shields.io/github/issues/bharathganji/pikpak-plus.svg?style=for-the-badge
+[issues-url]: https://github.com/bharathganji/pikpak-plus/issues
+[license-shield]: https://img.shields.io/github/license/bharathganji/pikpak-plus.svg?style=for-the-badge
+[license-url]: https://github.com/bharathganji/pikpak-plus/blob/master/LICENSE.txt
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
+[linkedin-url]: https://www.linkedin.com/in/bharath-ganji-912556194
