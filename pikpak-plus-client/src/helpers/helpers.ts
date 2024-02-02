@@ -1,8 +1,5 @@
 import { ColDef, SortDirection } from 'ag-grid-community'
-// import { TorrentInfo } from '../types/sharedTypes' // Update the path accordingly
 import axios from 'axios'
-import { logoGithub, heart } from 'ionicons/icons'
-import telegram from '../assets/telegram.svg'
 import { TorrentInfo } from '../types/sharedTypes'
 
 const convertToBytes = (value: string): number => {
@@ -190,28 +187,3 @@ export const formatCreationTime = (creationTime) => {
 
   return formattedDate
 }
-
-export const usefullLinks = [
-  {
-    link: 'Github',
-    value: 'https://github.com/bharathganji/pikpak-plus',
-    icon: logoGithub,
-  },
-  {
-    link: 'Support US',
-    value: 'https://www.buymeacoffee.com/bharathganji',
-    icon: heart,
-  },
-  {
-    link: 'Telegram',
-    value: 'https://t.me/pikpak_plus',
-    icon: telegram,
-  },
-]
-export const help = [
-  'Download torrent links to Cloud ⚡',
-  'Cumulative download quota 4TB/month',
-  'Storage capacity of 10TB',
-  'Search multiple Torrent Indexers',
-  'Share files with your friends',
-]

@@ -1,7 +1,7 @@
 // Search.tsx
 import { useEffect, useState } from 'react'
 import './Search.css'
-import { IonContent, IonIcon, IonText, IonToast } from '@ionic/react'
+import { IonChip, IonContent, IonIcon, IonText, IonToast } from '@ionic/react'
 import SearchGrid from './SearchGrid/SearchGrid'
 import { search, warningOutline } from 'ionicons/icons'
 import CustomInput from '../CustomInput/CustomInput'
@@ -67,7 +67,6 @@ export default function Search() {
           categories: formattedCategories,
         }
       })
-      console.log(formattedResponse)
 
       if (formattedResponse) {
         setShowToast({
@@ -142,25 +141,27 @@ export default function Search() {
                 setSelected={setSelectedTrackers}
               />
             </BlockUiLoader>
-              <CustomIonSelect
-                label="Categories"
-                placeholder="Categories (Default: All)"
-                options={
-                  selectedTrackers.length > 1 ? [] : categoriesOptions || []
-                }
-                multiple={true}
-                setSelected={setSelectedCategories}
-                isDisabled={
-                  selectedTrackers.length > 1 || selectedTrackers.length === 0
-                }
-              />
+            <CustomIonSelect
+              label="Categories"
+              placeholder="Categories (Default: All)"
+              options={
+                selectedTrackers.length > 1 ? [] : categoriesOptions || []
+              }
+              multiple={true}
+              setSelected={setSelectedCategories}
+              isDisabled={
+                selectedTrackers.length > 1 || selectedTrackers.length === 0
+              }
+            />
           </div>
           {selectedTrackers.length > 1 && (
             <div className="seach-warning">
-              <IonIcon icon={warningOutline} color="danger" />
-              <IonText color={'dark'}>
-                <span>Select single Indexer to use Categories</span>{' '}
-              </IonText>
+              <IonChip color={'warning'}>
+                <IonIcon icon={warningOutline} color="danger" />
+                <IonText color={'dark'}>
+                  select single Tracker to enable Categories
+                </IonText>
+              </IonChip>
             </div>
           )}
         </div>

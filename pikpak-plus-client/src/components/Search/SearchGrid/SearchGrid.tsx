@@ -73,7 +73,6 @@ const CopyCellRenderer: React.FC<{ value: any }> = ({ value }) => {
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(value)
-      console.log('Copied to clipboard:', value)
       setShowCopyToast(true)
     } catch (error) {
       console.error('Failed to copy to clipboard:', error)
@@ -106,8 +105,6 @@ const OpenUrlCellRenderer: React.FC<{ value: any }> = ({ value }) => {
   const [showOpenUrlToast, setShowOpenUrlToast] = useState(false)
 
   const handleOpenUrl = () => {
-    console.log(value)
-
     // Logic to open URL in a new tab
     const newTab = window.open(value, '_blank')
     if (newTab) {
@@ -146,13 +143,13 @@ const ShareCellRenderer: React.FC<{ value: any }> = ({ value }) => {
       navigator
         .share({ text: value })
         .then(() => {
-          console.log('Shared:', value)
           setShowShareToast(true)
         })
         .catch((error) => {
           console.error('Failed to share:', error)
         })
     } else {
+      
       console.log('Share API is not supported in this browser')
     }
   }
