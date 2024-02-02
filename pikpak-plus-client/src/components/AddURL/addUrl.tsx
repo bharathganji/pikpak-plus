@@ -9,15 +9,12 @@ import {
 } from 'ionicons/icons'
 import './addUrlForm.css'
 import CustomInput from '../CustomInput/CustomInput'
-import {
-  getEmailandDirectory,
-  makeRequest,
-  usefullLinks,
-  help,
-} from '../../helpers/helpers'
+import { getEmailandDirectory, makeRequest } from '../../helpers/helpers'
+
 import CustomIonHeader from '../CustomIonHeader/CustomIonHeader'
 import HelperCard from '../HelperCard/HelperCard'
 import BlockUiLoader from '../BlockUiLoader/BlockUiLoader'
+import { help, usefullLinks } from '../../constants/constants'
 
 const AddUrlForm: React.FC = () => {
   // const [text, setText] = useState<string>('')
@@ -91,7 +88,14 @@ const AddUrlForm: React.FC = () => {
     </div>
   ))
 
-  const colors = ['success', 'tertiary', 'primary', 'secondary', 'warning']
+  const colors = [
+    'success',
+    'tertiary',
+    'primary',
+    'secondary',
+    'warning',
+    'danger',
+  ]
   const randomColor = colors[Math.floor(Math.random() * colors.length)]
 
   return (
