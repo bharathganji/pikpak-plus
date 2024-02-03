@@ -26,7 +26,7 @@ import {
 import CustomIonHeader from '../CustomIonHeader/CustomIonHeader'
 import './tasklist.css'
 import BlockUiLoader from '../BlockUiLoader/BlockUiLoader'
-import { makeRequest } from '../../helpers/helpers'
+import { getEmailandDirectory, makeRequest } from '../../helpers/helpers'
 import { Task } from '../../types/sharedTypes'
 import DownloadListPopover from './DownloadListPopover'
 import TaskDetailsModal from './TaskDetailsModal'
@@ -41,16 +41,21 @@ const DownloadList: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [selectedValue, setSelectedValue] = useState('ongoing')
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
-
   const [errorToast, setErrorToast] = useState<ErrorToast | null>(null)
+  const [popoverEvent, setPopoverEvent] = useState<any | null>(null)
+  const [showDetailsAlert, setShowDetailsAlert] = useState(false)
 
   const fetchDownloadData = async () => {
     setIsLoading(true)
 
     const apiUrl = selectedValue === 'ongoing' ? 'tasks' : 'completedTasks'
+    const { email } = getEmailandDirectory()
 
     try {
-      const response = await makeRequest(apiUrl, 'GET')
+      if (!email) {
+        throw new Error('Email not found')
+      }
+      const response = await makeRequest(apiUrl, 'POST', { email: email })
       if (response.status === 200) {
         const tasks = response.data.tasks || []
         setDownloadData(tasks)
@@ -82,15 +87,11 @@ const DownloadList: React.FC = () => {
     }
 
     fetchDownloadData1()
-  }, [selectedValue])
+  }, [])
 
   const handleSelectedValue = async (value) => {
     setSelectedValue(value)
   }
-  const [popoverEvent, setPopoverEvent] = useState<any | null>(null)
-
-  const [showDetailsAlert, setShowDetailsAlert] = useState(false)
-
   const handleMoreIconClick = (event: any, task: Task) => {
     setSelectedTask(task)
     setPopoverEvent(event)

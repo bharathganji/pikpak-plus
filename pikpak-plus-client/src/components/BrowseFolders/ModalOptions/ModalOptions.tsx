@@ -8,7 +8,7 @@ import {
 } from 'ionicons/icons'
 import { DownloadResponse, FileItem } from '../../../types/sharedTypes'
 import { copyToClipboard } from '../../../helpers/actionFunctions'
-import { makeRequest } from '../../../helpers/helpers'
+import { getEmailandDirectory, makeRequest } from '../../../helpers/helpers'
 import './ModalOptions.css'
 
 const ItemWithIcon: React.FC<ItemWithIconProps> = React.memo(
@@ -86,6 +86,9 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
     },
   }
 
+  const { email } = getEmailandDirectory()
+
+
   const handleCopyFileName = async (fileName: string): Promise<any> => {
     copyToClipboard(fileName)
     setShowToast({
@@ -107,6 +110,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
       return downloadData
     } else {
       const response = await makeRequest('download', 'POST', {
+        email: email,
         id: itemId,
       })
       const data = response.data
@@ -185,6 +189,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
   const handleShare = async (itemId: string): Promise<any> => {
     try {
       const response = await makeRequest('share', 'POST', {
+        email: email,
         id: itemId,
       })
       const data = response.data

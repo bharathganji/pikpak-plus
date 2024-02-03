@@ -84,46 +84,60 @@ def help():
     res = cmd.cmds["help"](initialized_client, "param")
     return jsonify({"result": res})
 
-@app.route('/tasks', methods=['GET'])
-# @user_route(enforce_login=True)
+
+def filter_tasks_by_supabase_ids(tasks, supabase_ids):
+    matching_tasks = []
+    task_ids = {task['id'] for task in tasks}
+    supabase_id_set = {item['id'] for item in supabase_ids}
+    common_ids = task_ids.intersection(supabase_id_set)
+
+    for task in tasks:
+        if task['id'] in common_ids:
+            matching_tasks.append(task)
+    return matching_tasks
+
+def process_tasks_route(command_key, email):
+    if initialized_client is None:
+        abort(401, description="Client not initialized. Call initialize_client first.")
+
+    # Execute the tasks command using initialized_client
+    res = cmd.cmds[command_key](initialized_client, "param")
+    supabase_res = supabase.table('user_actions').select('data').eq('email', email).execute()
+
+    # Extracting supabase IDs from supabase response
+    supabase_ids = [item['data'] for item in supabase_res.data]
+
+    # Filtering tasks based on supabase IDs
+    matching_tasks = filter_tasks_by_supabase_ids(res['tasks'], supabase_ids)
+    res['tasks'] = matching_tasks
+    return res
+
+@app.route('/tasks', methods=['GET', 'POST'])
 def get_tasks():
-    global initialized_client
-
-    if initialized_client is None:
-        abort(401, description="Client not initialized. Call initialize_client first.")
-
-    # Execute the tasks command using initialized_client
-    res = cmd.cmds["tasks"](initialized_client, "param")
+    data = request.get_json()
+    email = data.get('email')
+    print(email, "email")
+    
+    matching_tasks = process_tasks_route("tasks", email)
 
     # Assuming tasks command returns a dictionary, modify accordingly
-    return jsonify(res)
+    return jsonify(matching_tasks)
 
-
-@app.route('/completedTasks', methods=['GET'])
-# @user_route(enforce_login=True)
+@app.route('/completedTasks', methods=['GET', 'POST'])
 def get_tasks_completed():
-    global initialized_client
-
-    if initialized_client is None:
-        abort(401, description="Client not initialized. Call initialize_client first.")
-
-    # Execute the tasks command using initialized_client
-    res = cmd.cmds["tasks_completed"](initialized_client, "param")
+    data = request.get_json()
+    email = data.get('email')
+    print(email, "email")
+    
+    matching_tasks = process_tasks_route("tasks_completed", email)
 
     # Assuming tasks command returns a dictionary, modify accordingly
-    return jsonify(res)
-
+    return jsonify(matching_tasks)
 
 @app.route('/browse', methods=['POST'])
 @user_route(enforce_login=True)
 def browse(user):
-    # global initialized_client
 
-    # Check if the client is initialized
-    # if initialized_client is None:
-    #     print(40000)
-    #     abort(401, description="Client not initialized. Call initialize_client first.")
-    
     try:
         # Get JSON data from the request
         data = request.get_json()
@@ -142,12 +156,27 @@ def browse(user):
         logging.error("An error occurred during browse request: %s", str(e))
         return jsonify({"error": "An error occurred"}), 500
 
+
+def create_supabase_task_action(user_email, action, data):
+
+    if not user_email:
+        return jsonify({"error": "user parameter is missing"}), 400
+    
+    try:
+        res = supabase.table("user_actions").insert({"email": user_email,"actions": action, "data":data}).execute()
+        return res
+    except Exception as e:
+        
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/addURL', methods=['POST'])
 @user_route(enforce_login=True)
 def add_url(user):
     # Get the URL from the request data
     data = request.get_json()
     url = data.get('url')
+    email = data.get('email')
     user_dir = data.get('user_dir')
     # print("crated with parent", user_dir)
 
@@ -157,8 +186,9 @@ def add_url(user):
     try:
         # Execute the 'fetch' command with the initialized client
         res = cmd.cmds["fetch"](initialized_client, url,user_dir)
-        # print(res)
+        create_supabase_task_action(email, "create_task", res['task'])
         return jsonify({"result": res})
+    
     except Exception as e:
         initialize_client_route()
         return jsonify({"error": str(e)}), 500
@@ -202,6 +232,7 @@ def create_folder(user_email):
 def download(user):
     # Get the URL from the request data
     data = request.get_json()
+    email = data.get('email')
     id = data.get('id')
     # print("id",id)
     if not id:
@@ -210,6 +241,7 @@ def download(user):
     try:
         # Execute the 'fetch' command with the initialized client
         res = cmd.cmds["download"](initialized_client, "param",id)
+        supabase.table("user_actions").insert({"email": email,"actions": "download", "data":res}).execute()
         return jsonify(res)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -218,12 +250,14 @@ def download(user):
 def share():
     # Get the URL from the request data
     data = request.get_json()
+    email = data.get('email')
     id = data.get('id')
     if not id:
         return jsonify({"error": "id parameter is missing"}), 400
     try:
         # Execute the 'fetch' command with the initialized client
         res = cmd.cmds["share"](initialized_client, id)
+        supabase.table("user_actions").insert({"email": email,"actions": "share", "data":res}).execute()
         return jsonify(res)
     except Exception as e:
         return jsonify({"error": str(e)}), 500

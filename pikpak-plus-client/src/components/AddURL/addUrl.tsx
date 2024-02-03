@@ -47,6 +47,7 @@ const AddUrlForm: React.FC = () => {
     try {
       const response = await makeRequest('addURL', 'POST', {
         url: text,
+        email: email,
         user_dir: directory,
       })
       const data = response.data.result
