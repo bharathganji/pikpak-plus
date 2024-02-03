@@ -87,7 +87,7 @@ const DownloadList: React.FC = () => {
     }
 
     fetchDownloadData1()
-  }, [])
+  }, [selectedTask])
 
   const handleSelectedValue = async (value) => {
     setSelectedValue(value)
