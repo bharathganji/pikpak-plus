@@ -31,7 +31,39 @@ export default ({ mode }) => {
       Pages({
         onRoutesGenerated: (routes) => generateSitemap({ routes }),
       }),
-      VitePWA({ registerType: 'autoUpdate' }),
+      VitePWA({
+        registerType: 'autoUpdate',
+        injectRegister: 'script-defer',
+        includeAssets: [
+          'favicon.ico',
+          'apple-touch-icon.png',
+          'masked-icon.png',
+        ],
+        manifest: {
+          name: 'PikPak-plus',
+          short_name: 'pikpak-plus',
+          description:
+            'PikPak is a private and safe cloud drive that can save links from Torrent / Magnet / Social Media with 20X faster download and support 4K videos for original quality online playback.',
+          theme_color: '#306eff',
+          icons: [
+            {
+              src: 'pwa-192x192.png',
+              sizes: '192x192',
+              type: 'image/png',
+            },
+            {
+              src: 'pwa-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+            },
+            {
+              src: 'masked-icon.png',
+              type: 'image/png',
+              purpose: 'maskable',
+            },
+          ],
+        },
+      }),
       webfontDownload(),
     ],
     server: {

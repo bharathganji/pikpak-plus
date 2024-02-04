@@ -14,7 +14,7 @@ export default function CustomInput({
       onSubmit={(e) => {
         e.preventDefault()
         handleSubmit(inputRef.current?.value)
-        inputRef.current?.value ? inputRef.current.value = '' : null
+        inputRef.current?.value ? (inputRef.current.value = '') : null
       }}
     >
       <div className="container ">
@@ -25,7 +25,11 @@ export default function CustomInput({
             ref={inputRef}
             style={{ background: '#e0e0e0' }}
           />
-          <IonButton type="submit" style={{ minHeight: '44px', margin: 0 }}>
+          <IonButton
+            type="submit"
+            aria-label="submit"
+            style={{ minHeight: '44px', margin: 0 }}
+          >
             <IonIcon icon={icon}></IonIcon>
           </IonButton>
         </div>
