@@ -128,8 +128,6 @@ const AddUrlForm: React.FC = () => {
                 {email}
               </div>
               <CustomInput
-                // text={text}
-                // handleTextChange={handleTextChange}
                 handleSubmit={handleSubmit}
                 icon={addSharp}
                 customPlaceholder=" Enter magnet URL"
