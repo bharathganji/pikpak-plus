@@ -262,6 +262,14 @@ def share():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
+@app.route('/serverstats', methods=['GET'])
+def serverstats():
+    try:
+        res = cmd.cmds["get_traffic_details"](initialized_client)
+        res['base']['user_id'] = ''
+        return jsonify(res['base'])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
         
 # -------------------------------------------------------------------------------------------------------------
 

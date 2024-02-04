@@ -205,6 +205,14 @@ def share(client, dir_id):
         return e
     return res
     
+def get_traffic_details(client):
+    try:
+        res = client.get_traffic_details()
+        return res
+    except Exception as e:
+        print("Error: ", e)
+        return e
+    
 cmds={
     "help": helpme,
     "ls": listdir,
@@ -218,5 +226,6 @@ cmds={
     "download": download,
     "cleardir": cleardir,
     "create_folder": create_folder,
-    "share": share
+    "share": share,
+    "get_traffic_details" : get_traffic_details
 }

@@ -1,5 +1,6 @@
 import {
   IonCard,
+  IonCardContent,
   IonCardHeader,
   IonCardSubtitle,
   IonCardTitle,
@@ -13,7 +14,8 @@ interface HelperCardProps {
   cardSubtitle?: any
   cardSubTitleStyle?: React.CSSProperties
   icon?: string
-  titleColor?: string
+  titleColor?: string,
+  cardContent?: any
 }
 
 function HelperCard({
@@ -22,6 +24,7 @@ function HelperCard({
   titleColor,
   cardSubtitle,
   cardSubTitleStyle,
+  cardContent,
   icon,
 }: HelperCardProps) {
   return (
@@ -43,6 +46,7 @@ function HelperCard({
             {cardSubtitle}
           </IonCardSubtitle>
         </IonCardHeader>
+        <IonCardContent>{cardContent}</IonCardContent>
       </IonCard>
     </div>
   )
