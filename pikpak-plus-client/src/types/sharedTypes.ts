@@ -266,3 +266,31 @@ export type ShareData = {
   share_text: string
   share_url: string
 }
+
+
+interface BaseObjectType {
+  user_id: string;
+  info: string;
+  sub_status: boolean;
+  vip_status: string;
+  expire_time: string;
+  assets: string;
+  size: number;
+  offline: {
+      total_assets: number;
+      assets: number;
+      size: number;
+  };
+  download: {
+      total_assets: number;
+      assets: number;
+      size: number;
+  };
+  upload: {
+      total_assets: number;
+      assets: number;
+      size: number;
+  };
+}
+
+export type BaseResponseObjectType = BaseObjectType;

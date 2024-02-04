@@ -187,3 +187,8 @@ export const formatCreationTime = (creationTime) => {
 
   return formattedDate
 }
+
+export function bytesToGB(bytes: number): number {
+  const GB = bytes / (1024 * 1024 * 1024)
+  return GB
+}

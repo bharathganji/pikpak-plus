@@ -426,4 +426,17 @@ class PikPakApi:
         )
         return result
 
+    def get_traffic_details(self) -> Dict[str, Any]:
+
+        url = f"https://{self.PIKPAK_API_HOST}/vip/v1/quantity/list?type=transfer&limit=200"
+        
+        result = self._request_get(
+            url, 
+            "",
+            self.get_headers(),
+            self.proxy
+        )
+        return result
+
+
 

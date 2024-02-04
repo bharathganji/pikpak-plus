@@ -1,20 +1,34 @@
 import React, { useEffect, useState } from 'react'
-import { IonToast, IonContent, IonIcon, IonText } from '@ionic/react'
+import {
+  IonToast,
+  IonContent,
+  IonIcon,
+  IonText,
+  IonButton,
+  IonSpinner,
+  IonProgressBar,
+} from '@ionic/react'
 import {
   addSharp,
   informationCircleOutline,
   sparklesOutline,
   star,
   flash,
+  statsChart,
 } from 'ionicons/icons'
 import './addUrlForm.css'
 import CustomInput from '../CustomInput/CustomInput'
-import { getEmailandDirectory, makeRequest } from '../../helpers/helpers'
+import {
+  bytesToGB,
+  getEmailandDirectory,
+  makeRequest,
+} from '../../helpers/helpers'
 
 import CustomIonHeader from '../CustomIonHeader/CustomIonHeader'
 import HelperCard from '../HelperCard/HelperCard'
 import BlockUiLoader from '../BlockUiLoader/BlockUiLoader'
 import { help, usefullLinks } from '../../constants/constants'
+import { BaseResponseObjectType } from '../../types/sharedTypes'
 
 const AddUrlForm: React.FC = () => {
   // const [text, setText] = useState<string>('')
@@ -25,6 +39,11 @@ const AddUrlForm: React.FC = () => {
     color: string
   } | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
+
+  const [serverstats, setServerstats] = useState<BaseResponseObjectType | null>(
+    null,
+  )
+  const [isLoadingStats, setIsLoadingStats] = useState(false)
 
   useEffect(() => {
     const { email, dir } = getEmailandDirectory()
@@ -99,6 +118,50 @@ const AddUrlForm: React.FC = () => {
   ]
   const randomColor = colors[Math.floor(Math.random() * colors.length)]
 
+  const ProgressBar = ({ value, size }: { value: number; size: number }) => (
+    <>
+      <IonProgressBar color={'secondary'} value={value / size} />
+      <IonText>
+        {value.toFixed(2)} GB / {size} GB
+      </IonText>
+    </>
+  )
+
+  const quotaDetails = (
+    <>
+      {isLoadingStats && serverstats ? (
+        <IonSpinner name="lines"></IonSpinner>
+      ) : (
+        <>
+          <IonText color={'dark'}>Cloud Download Traffic 40 TB / Month</IonText>
+          <ProgressBar
+            value={bytesToGB(serverstats?.offline?.size ?? 0)}
+            size={40000}
+          />
+          <br />
+          <IonText color={'dark'}>Downstream Traffic 4 TB / Month</IonText>
+          <ProgressBar
+            value={bytesToGB(serverstats?.download?.size ?? 0)}
+            size={4000}
+          />
+        </>
+      )}
+    </>
+  )
+
+  const fetchServerstats = async () => {
+    try {
+      setIsLoadingStats(true)
+      const response = await makeRequest('serverstats', 'GET', {})
+      const data = response.data
+      setServerstats(data)
+    } catch (error) {
+      console.error('Error:', error)
+    } finally {
+      setIsLoadingStats(false)
+    }
+  }
+
   return (
     <>
       <CustomIonHeader title="Create Cloud Task" />
@@ -156,7 +219,22 @@ const AddUrlForm: React.FC = () => {
                 icon={flash}
                 titleColor="success"
               />
+              <HelperCard
+                cardTitle="Transfer Quota Details"
+                titleColor="tertiary"
+                icon={statsChart}
+                cardContent={
+                  serverstats !== null ? (
+                    quotaDetails
+                  ) : (
+                    <IonButton fill="outline" onClick={fetchServerstats}>
+                      Load stats . . .
+                    </IonButton>
+                  )
+                }
+              />
             </div>
+
             <IonToast
               isOpen={!!showToast}
               onDidDismiss={() => setShowToast(null)}
