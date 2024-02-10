@@ -24,7 +24,6 @@ import {
 import CustomIonHeader from '../CustomIonHeader/CustomIonHeader'
 import BlockUiLoader from '../BlockUiLoader/BlockUiLoader'
 import ModalOptions from './ModalOptions/ModalOptions'
-// import { Bdata } from '../../constants/constants'
 import VideoPlayer from './VideoPlayer/VideoPlayer'
 
 interface VideoPlayerProps {
@@ -42,9 +41,7 @@ const BrowseFolders: React.FC = () => {
   const [showModal, setShowModal] = useState(false)
   const [showVideoPlayer, setShowVideoPlayer] = useState(false)
   const [videoDetails, setVideoDetails] = useState<VideoPlayerProps>({})
-  // const [folderCache, setFolderCache] = useState<{
-  //   [key: string]: FileListResponse
-  // }>({})
+
   const [navigationCache, setNavigationCache] = useState<{
     [key: string]: FileListResponse
   }>({})

@@ -25,7 +25,6 @@ ion-item::part(native) {
 }
 
 ion-thumbnail {
-  /* --size: 140px; */
   --border-radius: 8px;
 }
 
