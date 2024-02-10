@@ -5,6 +5,7 @@ import {
   downloadOutline,
   copyOutline,
   trashBinOutline,
+  playOutline,
 } from 'ionicons/icons'
 import { DownloadResponse, FileItem } from '../../../types/sharedTypes'
 import { copyToClipboard } from '../../../helpers/actionFunctions'
@@ -31,12 +32,16 @@ interface ModalOptionsProps {
   item: FileItem | null
   setShowModal: (value: boolean) => void
   setIsLoading: (value: boolean) => void
+  setShowVideoPlayer?: (value: boolean) => void
+  setVideoDetails?: (value: any) => void
 }
 
 const ModalOptions: React.FC<ModalOptionsProps> = ({
   item,
   setShowModal,
   setIsLoading,
+  setShowVideoPlayer,
+  setVideoDetails,
 }) => {
   const fileName = item?.name
   const [showAlert, setShowAlert] = useState(false)
@@ -58,6 +63,12 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
       header: 'Share',
       message: 'Do you want to proceed with sharing?',
       icon: shareSocialOutline,
+    },
+    play: {
+      color: 'secondary',
+      header: 'Play',
+      message: 'Do you want to proceed with playing?',
+      icon: playOutline,
     },
     copyDownloadLink: {
       color: 'tertiary',
@@ -88,7 +99,6 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
 
   const { email } = getEmailandDirectory()
 
-
   const handleCopyFileName = async (fileName: string): Promise<any> => {
     copyToClipboard(fileName)
     setShowToast({
@@ -116,6 +126,30 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
       const data = response.data
       setDownloadData(data)
       return data
+    }
+  }
+
+  const handlePlay = async (itemId: string): Promise<any> => {
+    console.log('Play logic', itemId)
+
+    try {
+      setIsLoading(true)
+      const data = await fetchDataIfNeeded(itemId)
+      const downloadLink = data?.web_content_link
+      const thumbnailLink = data?.thumbnail_link
+      setVideoDetails &&
+        setVideoDetails({
+          videoUrl: downloadLink,
+          thumbnailImg: thumbnailLink,
+        })
+      setShowVideoPlayer && setShowVideoPlayer(true)
+    } catch (error) {
+      setShowToast({
+        message: 'Play failed, try again later',
+        color: 'danger',
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -231,6 +265,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
     share: handleShare,
     download: handleDownloadToDevice,
     delete: handleDelete,
+    play: handlePlay,
   }
 
   const directActions = ['copyFileName']
@@ -293,7 +328,13 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
     ]
   }
 
-  const confirmActions = ['delete', 'download', 'share', 'copyDownloadLink']
+  const confirmActions = [
+    'delete',
+    'download',
+    'share',
+    'copyDownloadLink',
+    'play',
+  ]
 
   const getAlertConfirmButtons = () => {
     return [
@@ -303,28 +344,37 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
       },
     ]
   }
-  const skipActions = ['download', 'copyDownloadLink']
+  const skipActions = ['download', 'copyDownloadLink', 'play']
 
   return (
     <>
       <IonList>
-        {Object.keys(actionDetails).map((action, index) =>
-          item &&
-          (item.kind !== 'drive#folder' ||
-            (item.kind === 'drive#folder' && !skipActions.includes(action))) ? (
-            <ItemWithIcon
-              key={index}
-              color={actionDetails[action].color}
-              icon={actionDetails[action].icon}
-              text={actionDetails[action].header}
-              onClick={() => handleAction(action)}
-            />
-          ) : (
-            ''
-          ),
-        )}
+        {Object.keys(actionDetails).map((action, index) => {
+          if (
+            action == 'play' &&
+            item?.kind !== 'drive#folder' &&
+            item?.file_category !== 'VIDEO'
+          ) {
+            return ''
+          } else if (
+            item &&
+            (item.kind !== 'drive#folder' ||
+              (item.kind === 'drive#folder' && !skipActions.includes(action)))
+          ) {
+            return (
+              <ItemWithIcon
+                key={index}
+                color={actionDetails[action].color}
+                icon={actionDetails[action].icon}
+                text={actionDetails[action].header}
+                onClick={() => handleAction(action)}
+              />
+            )
+          } else {
+            return ''
+          }
+        })}
       </IonList>
-
       {/* Common Alert for Multiple Actions */}
       <IonAlert
         isOpen={showAlert}

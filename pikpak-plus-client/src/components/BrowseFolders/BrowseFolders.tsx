@@ -10,13 +10,10 @@ import {
   IonItemDivider,
   IonChip,
   IonText,
+  IonThumbnail,
+  IonImg,
 } from '@ionic/react'
-import {
-  folderOpen,
-  document,
-  chevronUpCircleOutline,
-  ellipsisVerticalSharp,
-} from 'ionicons/icons'
+import { chevronUpCircleOutline, ellipsisVerticalSharp } from 'ionicons/icons'
 import { FileItem, FileListResponse } from '../../types/sharedTypes'
 import './BrowseFolders.css'
 import {
@@ -27,6 +24,8 @@ import {
 import CustomIonHeader from '../CustomIonHeader/CustomIonHeader'
 import BlockUiLoader from '../BlockUiLoader/BlockUiLoader'
 import ModalOptions from './ModalOptions/ModalOptions'
+// import { Bdata } from '../../constants/constants'
+import VideoPlayer from './VideoPlayer/VideoPlayer'
 
 const BrowseFolders: React.FC = () => {
   const [browseData, setBrowseData] = useState<FileListResponse | null>(null)
@@ -66,6 +65,7 @@ const BrowseFolders: React.FC = () => {
         throw new Error('Unauthorized')
       }
       const data = response.data
+      // setBrowseData(Bdata)
       setBrowseData(data)
     } catch (error: any) {
       setErrorToast('Error fetching browse data ' + error.message) // Set error message for toast
@@ -122,6 +122,19 @@ const BrowseFolders: React.FC = () => {
     // Fetch browse data for the new parent_id
     fetchBrowseData(parent_id || '')
   }
+  interface VideoPlayerProps {
+    videoUrl?: string
+    thumbnailImg?: string
+  }
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false)
+  const [videoDetails, setVideoDetails] = useState<VideoPlayerProps>({})
+  // setThumbnailImg(
+  //   'https://sg-thumbnail-drive.mypikpak.com/v0/screenshot-thumbnails/C3B3AE39C1CE9B2C6B41862779ABE84E9C41620F/720/2048',
+  // )
+  // setVideoUrl(
+  //   'https://dl-a10b-0876.mypikpak.com/download/?fid=HpWf7wGS5u2xkejyMtX5RBTtNXCWbpQVJaWmSZ4dr3jPcCwR0Oj13PTaYuj_mDHxETkHFRwfvBdRch3-baBrZ2DoZzT-vUu_tJ2oJhKlEDU=&from=5&verno=3&prod=1101&expire=1707590080&g=515D8FD35314CD856BE4ABF4F8B0BCD7CCA80815&ui=ZQBzavpEGpmtcaEy&t=0&ms=9437184&th=9437184&f=1513722617&alt=0&fileid=VNpiiKSx1eVOIdC9SDnQjI7Zo1&userid=ZQBzavpEGpmtcaEy&pr=XQPkPvr9WWiIuMvELmrVen6Q4nyOnrsbnuDSDort4hQFGIRCRyiZFkq1DHNhyU6syfWq_bLo1F2-pKBOBQV5YTt4D3lCbbNr0rJbx2YhUdTBGucyk_bx17SRzqWFw33bQsgKUco7hrZYnn5RARkw-NFhhrCMMjUUPvhoxaYs7-oGyV92EeGV2lV7Gsa0nMl2qcVG4MaQA7SxFQPPgMh7jDAM9jUrEm4CCa14HuNTUtszOc1xvSKCtPHwpUbU2u5TPzdvPNEtj2X3MIlYXt9P4khUoQ_FIHaE_wyI6kHotrP8EUSq7APbpHFqX0FSOTshemiYEx1W5gcy57p1ATA8rw==&sign=B3D619BFF730F13A5754D4BB1F1CE9F3',
+  // )
+  console.log(showVideoPlayer)
 
   return (
     <>
@@ -138,7 +151,13 @@ const BrowseFolders: React.FC = () => {
                 duration={3000}
               />
             )}
-
+            {showVideoPlayer && (
+              <VideoPlayer
+                videoUrl={videoDetails.videoUrl}
+                thumbnailImg={videoDetails.thumbnailImg}
+                setShowVideoPlayer={setShowVideoPlayer}
+              />
+            )}
             <div className="browse-list">
               <IonList>
                 {parentStack.length > 0 && (
@@ -155,7 +174,7 @@ const BrowseFolders: React.FC = () => {
                 )}
                 {browseData?.files.map((item) => (
                   <IonItem
-                    color="light"
+                    // color="light"
                     key={item.id}
                     onClick={() =>
                       handleItemClick(item.id, item.kind, item.parent_id)
@@ -164,7 +183,7 @@ const BrowseFolders: React.FC = () => {
                       item.kind === 'drive#folder' ? 'hover-effect' : ''
                     }
                   >
-                    <IonIcon
+                    {/* <IonIcon
                       slot="start"
                       color="primary"
                       icon={
@@ -172,9 +191,24 @@ const BrowseFolders: React.FC = () => {
                           ? folderOpen
                           : document
                       }
-                    />
+                    /> */}
+                    {
+                      <IonThumbnail className="thumbnail">
+                        <IonImg
+                          src={
+                            item.kind === 'drive#folder'
+                              ? item.icon_link
+                              : item.thumbnail_link
+                          }
+                          className="thumbnail-img"
+                          alt={item.name}
+                          onIonError={(e) => {
+                            e.target.src = item.icon_link
+                          }}
+                        ></IonImg>
+                      </IonThumbnail>
+                    }
                     <IonLabel>{item.name}</IonLabel>
-
                     <IonIcon
                       color="primary"
                       icon={ellipsisVerticalSharp}
@@ -191,7 +225,6 @@ const BrowseFolders: React.FC = () => {
                 ))}
               </IonList>
             </div>
-
             {/* IonModal component for displaying additional options */}
             <IonModal
               isOpen={showModal}
@@ -224,6 +257,8 @@ const BrowseFolders: React.FC = () => {
                 item={selectedItem}
                 setShowModal={setShowModal}
                 setIsLoading={setIsLoading}
+                setVideoDetails={setVideoDetails}
+                setShowVideoPlayer={setShowVideoPlayer}
               />
             </IonModal>
           </>
