@@ -63,7 +63,6 @@ const BrowseFolders: React.FC = () => {
   // Effect hook to fetch browseData when directory changes
   useEffect(() => {
     if (directory) {
-      // setIsLoading(true)
       fetchBrowseData(directory)
     }
   }, [directory])
