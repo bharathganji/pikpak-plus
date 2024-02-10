@@ -53,7 +53,7 @@ const AddUrlForm: React.FC = () => {
 
   const handleSubmit = async (text: string) => {
     setIsLoading(true)
-    const isMagnetURL = /^magnet:\?xt=urn:btih:[0-9a-fA-F]{40}/.test(text)
+    const isMagnetURL = /^magnet:\?xt=urn:btih:[0-9a-fA-F]{0,}$/i.test(text);
     if (!isMagnetURL) {
       setShowToast({
         message: 'Invalid magnet URL',

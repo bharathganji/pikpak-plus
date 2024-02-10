@@ -8,6 +8,7 @@ from pikpak import client as pik
 from pikpak import shell_cmds as cmd
 import logging, random, string
 import apiscrape
+import requests, re
 
 app=Flask(__name__)
 app.config['SECRET_KEY']=''.join(random.choice(string.ascii_uppercase + string.digits))
@@ -270,6 +271,21 @@ def serverstats():
         return jsonify(res['base'])
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@app.route('/getRedirectUrl', methods=['POST'])
+def getRedirectUrl():
+    data = request.get_json()
+    url = data.get('url')
+    try:
+        res =  requests.get(url)
+        return jsonify(res)
+    except Exception as e:
+        error_message = str(e)
+        start_index = error_message.find("'")
+        # Extract the substring after the single quotation marks
+        remaining_string = error_message[start_index + 1:-1]
+  
+        return jsonify(str(remaining_string)), 200
         
 # -------------------------------------------------------------------------------------------------------------
 

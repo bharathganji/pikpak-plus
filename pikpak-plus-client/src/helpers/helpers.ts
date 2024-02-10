@@ -38,12 +38,13 @@ export const prepareColumnDefs = (): ColDef[] => {
       headerName: 'Title',
       field: 'Title',
       filter: 'agTextColumnFilter',
-      width: 400,
+      // width: 100,
+      // resizable: false
     },
     {
       headerName: 'Size',
       field: 'Size',
-      width: 120,
+      // width: 120,
       comparator: sizeComparator,
     },
     {
@@ -51,14 +52,15 @@ export const prepareColumnDefs = (): ColDef[] => {
       field: 'Seeders',
       width: 100,
       sort: 'desc' as SortDirection,
+      resizable: false,
     },
     {
       headerName: 'Peers',
       field: 'Peers',
       width: 90,
+      resizable: false,
     },
     { headerName: 'Tracker', field: 'Tracker', filter: true, width: 150 },
-    { headerName: 'URL', field: 'Details' },
   ].map((data) => ({ ...data, suppressMovable: true }))
 }
 

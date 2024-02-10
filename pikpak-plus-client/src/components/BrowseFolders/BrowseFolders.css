@@ -14,3 +14,27 @@ ion-item::part(native) {
   text-align: justify;
   color: var(--color-primary);
 }
+
+.thumbnail {
+  margin: 0px 10px 0px 0px;
+  height: 2rem;
+  width: 2rem;
+}
+.thumbnail-img {
+  object-fit: cover;
+}
+
+ion-thumbnail {
+  --border-radius: 8px;
+}
+
+.player-wrapper {
+  position: relative;
+  padding-top: 56.25%; /* Player ratio: 100 / (1280 / 720) */
+}
+
+.react-player {
+  position: absolute;
+  top: 0;
+  left: 0;
+}

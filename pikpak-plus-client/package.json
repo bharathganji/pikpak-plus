@@ -24,6 +24,7 @@
     "react-bootstrap": "^2.9.1",
     "react-dom": "^18.2.0",
     "react-loader-spinner": "^6.1.6",
+    "react-player": "^2.14.1",
     "react-router-dom": "^5.3.4"
   },
   "devDependencies": {

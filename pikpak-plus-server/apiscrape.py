@@ -47,7 +47,7 @@ def searchQuery(searchTerm,categoryList,indexerList):
     if resultsdf.empty:
         return("Empty","No results found")
 
-    resultsdf.drop(['FirstSeen','BlackholeLink','TrackerId','Guid','Category','Grabs','Description','RageID','TVDBId','Imdb','TMDb','Author','BookTitle','Poster','MinimumRatio','MinimumSeedTime','DownloadVolumeFactor','UploadVolumeFactor','Gain','Album','Artist','DoubanId','Label','Genres','Languages','TVMazeId','Track','TraktId','TrackerType','Subs','Publisher'],axis=1,inplace=True)
+    resultsdf.drop(['FirstSeen','BlackholeLink','TrackerId','Guid','Category','Grabs','Description','RageID','TVDBId','Imdb','TMDb','Author','BookTitle','Poster','MinimumRatio','MinimumSeedTime','DownloadVolumeFactor','UploadVolumeFactor','Gain','Album','Artist','DoubanId','Label','Genres','Languages','TVMazeId','Track','TraktId','TrackerType','Subs','Publisher','CategoryDesc','PublishDate','Files','Year'],axis=1,inplace=True)
 
     #pd.set_option("display.max_rows", None, "display.max_columns", None)
     for idx in resultsdf.index:

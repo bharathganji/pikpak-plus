@@ -10,12 +10,14 @@ import {
   IonItemDivider,
   IonChip,
   IonText,
+  IonThumbnail,
+  IonImg,
+  IonButton,
 } from '@ionic/react'
 import {
-  folderOpen,
-  document,
   chevronUpCircleOutline,
   ellipsisVerticalSharp,
+  sadOutline,
 } from 'ionicons/icons'
 import { FileItem, FileListResponse } from '../../types/sharedTypes'
 import './BrowseFolders.css'
@@ -27,15 +29,28 @@ import {
 import CustomIonHeader from '../CustomIonHeader/CustomIonHeader'
 import BlockUiLoader from '../BlockUiLoader/BlockUiLoader'
 import ModalOptions from './ModalOptions/ModalOptions'
+import VideoPlayer from './VideoPlayer/VideoPlayer'
+import HelperCard from '../HelperCard/HelperCard'
+
+interface VideoPlayerProps {
+  videoUrl?: string
+  thumbnailImg?: string
+}
 
 const BrowseFolders: React.FC = () => {
   const [browseData, setBrowseData] = useState<FileListResponse | null>(null)
   const [parentStack, setParentStack] = useState<string[]>([])
-  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [isLoading, setIsLoading] = useState<boolean>(true)
   const [errorToast, setErrorToast] = useState<string | null>(null) // State for error toast
   const [directory, setDirectory] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState<FileItem | null>(null)
   const [showModal, setShowModal] = useState(false)
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false)
+  const [videoDetails, setVideoDetails] = useState<VideoPlayerProps>({})
+
+  const [navigationCache, setNavigationCache] = useState<{
+    [key: string]: FileListResponse
+  }>({})
 
   // Effect hook to set initial directory on component mount
   useEffect(() => {
@@ -56,24 +71,6 @@ const BrowseFolders: React.FC = () => {
   function closeModal() {
     setShowModal(false)
   }
-
-  // Function to fetch browse data from the server
-  const fetchBrowseData = async (itemIndex: string | null) => {
-    try {
-      setIsLoading(true)
-      const response = await makeBrowseRequest(itemIndex)
-      if (response.status !== 200) {
-        throw new Error('Unauthorized')
-      }
-      const data = response.data
-      setBrowseData(data)
-    } catch (error: any) {
-      setErrorToast('Error fetching browse data ' + error.message) // Set error message for toast
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   // Function to make a browse request to the server
   const makeBrowseRequest = async (itemIndex: string | null) => {
     try {
@@ -85,6 +82,29 @@ const BrowseFolders: React.FC = () => {
     } catch (error) {
       console.error('Error making browse request:', error)
       throw error // Rethrow the error for handling in the calling code
+    }
+  }
+
+  // Function to fetch browse data from the server // Function to fetch browse data from the server
+  const fetchBrowseData = async (itemIndex: string | null) => {
+    try {
+      setIsLoading(true)
+      if (itemIndex && navigationCache[itemIndex]) {
+        setBrowseData(navigationCache[itemIndex])
+      } else {
+        const response = await makeBrowseRequest(itemIndex)
+        if (response.status !== 200) {
+          throw new Error('Unauthorized')
+        }
+        const data = response.data
+        setBrowseData(data)
+        itemIndex &&
+          setNavigationCache({ ...navigationCache, [itemIndex]: data })
+      }
+    } catch (error: any) {
+      setErrorToast('Error fetching browse data ' + error.message)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -104,8 +124,9 @@ const BrowseFolders: React.FC = () => {
         const data = response.data
         setBrowseData(data)
         setParentStack((prevStack) => [...prevStack, parent_id])
+        index && setNavigationCache({ ...navigationCache, [index]: data })
       } catch (error: any) {
-        setErrorToast('Error fetching browse data ' + error.message) // Set error message for toast
+        setErrorToast('Error fetching browse data ' + error.message)
       } finally {
         setIsLoading(false)
       }
@@ -116,12 +137,38 @@ const BrowseFolders: React.FC = () => {
   const handleBackClick = () => {
     const newStack = [...parentStack]
     const parent_id = newStack.pop()
-
     setParentStack(newStack)
 
-    // Fetch browse data for the new parent_id
-    fetchBrowseData(parent_id || '')
+    if (parent_id && navigationCache[parent_id]) {
+      // Set browse data from cache if available
+      setBrowseData(navigationCache[parent_id])
+    } else {
+      // Fetch browse data for the new parent_id
+      fetchBrowseData(parent_id || '')
+    }
   }
+
+  const helperCardContent = (
+    <>
+      <b> Try sample Magnet:</b> &nbsp;
+      <IonText style={{ wordBreak: 'break-all' }}>
+        magnet:?xt=urn:btih:12D47B6836FD7787531393069ED5ADE7F53DF7D8
+      </IonText>
+      <br />
+      <IonButton
+        color="primary"
+        fill="outline"
+        onClick={() => {
+          window.navigator.clipboard.writeText(
+            'magnet:?xt=urn:btih:12D47B6836FD7787531393069ED5ADE7F53DF7D8',
+          )
+          setErrorToast('Magnet copied, Go to Create Task Section')
+        }}
+      >
+        copy
+      </IonButton>
+    </>
+  )
 
   return (
     <>
@@ -132,66 +179,91 @@ const BrowseFolders: React.FC = () => {
           <>
             {errorToast && (
               <IonToast
+                position="top"
                 isOpen={!!errorToast}
                 onDidDismiss={() => setErrorToast(null)}
                 message={errorToast}
-                duration={3000}
+                duration={2000}
               />
             )}
-
+            {showVideoPlayer && (
+              <VideoPlayer
+                videoUrl={videoDetails.videoUrl}
+                thumbnailImg={videoDetails.thumbnailImg}
+                setShowVideoPlayer={setShowVideoPlayer}
+              />
+            )}
             <div className="browse-list">
               <IonList>
                 {parentStack.length > 0 && (
-                  <IonItem
-                    onClick={handleBackClick}
-                    color="light"
-                    className="hover-effect"
-                  >
-                    <IonIcon slot="start" icon={chevronUpCircleOutline} />
+                  <IonItem onClick={handleBackClick} className="hover-effect">
+                    <IonIcon icon={chevronUpCircleOutline} />
+                    &nbsp;
                     <IonLabel>
                       <IonText>Folder Up</IonText>
                     </IonLabel>
                   </IonItem>
                 )}
-                {browseData?.files.map((item) => (
-                  <IonItem
-                    color="light"
-                    key={item.id}
-                    onClick={() =>
-                      handleItemClick(item.id, item.kind, item.parent_id)
-                    }
-                    className={
-                      item.kind === 'drive#folder' ? 'hover-effect' : ''
-                    }
-                  >
-                    <IonIcon
-                      slot="start"
-                      color="primary"
-                      icon={
-                        item.kind === 'drive#folder'
-                          ? folderOpen
-                          : document
+                { isLoading || browseData ? (
+                  browseData?.files.map((item) => (
+                    <IonItem
+                      key={item.id}
+                      onClick={() =>
+                        handleItemClick(item.id, item.kind, item.parent_id)
                       }
-                    />
-                    <IonLabel>{item.name}</IonLabel>
-
-                    <IonIcon
-                      color="primary"
-                      icon={ellipsisVerticalSharp}
-                      size="default"
-                      className="hover-effect"
-                      slot="end"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedItem(item)
-                        setShowModal(true) // Open modal on button click
-                      }}
-                    ></IonIcon>
-                  </IonItem>
-                ))}
+                      className={
+                        item.kind === 'drive#folder' ? 'hover-effect' : ''
+                      }
+                    >
+                      {
+                        <IonThumbnail className="thumbnail">
+                          <IonImg
+                            src={
+                              item.kind === 'drive#folder'
+                                ? item.icon_link
+                                : item.thumbnail_link
+                            }
+                            className="thumbnail-img"
+                            alt={item.name}
+                            onIonError={(e) => {
+                              e.target.src = item.icon_link
+                            }}
+                          ></IonImg>
+                        </IonThumbnail>
+                      }
+                      <IonLabel>{item.name}</IonLabel>
+                      <IonIcon
+                        color="primary"
+                        icon={ellipsisVerticalSharp}
+                        size="default"
+                        className="hover-effect"
+                        slot="end"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedItem(item)
+                          setShowModal(true) // Open modal on button click
+                        }}
+                      ></IonIcon>
+                    </IonItem>
+                  ))
+                ) : (
+                  <HelperCard
+                    cardTitle="No Content to Browse"
+                    cardSubtitle={
+                      <IonText>Try again after adding content</IonText>
+                    }
+                    cardSubTitleStyle={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      textAlign: 'justify',
+                    }}
+                    cardContent={helperCardContent}
+                    icon={sadOutline}
+                    titleColor="primary"
+                  />
+                )}
               </IonList>
             </div>
-
             {/* IonModal component for displaying additional options */}
             <IonModal
               isOpen={showModal}
@@ -224,6 +296,8 @@ const BrowseFolders: React.FC = () => {
                 item={selectedItem}
                 setShowModal={setShowModal}
                 setIsLoading={setIsLoading}
+                setVideoDetails={setVideoDetails}
+                setShowVideoPlayer={setShowVideoPlayer}
               />
             </IonModal>
           </>

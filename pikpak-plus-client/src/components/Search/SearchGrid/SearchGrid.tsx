@@ -5,7 +5,11 @@ import 'ag-grid-community/styles/ag-theme-alpine.css'
 import { ColDef, GridOptions } from 'ag-grid-community'
 import { IonButton, IonIcon } from '@ionic/react'
 import { copy, open, shareSocial } from 'ionicons/icons'
-import { prepareColumnDefs, prepareRowData } from '../../../helpers/helpers'
+import {
+  makeRequest,
+  prepareColumnDefs,
+  prepareRowData,
+} from '../../../helpers/helpers'
 import './SearchGrid.css'
 import CommonToast from '../../commonToast/commonToast'
 import { TorrentInfo } from '../../../types/sharedTypes'
@@ -25,21 +29,25 @@ const SearchGrid: React.FC<AgGridProps> = ({ searchInfoList }) => {
   const gridOptions: GridOptions = {
     pagination: true,
     paginationPageSize: 20,
-    cacheBlockSize: 20,
     rowHeight: 45,
+    autoSizeStrategy: {
+      type: 'fitCellContents',
+    },
   }
   const shareColumn: ColDef = {
     headerName: 'Share URL',
     field: 'Details',
     cellRenderer: 'shareCellRenderer',
     width: 100,
+    resizable: false,
   }
 
   const copyColumn: ColDef = {
-    headerName: 'Copy',
+    headerName: 'Copy Magnet',
     field: 'Link',
     cellRenderer: 'copyCellRenderer',
-    width: 100,
+    width: 120,
+    resizable: false,
   }
 
   const openUrlColumn: ColDef = {
@@ -47,6 +55,7 @@ const SearchGrid: React.FC<AgGridProps> = ({ searchInfoList }) => {
     field: 'Details',
     cellRenderer: 'openUrlCellRenderer',
     width: 100,
+    resizable: false,
   }
 
   const components = {
@@ -72,10 +81,13 @@ const CopyCellRenderer: React.FC<{ value: any }> = ({ value }) => {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(value)
+      const copyText = value.includes('magnet')
+        ? value
+        : (await makeRequest('/getRedirectUrl', 'POST', { url: value })).data
+      await navigator.clipboard.writeText(copyText)
       setShowCopyToast(true)
     } catch (error) {
-      console.error('Failed to copy to clipboard:', error)
+      alert('Failed to copy to clipboard:' + error)
       // Handle error if needed
     }
   }
@@ -149,7 +161,6 @@ const ShareCellRenderer: React.FC<{ value: any }> = ({ value }) => {
           console.error('Failed to share:', error)
         })
     } else {
-      
       console.log('Share API is not supported in this browser')
     }
   }
