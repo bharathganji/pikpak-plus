@@ -120,13 +120,14 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
     }
   }
 
-  const fetchDataIfNeeded = async (itemId: string) => {
+  const fetchDataIfNeeded = async (itemId: string, action: string) => {
     if (downloadData?.id === itemId) {
       return downloadData
     } else {
       const response = await makeRequest('download', 'POST', {
         email: email,
         id: itemId,
+        action: action,
       })
       const data = response.data
       setDownloadData(data)
@@ -146,7 +147,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
     }
     try {
       setIsLoading(true)
-      const data = await fetchDataIfNeeded(itemId)
+      const data = await fetchDataIfNeeded(itemId, 'play')
       const downloadLink = data?.web_content_link
       const thumbnailLink = data?.thumbnail_link
       setVideoDetails &&
@@ -172,7 +173,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
     try {
       setIsLoading(true)
 
-      const data = await fetchDataIfNeeded(itemId)
+      const data = await fetchDataIfNeeded(itemId, 'download')
       const downloadLink = data?.web_content_link
       const downloadName = data?.name
 
