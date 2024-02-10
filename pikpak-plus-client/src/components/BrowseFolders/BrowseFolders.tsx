@@ -12,8 +12,13 @@ import {
   IonText,
   IonThumbnail,
   IonImg,
+  IonButton,
 } from '@ionic/react'
-import { chevronUpCircleOutline, ellipsisVerticalSharp } from 'ionicons/icons'
+import {
+  chevronUpCircleOutline,
+  ellipsisVerticalSharp,
+  sadOutline,
+} from 'ionicons/icons'
 import { FileItem, FileListResponse } from '../../types/sharedTypes'
 import './BrowseFolders.css'
 import {
@@ -25,6 +30,7 @@ import CustomIonHeader from '../CustomIonHeader/CustomIonHeader'
 import BlockUiLoader from '../BlockUiLoader/BlockUiLoader'
 import ModalOptions from './ModalOptions/ModalOptions'
 import VideoPlayer from './VideoPlayer/VideoPlayer'
+import HelperCard from '../HelperCard/HelperCard'
 
 interface VideoPlayerProps {
   videoUrl?: string
@@ -142,6 +148,28 @@ const BrowseFolders: React.FC = () => {
     }
   }
 
+  const helperCardContent = (
+    <>
+      <b> Try sample Magnet:</b> &nbsp;
+      <IonText style={{ wordBreak: 'break-all' }}>
+        magnet:?xt=urn:btih:12D47B6836FD7787531393069ED5ADE7F53DF7D8
+      </IonText>
+      <br />
+      <IonButton
+        color="primary"
+        fill="outline"
+        onClick={() => {
+          window.navigator.clipboard.writeText(
+            'magnet:?xt=urn:btih:12D47B6836FD7787531393069ED5ADE7F53DF7D8',
+          )
+          setErrorToast('Magnet copied, Go to Create Task Section')
+        }}
+      >
+        copy
+      </IonButton>
+    </>
+  )
+
   return (
     <>
       <CustomIonHeader title="Browse Folders" />
@@ -151,10 +179,11 @@ const BrowseFolders: React.FC = () => {
           <>
             {errorToast && (
               <IonToast
+                position="top"
                 isOpen={!!errorToast}
                 onDidDismiss={() => setErrorToast(null)}
                 message={errorToast}
-                duration={3000}
+                duration={2000}
               />
             )}
             {showVideoPlayer && (
@@ -175,47 +204,64 @@ const BrowseFolders: React.FC = () => {
                     </IonLabel>
                   </IonItem>
                 )}
-                {browseData?.files.map((item) => (
-                  <IonItem
-                    key={item.id}
-                    onClick={() =>
-                      handleItemClick(item.id, item.kind, item.parent_id)
+                {browseData ? (
+                  browseData?.files.map((item) => (
+                    <IonItem
+                      key={item.id}
+                      onClick={() =>
+                        handleItemClick(item.id, item.kind, item.parent_id)
+                      }
+                      className={
+                        item.kind === 'drive#folder' ? 'hover-effect' : ''
+                      }
+                    >
+                      {
+                        <IonThumbnail className="thumbnail">
+                          <IonImg
+                            src={
+                              item.kind === 'drive#folder'
+                                ? item.icon_link
+                                : item.thumbnail_link
+                            }
+                            className="thumbnail-img"
+                            alt={item.name}
+                            onIonError={(e) => {
+                              e.target.src = item.icon_link
+                            }}
+                          ></IonImg>
+                        </IonThumbnail>
+                      }
+                      <IonLabel>{item.name}</IonLabel>
+                      <IonIcon
+                        color="primary"
+                        icon={ellipsisVerticalSharp}
+                        size="default"
+                        className="hover-effect"
+                        slot="end"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedItem(item)
+                          setShowModal(true) // Open modal on button click
+                        }}
+                      ></IonIcon>
+                    </IonItem>
+                  ))
+                ) : (
+                  <HelperCard
+                    cardTitle="No Content to Browse"
+                    cardSubtitle={
+                      <IonText>Try again after adding content</IonText>
                     }
-                    className={
-                      item.kind === 'drive#folder' ? 'hover-effect' : ''
-                    }
-                  >
-                    {
-                      <IonThumbnail className="thumbnail">
-                        <IonImg
-                          src={
-                            item.kind === 'drive#folder'
-                              ? item.icon_link
-                              : item.thumbnail_link
-                          }
-                          className="thumbnail-img"
-                          alt={item.name}
-                          onIonError={(e) => {
-                            e.target.src = item.icon_link
-                          }}
-                        ></IonImg>
-                      </IonThumbnail>
-                    }
-                    <IonLabel>{item.name}</IonLabel>
-                    <IonIcon
-                      color="primary"
-                      icon={ellipsisVerticalSharp}
-                      size="default"
-                      className="hover-effect"
-                      slot="end"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedItem(item)
-                        setShowModal(true) // Open modal on button click
-                      }}
-                    ></IonIcon>
-                  </IonItem>
-                ))}
+                    cardSubTitleStyle={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      textAlign: 'justify',
+                    }}
+                    cardContent={helperCardContent}
+                    icon={sadOutline}
+                    titleColor="primary"
+                  />
+                )}
               </IonList>
             </div>
             {/* IonModal component for displaying additional options */}

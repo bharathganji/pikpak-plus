@@ -9,7 +9,11 @@ import {
 } from 'ionicons/icons'
 import { DownloadResponse, FileItem } from '../../../types/sharedTypes'
 import { copyToClipboard } from '../../../helpers/actionFunctions'
-import { getEmailandDirectory, makeRequest } from '../../../helpers/helpers'
+import {
+  formatFileSize,
+  getEmailandDirectory,
+  makeRequest,
+} from '../../../helpers/helpers'
 import './ModalOptions.css'
 
 const ItemWithIcon: React.FC<ItemWithIconProps> = React.memo(
@@ -44,6 +48,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
   setVideoDetails,
 }) => {
   const fileName = item?.name
+  const fileSize = item?.size
   const [showAlert, setShowAlert] = useState(false)
   const [actionCode, setActionCode] = useState('')
   const [downloadData, setDownloadData] = useState<DownloadResponse | null>(
@@ -131,7 +136,14 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
 
   const handlePlay = async (itemId: string): Promise<any> => {
     console.log('Play logic', itemId)
-
+    const maxLimit = parseInt(import.meta.env.VITE_MAX_PLAY_SIZE_LIMIT_IN_BYTES)
+    if (maxLimit < parseInt(fileSize as any)) {
+      setShowToast({
+        message: 'File too large to play, limit ' + formatFileSize(maxLimit),
+        color: 'danger',
+      })
+      return
+    }
     try {
       setIsLoading(true)
       const data = await fetchDataIfNeeded(itemId)
