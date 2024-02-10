@@ -27,6 +27,11 @@ import ModalOptions from './ModalOptions/ModalOptions'
 // import { Bdata } from '../../constants/constants'
 import VideoPlayer from './VideoPlayer/VideoPlayer'
 
+interface VideoPlayerProps {
+  videoUrl?: string
+  thumbnailImg?: string
+}
+
 const BrowseFolders: React.FC = () => {
   const [browseData, setBrowseData] = useState<FileListResponse | null>(null)
   const [parentStack, setParentStack] = useState<string[]>([])
@@ -35,6 +40,14 @@ const BrowseFolders: React.FC = () => {
   const [directory, setDirectory] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState<FileItem | null>(null)
   const [showModal, setShowModal] = useState(false)
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false)
+  const [videoDetails, setVideoDetails] = useState<VideoPlayerProps>({})
+  // const [folderCache, setFolderCache] = useState<{
+  //   [key: string]: FileListResponse
+  // }>({})
+  const [navigationCache, setNavigationCache] = useState<{
+    [key: string]: FileListResponse
+  }>({})
 
   // Effect hook to set initial directory on component mount
   useEffect(() => {
@@ -55,25 +68,6 @@ const BrowseFolders: React.FC = () => {
   function closeModal() {
     setShowModal(false)
   }
-
-  // Function to fetch browse data from the server
-  const fetchBrowseData = async (itemIndex: string | null) => {
-    try {
-      setIsLoading(true)
-      const response = await makeBrowseRequest(itemIndex)
-      if (response.status !== 200) {
-        throw new Error('Unauthorized')
-      }
-      const data = response.data
-      // setBrowseData(Bdata)
-      setBrowseData(data)
-    } catch (error: any) {
-      setErrorToast('Error fetching browse data ' + error.message) // Set error message for toast
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   // Function to make a browse request to the server
   const makeBrowseRequest = async (itemIndex: string | null) => {
     try {
@@ -85,6 +79,29 @@ const BrowseFolders: React.FC = () => {
     } catch (error) {
       console.error('Error making browse request:', error)
       throw error // Rethrow the error for handling in the calling code
+    }
+  }
+
+  // Function to fetch browse data from the server // Function to fetch browse data from the server
+  const fetchBrowseData = async (itemIndex: string | null) => {
+    try {
+      setIsLoading(true)
+      if (itemIndex && navigationCache[itemIndex]) {
+        setBrowseData(navigationCache[itemIndex])
+      } else {
+        const response = await makeBrowseRequest(itemIndex)
+        if (response.status !== 200) {
+          throw new Error('Unauthorized')
+        }
+        const data = response.data
+        setBrowseData(data)
+        itemIndex &&
+          setNavigationCache({ ...navigationCache, [itemIndex]: data })
+      }
+    } catch (error: any) {
+      setErrorToast('Error fetching browse data ' + error.message)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -104,8 +121,9 @@ const BrowseFolders: React.FC = () => {
         const data = response.data
         setBrowseData(data)
         setParentStack((prevStack) => [...prevStack, parent_id])
+        index && setNavigationCache({ ...navigationCache, [index]: data })
       } catch (error: any) {
-        setErrorToast('Error fetching browse data ' + error.message) // Set error message for toast
+        setErrorToast('Error fetching browse data ' + error.message)
       } finally {
         setIsLoading(false)
       }
@@ -116,25 +134,16 @@ const BrowseFolders: React.FC = () => {
   const handleBackClick = () => {
     const newStack = [...parentStack]
     const parent_id = newStack.pop()
-
     setParentStack(newStack)
 
-    // Fetch browse data for the new parent_id
-    fetchBrowseData(parent_id || '')
+    if (parent_id && navigationCache[parent_id]) {
+      // Set browse data from cache if available
+      setBrowseData(navigationCache[parent_id])
+    } else {
+      // Fetch browse data for the new parent_id
+      fetchBrowseData(parent_id || '')
+    }
   }
-  interface VideoPlayerProps {
-    videoUrl?: string
-    thumbnailImg?: string
-  }
-  const [showVideoPlayer, setShowVideoPlayer] = useState(false)
-  const [videoDetails, setVideoDetails] = useState<VideoPlayerProps>({})
-  // setThumbnailImg(
-  //   'https://sg-thumbnail-drive.mypikpak.com/v0/screenshot-thumbnails/C3B3AE39C1CE9B2C6B41862779ABE84E9C41620F/720/2048',
-  // )
-  // setVideoUrl(
-  //   'https://dl-a10b-0876.mypikpak.com/download/?fid=HpWf7wGS5u2xkejyMtX5RBTtNXCWbpQVJaWmSZ4dr3jPcCwR0Oj13PTaYuj_mDHxETkHFRwfvBdRch3-baBrZ2DoZzT-vUu_tJ2oJhKlEDU=&from=5&verno=3&prod=1101&expire=1707590080&g=515D8FD35314CD856BE4ABF4F8B0BCD7CCA80815&ui=ZQBzavpEGpmtcaEy&t=0&ms=9437184&th=9437184&f=1513722617&alt=0&fileid=VNpiiKSx1eVOIdC9SDnQjI7Zo1&userid=ZQBzavpEGpmtcaEy&pr=XQPkPvr9WWiIuMvELmrVen6Q4nyOnrsbnuDSDort4hQFGIRCRyiZFkq1DHNhyU6syfWq_bLo1F2-pKBOBQV5YTt4D3lCbbNr0rJbx2YhUdTBGucyk_bx17SRzqWFw33bQsgKUco7hrZYnn5RARkw-NFhhrCMMjUUPvhoxaYs7-oGyV92EeGV2lV7Gsa0nMl2qcVG4MaQA7SxFQPPgMh7jDAM9jUrEm4CCa14HuNTUtszOc1xvSKCtPHwpUbU2u5TPzdvPNEtj2X3MIlYXt9P4khUoQ_FIHaE_wyI6kHotrP8EUSq7APbpHFqX0FSOTshemiYEx1W5gcy57p1ATA8rw==&sign=B3D619BFF730F13A5754D4BB1F1CE9F3',
-  // )
-  console.log(showVideoPlayer)
 
   return (
     <>
@@ -161,12 +170,9 @@ const BrowseFolders: React.FC = () => {
             <div className="browse-list">
               <IonList>
                 {parentStack.length > 0 && (
-                  <IonItem
-                    onClick={handleBackClick}
-                    color="light"
-                    className="hover-effect"
-                  >
-                    <IonIcon slot="start" icon={chevronUpCircleOutline} />
+                  <IonItem onClick={handleBackClick} className="hover-effect">
+                    <IonIcon icon={chevronUpCircleOutline} />
+                    &nbsp;
                     <IonLabel>
                       <IonText>Folder Up</IonText>
                     </IonLabel>
@@ -174,7 +180,6 @@ const BrowseFolders: React.FC = () => {
                 )}
                 {browseData?.files.map((item) => (
                   <IonItem
-                    // color="light"
                     key={item.id}
                     onClick={() =>
                       handleItemClick(item.id, item.kind, item.parent_id)
@@ -183,15 +188,6 @@ const BrowseFolders: React.FC = () => {
                       item.kind === 'drive#folder' ? 'hover-effect' : ''
                     }
                   >
-                    {/* <IonIcon
-                      slot="start"
-                      color="primary"
-                      icon={
-                        item.kind === 'drive#folder'
-                          ? folderOpen
-                          : document
-                      }
-                    /> */}
                     {
                       <IonThumbnail className="thumbnail">
                         <IonImg
