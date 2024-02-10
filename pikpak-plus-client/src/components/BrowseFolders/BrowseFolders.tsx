@@ -40,7 +40,7 @@ interface VideoPlayerProps {
 const BrowseFolders: React.FC = () => {
   const [browseData, setBrowseData] = useState<FileListResponse | null>(null)
   const [parentStack, setParentStack] = useState<string[]>([])
-  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [isLoading, setIsLoading] = useState<boolean>(true)
   const [errorToast, setErrorToast] = useState<string | null>(null) // State for error toast
   const [directory, setDirectory] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState<FileItem | null>(null)
@@ -63,6 +63,7 @@ const BrowseFolders: React.FC = () => {
   // Effect hook to fetch browseData when directory changes
   useEffect(() => {
     if (directory) {
+      // setIsLoading(true)
       fetchBrowseData(directory)
     }
   }, [directory])
@@ -204,7 +205,7 @@ const BrowseFolders: React.FC = () => {
                     </IonLabel>
                   </IonItem>
                 )}
-                {browseData ? (
+                { isLoading || browseData ? (
                   browseData?.files.map((item) => (
                     <IonItem
                       key={item.id}
