@@ -234,6 +234,7 @@ def download(user):
     # Get the URL from the request data
     data = request.get_json()
     email = data.get('email')
+    action = data.get('action')
     id = data.get('id')
     # print("id",id)
     if not id:
@@ -242,7 +243,7 @@ def download(user):
     try:
         # Execute the 'fetch' command with the initialized client
         res = cmd.cmds["download"](initialized_client, "param",id)
-        supabase.table("user_actions").insert({"email": email,"actions": "download", "data":res}).execute()
+        supabase.table("user_actions").insert({"email": email,"actions": action, "data":res}).execute()
         return jsonify(res)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
