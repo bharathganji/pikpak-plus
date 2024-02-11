@@ -15,6 +15,7 @@ import {
   makeRequest,
 } from '../../../helpers/helpers'
 import './ModalOptions.css'
+import { MAX_PLAY_SIZE_LIMIT_IN_BYTES } from '../../../constants/constants'
 
 const ItemWithIcon: React.FC<ItemWithIconProps> = React.memo(
   ({ color, icon, onClick, text }) => (
@@ -137,7 +138,12 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
 
   const handlePlay = async (itemId: string): Promise<any> => {
     console.log('Play logic', itemId)
-    const maxLimit = parseInt(import.meta.env.VITE_MAX_PLAY_SIZE_LIMIT_IN_BYTES)
+    const maxLimit = parseInt(
+      import.meta.env.VITE_MAX_PLAY_SIZE_LIMIT_IN_BYTES ||
+        MAX_PLAY_SIZE_LIMIT_IN_BYTES,
+    )
+    console.log('maxLimit', maxLimit)
+
     if (maxLimit < parseInt(fileSize as any)) {
       setShowToast({
         message: 'File too large to play, limit ' + formatFileSize(maxLimit),
