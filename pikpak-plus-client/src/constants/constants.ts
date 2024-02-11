@@ -44,3 +44,5 @@ export const help = [
   'Search multiple Torrent Indexers',
   'Share files with your friends',
 ]
+
+export const MAX_PLAY_SIZE_LIMIT_IN_BYTES = '4294967296'
