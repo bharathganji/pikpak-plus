@@ -15,7 +15,9 @@ def get_supabase() -> Client:
             key,
             options=ClientOptions(
                 storage=FlaskSessionStorage(),
-                flow_type="pkce"
+                flow_type="pkce",
+                storage_client_timeout=None,
+                postgrest_client_timeout=None,
             ),
         )
     return g.supabase
