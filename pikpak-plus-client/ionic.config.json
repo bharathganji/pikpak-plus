@@ -1,0 +1,7 @@
+{
+  "name": "pikpak-plus",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "custom"
+}
