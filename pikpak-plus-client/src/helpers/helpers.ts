@@ -1,6 +1,7 @@
 import { ColDef, SortDirection } from 'ag-grid-community'
 import axios from 'axios'
 import { TorrentInfo } from '../types/sharedTypes'
+import { Clipboard } from '@capacitor/clipboard'
 
 const convertToBytes = (value: string): number => {
   const numericValue = parseFloat(value)
@@ -117,11 +118,14 @@ export const makeRequest = async (
 
     // Set the Authorization header with the access token
     axios.defaults.headers.common['Authorization'] = `Bearer ${auth}`
+    const baseUrl = import.meta.env.VITE_PIKPAK_PLUS_API
+      ? import.meta.env.VITE_PIKPAK_PLUS_API
+      : `/api`
 
     // Make the request
     const response = await axios({
       method,
-      url: `/api/${url}`,
+      url: baseUrl + '/' + url,
 
       data,
       headers: {
@@ -193,4 +197,10 @@ export const formatCreationTime = (creationTime) => {
 export function bytesToGB(bytes: number): number {
   const GB = bytes / (1024 * 1024 * 1024)
   return GB
+}
+
+export const writeToClipboard = async (value: string) => {
+  await Clipboard.write({
+    string: value,
+  })
 }

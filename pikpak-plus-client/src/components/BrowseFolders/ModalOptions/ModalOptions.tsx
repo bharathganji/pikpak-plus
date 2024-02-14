@@ -8,11 +8,11 @@ import {
   playOutline,
 } from 'ionicons/icons'
 import { DownloadResponse, FileItem } from '../../../types/sharedTypes'
-import { copyToClipboard } from '../../../helpers/actionFunctions'
 import {
   formatFileSize,
   getEmailandDirectory,
   makeRequest,
+  writeToClipboard,
 } from '../../../helpers/helpers'
 import './ModalOptions.css'
 import { MAX_PLAY_SIZE_LIMIT_IN_BYTES } from '../../../constants/constants'
@@ -106,7 +106,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
   const { email } = getEmailandDirectory()
 
   const handleCopyFileName = async (fileName: string): Promise<any> => {
-    copyToClipboard(fileName)
+    writeToClipboard(fileName)
     setShowToast({
       message: 'File name - copied to clipboard',
       color: 'success',
@@ -115,7 +115,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
 
   const copyValuesSequentially = async (valuesToCopy: string[]) => {
     for (const value of valuesToCopy) {
-      await copyToClipboard(value)
+      await writeToClipboard(value)
       // Introduce a delay (e.g., 500 milliseconds) between operations
       await new Promise((resolve) => setTimeout(resolve, 500))
     }
@@ -247,7 +247,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
       })
       const data = response.data
 
-      copyToClipboard(data.share_url)
+      writeToClipboard(data.share_url)
 
       if (navigator.share) {
         navigator

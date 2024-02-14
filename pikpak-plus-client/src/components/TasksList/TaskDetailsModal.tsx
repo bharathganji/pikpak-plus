@@ -17,9 +17,7 @@ import {
   IonToolbar,
 } from '@ionic/react'
 import { copyOutline } from 'ionicons/icons'
-import { formatCreationTime, formatFileSize } from '../../helpers/helpers'
-// import { copyToClipboardWithToast } from './DownloadListHelper' // Assuming the path
-import { copyToClipboard } from '../../helpers/actionFunctions'
+import { formatCreationTime, formatFileSize, writeToClipboard } from '../../helpers/helpers'
 import { Task } from '../../types/sharedTypes'
 
 interface TaskDetailsModalProps {
@@ -85,7 +83,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
                     fill="clear"
                     size="small"
                     onClick={() => {
-                      copyToClipboard(
+                      writeToClipboard(
                         selectedTask?.params.url || 'error copying',
                       )
                     }}
