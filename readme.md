@@ -22,6 +22,8 @@
     <br />
     <a href="">Installation Demo (coming soon)</a>
     ·
+    <a href="/pikpak-plus-client/android/app/release/app-release.apk">Android Apk</a>
+    ·
     <a href="https://github.com/bharathganji/pikpak-plus/issues">Report Bug</a>
     ·
     <a href="https://github.com/bharathganji/pikpak-plus/issues">Request Feature</a>
@@ -141,7 +143,7 @@ This project is focused to run on server environment hence docker containers are
 
 3. Create Table and enable RLS policies in supabase
 
-   <div align="center"> 
+   <div align="center">
     <img  src="pikpak-plus-client/src/assets/supabse_table.png" alt="Logo" width="400">
     <img src="pikpak-plus-client/src/assets/supabase_policies.png" alt="Logo" width="400">
    </div>
@@ -153,6 +155,12 @@ This project is focused to run on server environment hence docker containers are
    ```
 
 <!-- USAGE EXAMPLES -->
+
+## AndroidApk
+
+```
+pikpak-plus-client/android/app/release/app-release.apk
+```
 
 ## Usage
 
@@ -195,8 +203,8 @@ Project Link: [https://github.com/bharathganji/pikpak-plus](https://github.com/b
 
 ## Acknowledgements
 
-- https://github.com/sudozid/jackett-metasearch-flask
-- https://github.com/n-wall/pikpak/
+- <https://github.com/sudozid/jackett-metasearch-flask>
+- <https://github.com/n-wall/pikpak/>
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
@@ -209,7 +217,5 @@ Project Link: [https://github.com/bharathganji/pikpak-plus](https://github.com/b
 [stars-url]: https://github.com/bharathganji/pikpak-plus/stargazers
 [issues-shield]: https://img.shields.io/github/issues/bharathganji/pikpak-plus.svg?style=for-the-badge
 [issues-url]: https://github.com/bharathganji/pikpak-plus/issues
-[license-shield]: https://img.shields.io/github/license/bharathganji/pikpak-plus.svg?style=for-the-badge
-[license-url]: https://github.com/bharathganji/pikpak-plus/blob/master/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://www.linkedin.com/in/bharath-ganji-912556194
