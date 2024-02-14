@@ -22,7 +22,7 @@
     <br />
     <a href="">Installation Demo (coming soon)</a>
     ·
-    <a href="/pikpak-plus-client/android/app/release/app-release.apk">Android Apk</a>
+    <a href="/pikpak-plus-client/android/app/release/">Android Apk</a>
     ·
     <a href="https://github.com/bharathganji/pikpak-plus/issues">Report Bug</a>
     ·
