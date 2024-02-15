@@ -1,7 +1,4 @@
-import {
-  IonButton,
-  IonItemDivider,
-} from '@ionic/react'
+import { IonButton, IonItemDivider } from '@ionic/react'
 import './VideoPlayer.css'
 import '@vidstack/react/player/styles/default/theme.css'
 import '@vidstack/react/player/styles/default/layouts/video.css'
@@ -32,7 +29,7 @@ export default function VideoPlayer({
   console.log('thumbnailImg', thumbnailImg)
   console.log('videoTitle', videoTitle)
   console.log('videoType', videoType)
-
+  
   return (
     <div className="video-player-container">
       <MediaPlayer

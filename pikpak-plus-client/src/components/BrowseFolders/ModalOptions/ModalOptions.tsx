@@ -39,6 +39,7 @@ interface ModalOptionsProps {
   setIsLoading: (value: boolean) => void
   setShowVideoPlayer?: (value: boolean) => void
   setVideoDetails?: (value: any) => void
+  scrollToTop?: () => void
 }
 
 const ModalOptions: React.FC<ModalOptionsProps> = ({
@@ -47,6 +48,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
   setIsLoading,
   setShowVideoPlayer,
   setVideoDetails,
+  scrollToTop,
 }) => {
   const fileName = item?.name
   const fileSize = item?.size
@@ -167,6 +169,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
           videoType: videoType,
         })
       setShowVideoPlayer && setShowVideoPlayer(true)
+      scrollToTop && scrollToTop()
     } catch (error) {
       setShowToast({
         message: 'Play failed, try again later',

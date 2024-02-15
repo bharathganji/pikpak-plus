@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   IonList,
   IonItem,
@@ -53,6 +53,11 @@ const BrowseFolders: React.FC = () => {
   const [navigationCache, setNavigationCache] = useState<{
     [key: string]: FileListResponse
   }>({})
+  const contentRef = useRef<HTMLIonContentElement | null>(null)
+
+  const scrollToTop = () => {
+    contentRef.current && contentRef.current.scrollToTop()
+  }
 
   // Effect hook to set initial directory on component mount
   useEffect(() => {
@@ -177,7 +182,7 @@ const BrowseFolders: React.FC = () => {
       <CustomIonHeader title="Browse Folders" />
 
       <BlockUiLoader loading={isLoading}>
-        <IonContent fullscreen={true}>
+        <IonContent fullscreen={true} ref={contentRef} scrollEvents={true}>
           <>
             {errorToast && (
               <IonToast
@@ -302,6 +307,7 @@ const BrowseFolders: React.FC = () => {
                 setIsLoading={setIsLoading}
                 setVideoDetails={setVideoDetails}
                 setShowVideoPlayer={setShowVideoPlayer}
+                scrollToTop={scrollToTop}
               />
             </IonModal>
           </>
