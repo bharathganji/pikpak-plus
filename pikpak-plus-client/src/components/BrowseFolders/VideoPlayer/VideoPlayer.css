@@ -14,3 +14,8 @@
   object-fit: contain;
 }
 
+
+.video-player-media-player{
+  width: 100%;
+  height: "338px";
+}

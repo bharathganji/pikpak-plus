@@ -34,6 +34,8 @@ import HelperCard from '../HelperCard/HelperCard'
 
 interface VideoPlayerProps {
   videoUrl?: string
+  videoTitle?: string
+  videoType?: string
   thumbnailImg?: string
 }
 
@@ -188,8 +190,10 @@ const BrowseFolders: React.FC = () => {
             )}
             {showVideoPlayer && (
               <VideoPlayer
-                videoUrl={videoDetails.videoUrl}
+                videoUrl={videoDetails.videoUrl || ''}
                 thumbnailImg={videoDetails.thumbnailImg}
+                videoTitle={videoDetails.videoTitle}
+                videoType={videoDetails.videoType}
                 setShowVideoPlayer={setShowVideoPlayer}
               />
             )}
@@ -204,7 +208,7 @@ const BrowseFolders: React.FC = () => {
                     </IonLabel>
                   </IonItem>
                 )}
-                { isLoading || browseData ? (
+                {isLoading || browseData ? (
                   browseData?.files.map((item) => (
                     <IonItem
                       key={item.id}

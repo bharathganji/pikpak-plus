@@ -156,10 +156,15 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
       const data = await fetchDataIfNeeded(itemId, 'play')
       const downloadLink = data?.web_content_link
       const thumbnailLink = data?.thumbnail_link
+      const downloadName = data?.name
+      const videoType = data?.mime_type
+
       setVideoDetails &&
         setVideoDetails({
           videoUrl: downloadLink,
           thumbnailImg: thumbnailLink,
+          videoTitle: downloadName,
+          videoType: videoType,
         })
       setShowVideoPlayer && setShowVideoPlayer(true)
     } catch (error) {
