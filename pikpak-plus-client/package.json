@@ -24,6 +24,7 @@
     "@ionic/react": "7.7.2",
     "@ionic/react-router": "7.7.2",
     "@nabla/vite-plugin-eslint": "^2.0.2",
+    "@vidstack/react": "^1.10.6",
     "ag-grid-community": "31.0.3",
     "ag-grid-react": "31.0.3",
     "axios": "1.6.7",
@@ -34,7 +35,6 @@
     "react-bootstrap": "2.10.1",
     "react-dom": "^18.2.0",
     "react-loader-spinner": "^6.1.6",
-    "react-player": "^2.14.1",
     "react-router-dom": "^5.3.4"
   },
   "devDependencies": {
@@ -57,7 +57,7 @@
     "sharp": "^0.33.2",
     "svgo": "^3.2.0",
     "typescript": "^5.2.2",
-    "vite": "5.1.2",
+    "vite": "5.1.3",
     "vite-plugin-image-optimizer": "^1.1.7",
     "vite-plugin-optimize-css-modules": "^1.0.6",
     "vite-plugin-pages": "^0.32.0",

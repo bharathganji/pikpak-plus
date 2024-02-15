@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   IonList,
   IonItem,
@@ -34,6 +34,8 @@ import HelperCard from '../HelperCard/HelperCard'
 
 interface VideoPlayerProps {
   videoUrl?: string
+  videoTitle?: string
+  videoType?: string
   thumbnailImg?: string
 }
 
@@ -51,6 +53,11 @@ const BrowseFolders: React.FC = () => {
   const [navigationCache, setNavigationCache] = useState<{
     [key: string]: FileListResponse
   }>({})
+  const contentRef = useRef<HTMLIonContentElement | null>(null)
+
+  const scrollToTop = () => {
+    contentRef.current && contentRef.current.scrollToTop()
+  }
 
   // Effect hook to set initial directory on component mount
   useEffect(() => {
@@ -175,7 +182,7 @@ const BrowseFolders: React.FC = () => {
       <CustomIonHeader title="Browse Folders" />
 
       <BlockUiLoader loading={isLoading}>
-        <IonContent fullscreen={true}>
+        <IonContent fullscreen={true} ref={contentRef} scrollEvents={true}>
           <>
             {errorToast && (
               <IonToast
@@ -188,8 +195,10 @@ const BrowseFolders: React.FC = () => {
             )}
             {showVideoPlayer && (
               <VideoPlayer
-                videoUrl={videoDetails.videoUrl}
+                videoUrl={videoDetails.videoUrl || ''}
                 thumbnailImg={videoDetails.thumbnailImg}
+                videoTitle={videoDetails.videoTitle}
+                videoType={videoDetails.videoType}
                 setShowVideoPlayer={setShowVideoPlayer}
               />
             )}
@@ -204,7 +213,7 @@ const BrowseFolders: React.FC = () => {
                     </IonLabel>
                   </IonItem>
                 )}
-                { isLoading || browseData ? (
+                {isLoading || browseData ? (
                   browseData?.files.map((item) => (
                     <IonItem
                       key={item.id}
@@ -298,6 +307,7 @@ const BrowseFolders: React.FC = () => {
                 setIsLoading={setIsLoading}
                 setVideoDetails={setVideoDetails}
                 setShowVideoPlayer={setShowVideoPlayer}
+                scrollToTop={scrollToTop}
               />
             </IonModal>
           </>

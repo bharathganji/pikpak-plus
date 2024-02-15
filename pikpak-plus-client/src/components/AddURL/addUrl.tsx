@@ -92,7 +92,6 @@ const AddUrlForm: React.FC = () => {
           href={item?.value}
           rel="noopener noreferrer"
           target="_blank"
-          style={{ textDecoration: 'none', color: 'black', cursor: 'pointer' }}
         >
           &nbsp; {item?.link}
         </a>
