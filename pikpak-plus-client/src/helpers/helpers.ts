@@ -118,6 +118,7 @@ export const makeRequest = async (
 
     // Set the Authorization header with the access token
     axios.defaults.headers.common['Authorization'] = `Bearer ${auth}`
+    // Set the base URL for android use
     const baseUrl = import.meta.env.VITE_PIKPAK_PLUS_API
       ? import.meta.env.VITE_PIKPAK_PLUS_API
       : `/api`

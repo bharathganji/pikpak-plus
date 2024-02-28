@@ -18,7 +18,7 @@ function Login() {
   const handleSignInSuccess = (data, email) => {
     const { redirect, auth, dir } = data
 
-    setCookie('auth', auth, 1) // Set the cookie to expire in 1 hour
+    setCookie('auth', auth, 2) // Set the cookie to expire in 2 hour
     setEmailandDirectory(email, dir)
     window.location.href = redirect
   }

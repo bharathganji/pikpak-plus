@@ -1,12 +1,13 @@
-import { CapacitorConfig } from '@capacitor/cli';
+import { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
   appId: 'pikpak.plus',
   appName: 'pikpak-plus',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
-  }
-};
+    hostname: 'pikpak-plus.com',
+    androidScheme: 'https',
+  },
+}
 
-export default config;
+export default config

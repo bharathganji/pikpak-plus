@@ -146,6 +146,7 @@ This project is focused to run on server environment hence docker containers are
    <div align="center">
     <img  src="pikpak-plus-client/src/assets/supabse_table.png" alt="Logo" width="400">
     <img src="pikpak-plus-client/src/assets/supabase_policies.png" alt="Logo" width="400">
+    <img src="pikpak-plus-client/src/assets/supabase_user_actions.png" alt="Logo" width="400">
    </div>
 
 4. Run the containers
@@ -158,9 +159,7 @@ This project is focused to run on server environment hence docker containers are
 
 ## AndroidApk
 
-```
-pikpak-plus-client/android/app/release/app-release.apk
-```
+- <a href="pikpak-plus-client/android/app/release">Download Android .apk</a>
 
 ## Usage
 

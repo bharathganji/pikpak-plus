@@ -1,13 +1,15 @@
 import { useRef } from 'react'
-import { IonInput, IonButton, IonIcon } from '@ionic/react'
+import { IonButton, IonIcon, IonTextarea } from '@ionic/react'
 import './CustomInput.css'
 
 export default function CustomInput({
   handleSubmit,
   icon,
+  inputStyle,
+  buttonText,
   customPlaceholder,
 }: any) {
-  const inputRef = useRef<HTMLIonInputElement>(null) // Adjust the ref type
+  const inputRef = useRef<HTMLIonTextareaElement>(null) // Adjust the ref type
 
   return (
     <form
@@ -18,21 +20,24 @@ export default function CustomInput({
       }}
     >
       <div className="container ">
-        <div className="centered-element">
-          <IonInput
-            type="text"
-            placeholder={customPlaceholder}
-            ref={inputRef}
-            style={{ background: '#e0e0e0' }}
-          />
-          <IonButton
-            type="submit"
-            aria-label="submit"
-            style={{ minHeight: '44px', margin: 0 }}
-          >
-            <IonIcon icon={icon}></IonIcon>
-          </IonButton>
-        </div>
+        <IonTextarea
+          autoGrow={true}
+          style={{ ...inputStyle, background: '#f2f3f4' }}
+          placeholder={customPlaceholder}
+          ref={inputRef}
+          fill="outline"
+        />
+        &nbsp;
+        <IonButton
+          type="submit"
+          aria-label="submit"
+          shape="round"
+          expand="full"
+          style={{ minHeight: '44px', margin: 0 }}
+        >
+          <IonIcon icon={icon}></IonIcon>
+          {buttonText}
+        </IonButton>
       </div>
     </form>
   )

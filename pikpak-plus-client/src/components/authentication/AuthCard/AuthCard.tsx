@@ -88,6 +88,7 @@ const AuthCard: React.FC<AuthProps> = ({
               placeholder="Enter Email"
               label="Email"
               labelPlacement="floating"
+              autocomplete='on'
               fill="outline"
               ref={emailRef}
             />
