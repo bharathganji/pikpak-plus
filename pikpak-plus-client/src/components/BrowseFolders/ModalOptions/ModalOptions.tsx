@@ -1,5 +1,12 @@
 import React, { useState } from 'react'
-import { IonList, IonItem, IonIcon, IonAlert, IonToast } from '@ionic/react'
+import {
+  IonList,
+  IonItem,
+  IonIcon,
+  IonAlert,
+  IonToast,
+  isPlatform,
+} from '@ionic/react'
 import {
   shareSocialOutline,
   downloadOutline,
@@ -16,6 +23,7 @@ import {
 } from '../../../helpers/helpers'
 import './ModalOptions.css'
 import { MAX_PLAY_SIZE_LIMIT_IN_BYTES } from '../../../constants/constants'
+import { Share } from '@capacitor/share'
 
 const ItemWithIcon: React.FC<ItemWithIconProps> = React.memo(
   ({ color, icon, onClick, text }) => (
@@ -76,6 +84,12 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
       color: 'secondary',
       header: 'Play',
       message: 'Do you want to proceed with playing?',
+      icon: playOutline,
+    },
+    playInAnotherApp: {
+      color: 'secondary',
+      header: 'Play in Another App',
+      message: 'Do you want to proceed with playing in another app?',
       icon: playOutline,
     },
     copyDownloadLink: {
@@ -139,12 +153,10 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
   }
 
   const handlePlay = async (itemId: string): Promise<any> => {
-    console.log('Play logic', itemId)
     const maxLimit = parseInt(
       import.meta.env.VITE_MAX_PLAY_SIZE_LIMIT_IN_BYTES ||
         MAX_PLAY_SIZE_LIMIT_IN_BYTES,
     )
-    console.log('maxLimit', maxLimit)
 
     if (maxLimit < parseInt(fileSize as any)) {
       setShowToast({
@@ -180,6 +192,31 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
     }
   }
 
+  const handlePlayInAnotherApp = async (itemId: string): Promise<any> => {
+    try {
+      setIsLoading(true)
+      const data = await fetchDataIfNeeded(itemId, 'play')
+      const downloadLink = data?.web_content_link
+
+      const downloadName = data?.name
+
+      writeToClipboard(downloadLink)
+
+      await Share.share({
+        title: downloadName,
+        url: downloadLink,
+        dialogTitle: 'Select Video Player',
+      })
+    } catch (error) {
+      setShowToast({
+        message: error + ', Use Android App',
+        color: 'danger',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleActionWithDownload = async (
     itemId: string,
     actionLogic: (downloadLink: string, downloadName: string) => Promise<void>,
@@ -194,7 +231,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
       if (downloadLink) {
         await actionLogic(downloadLink, downloadName)
         setShowToast({
-          message: 'Action logic completed',
+          message: 'completed',
           color: 'success',
         })
       } else {
@@ -210,8 +247,6 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
   }
 
   const handleCopyDownloadLink = async (itemId: string): Promise<any> => {
-    console.log(itemId)
-
     const actionLogic = async (downloadLink: string, downloadName: string) => {
       // Replace this with your specific logic for copying to clipboard
       const valuesToCopy: (string | undefined)[] = [downloadName, downloadLink]
@@ -226,13 +261,10 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
   }
 
   const handleDownloadToDevice = async (itemId: string): Promise<any> => {
-    console.log('Download to device logic')
-
     await handleActionWithDownload(
       itemId,
       async (downloadLink, downloadName) => {
         // Replace this with your specific logic for downloading to the device
-        console.log('Downloading to device:', downloadLink)
 
         // Copy values to clipboard
         const valuesToCopy = [downloadName, downloadLink]
@@ -256,28 +288,10 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
       const data = response.data
 
       writeToClipboard(data.share_url)
-
-      if (navigator.share) {
-        navigator
-          .share({ url: data.share_url })
-          .then(() => {
-            setShowToast({
-              message: `copied url : ${data.share_url}`,
-              color: 'success',
-            })
-          })
-          .catch((error) => {
-            console.log('Error sharing:', error)
-
-            setShowToast({
-              message: `Failed to share: ${error}`,
-              color: 'danger',
-            })
-          })
-      }
+      await Share.share({
+        url: data.share_url,
+      })
     } catch (error) {
-      console.log('Error sharing:', error)
-
       setShowToast({ message: 'Failed to share', color: 'danger' })
     }
   }
@@ -293,6 +307,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
     download: handleDownloadToDevice,
     delete: handleDelete,
     play: handlePlay,
+    playInAnotherApp: handlePlayInAnotherApp,
   }
 
   const directActions = ['copyFileName']
@@ -361,6 +376,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
     'share',
     'copyDownloadLink',
     'play',
+    'playInAnotherApp',
   ]
 
   const getAlertConfirmButtons = () => {
@@ -371,16 +387,29 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
       },
     ]
   }
-  const skipActions = ['download', 'copyDownloadLink', 'play']
+  const skipActions = [
+    'download',
+    'copyDownloadLink',
+    'play',
+    'playInAnotherApp',
+  ]
+
+  const isPlatformSupported = (value: any) => {
+    return value.map((platform) => isPlatform(platform)).some(Boolean)
+  }
 
   return (
     <>
       <IonList>
         {Object.keys(actionDetails).map((action, index) => {
+          if (action === 'play' && item && item.file_category !== 'VIDEO') {
+            return ''
+          }
           if (
-            action == 'play' &&
-            item?.kind !== 'drive#folder' &&
-            item?.file_category !== 'VIDEO'
+            action === 'playInAnotherApp' &&
+            item &&
+            (item.file_category !== 'VIDEO' ||
+              !isPlatformSupported(['capacitor', 'desktop']))
           ) {
             return ''
           } else if (
