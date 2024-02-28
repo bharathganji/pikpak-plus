@@ -53,14 +53,45 @@ const AddUrlForm: React.FC = () => {
 
   const handleSubmit = async (text: string) => {
     setIsLoading(true)
-    const isMagnetURL = /magnet:\?xt=urn:btih:[a-zA-Z0-9]*/g.test(text)
-    if (!isMagnetURL) {
-      setShowToast({
-        message: 'Invalid magnet URL',
-        color: 'danger',
-      })
-      setIsLoading(false)
-      return
+
+    // regular expressions for different link formats
+    const magnetRegex = /magnet:\?xt=urn:btih:[a-zA-Z0-9]*/
+    const twitterRegex = /https?:\/\/(www\.)?twitter\.com\/.*/
+    const tiktokRegex = /https?:\/\/(www\.)?tiktok\.com\/.*/
+    const facebookRegex = /https?:\/\/(www\.)?facebook\.com\/.*/
+
+    // Split the text into an array of links and remove empty values and duplicates
+    const links = Array.from(
+      new Set(
+        text
+          .split('\n')
+          .map((link) => link.trim())
+          .filter((link) => link !== ''),
+      ),
+    )
+
+    for (let i = 0; i < links.length; i++) {
+      const link = links[i]
+      let isValid = false
+
+      if (magnetRegex.test(link)) {
+        isValid = true
+      } else if (twitterRegex.test(link)) {
+        isValid = true
+      } else if (tiktokRegex.test(link)) {
+        isValid = true
+      } else if (facebookRegex.test(link)) {
+        isValid = true
+      }
+
+      if (!isValid) {
+        setShowToast({
+          message: 'Invalid link format at link number ' + (i + 1),
+          color: 'danger',
+        })
+        setIsLoading(false)
+        return // Exit the function if any link is invalid
+      }
     }
 
     try {
@@ -72,7 +103,7 @@ const AddUrlForm: React.FC = () => {
       const data = response.data.result
 
       if (data && data.upload_type === 'UPLOAD_TYPE_URL') {
-        setShowToast({ message: 'Task added', color: 'success' })
+        setShowToast({ message: 'Task Created', color: 'success' })
       } else {
         setShowToast({ message: 'Error adding task', color: 'danger' })
       }
@@ -88,11 +119,7 @@ const AddUrlForm: React.FC = () => {
     <div className="usefull-links" key={index}>
       <IonIcon color={'dark'} icon={item.icon} />
       <IonText key={index} color={'dark'}>
-        <a
-          href={item?.value}
-          rel="noopener noreferrer"
-          target="_blank"
-        >
+        <a href={item?.value} rel="noopener noreferrer" target="_blank">
           &nbsp; {item?.link}
         </a>
       </IonText>
@@ -191,8 +218,18 @@ const AddUrlForm: React.FC = () => {
               </div>
               <CustomInput
                 handleSubmit={handleSubmit}
+                inputStyle={{
+                  minHeight: '184px',
+                }}
+                buttonText="Create Task"
                 icon={addSharp}
-                customPlaceholder=" Enter magnet URL"
+                customPlaceholder={`Supported link formats:
+- Magnet URI (magnet:?xt=urn:btih)
+- X(Twitter)
+- TikTok
+- Facebook      
+
+Multiple links can be added at once by line break.`}
               />
             </div>
             <div className="container">

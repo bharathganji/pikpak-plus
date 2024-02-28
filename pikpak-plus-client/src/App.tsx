@@ -26,20 +26,20 @@ const App: React.FC = () => {
   const isEnable = useMemo(() => isJWTValid(getauthCookie()), [])
   const isIgnoreList = ['/login', '/signup']
 
-  // Use matchMedia to check the user preference
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)')
+  // // Use matchMedia to check the user preference
+  // const prefersDark = window.matchMedia('(prefers-color-scheme: dark)')
 
-  toggleDarkTheme(prefersDark.matches)
+  // toggleDarkTheme(prefersDark.matches)
 
-  // Listen for changes to the prefers-color-scheme media query
-  prefersDark.addEventListener('change', (mediaQuery) =>
-    toggleDarkTheme(mediaQuery.matches),
-  )
+  // // Listen for changes to the prefers-color-scheme media query
+  // prefersDark.addEventListener('change', (mediaQuery) =>
+  //   toggleDarkTheme(mediaQuery.matches),
+  // )
 
-  // Add or remove the "dark" class based on if the media query matches
-  function toggleDarkTheme(shouldAdd) {
-    document.body.classList.toggle('dark', shouldAdd)
-  }
+  // // Add or remove the "dark" class based on if the media query matches
+  // function toggleDarkTheme(shouldAdd) {
+  //   document.body.classList.toggle('dark', shouldAdd)
+  // }
 
   const renderRoute = (path: string, component: React.FC, exact = true) => (
     <Route

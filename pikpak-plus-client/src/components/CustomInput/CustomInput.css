@@ -1,14 +1,5 @@
-.centered-element {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-}
-
-
 .container {
-  position: relative;
-  margin: 1rem 1rem; 
+  margin: 0.5rem 0.5rem;
 }
 
 /* Media query for devices larger than tablets (e.g., desktops) */
@@ -17,4 +8,3 @@
     margin: auto 5rem auto 5rem;
   }
 }
-

@@ -165,16 +165,17 @@ export default function Search() {
             </div>
           )}
         </div>
-        <CustomInput
-          handleSubmit={handleSubmit}
-          customPlaceholder=" Search... eg: avengers"
-          icon={search}
-        />
-        <div className="container">
-          <BlockUiLoader loading={loading}>
+        <BlockUiLoader loading={loading}>
+          <CustomInput
+            handleSubmit={handleSubmit}
+            customPlaceholder="search... eg: avengers"
+            buttonText="Search"
+            icon={search}
+          />
+          <div className="container">
             <SearchGrid searchInfoList={searchInfoList || []} />
-          </BlockUiLoader>
-        </div>
+          </div>
+        </BlockUiLoader>
         <IonToast
           isOpen={!!showToast}
           onDidDismiss={() => setShowToast(null)}
