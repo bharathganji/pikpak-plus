@@ -8,7 +8,7 @@ from pikpak import client as pik
 from pikpak import shell_cmds as cmd
 import logging, random, string
 import apiscrape
-import requests, re
+import requests, re, json
 
 app=Flask(__name__)
 app.config['SECRET_KEY']=''.join(random.choice(string.ascii_uppercase + string.digits))
@@ -103,7 +103,7 @@ def process_tasks_route(command_key, email):
 
     # Execute the tasks command using initialized_client
     res = cmd.cmds[command_key](initialized_client, "param")
-    supabase_res = supabase.table('user_actions').select('data').eq('email', email).execute()
+    supabase_res = supabase.table('user_actions').select('data').eq('email', email).eq('actions', 'create_task').execute()
 
     # Extracting supabase IDs from supabase response
     supabase_ids = [item['data'] for item in supabase_res.data]

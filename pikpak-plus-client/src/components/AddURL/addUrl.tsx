@@ -54,7 +54,7 @@ const AddUrlForm: React.FC = () => {
   const handleSubmit = async (text: string) => {
     setIsLoading(true)
 
-    // regular expressions for different link formats
+    // Regular expressions for different link formats
     const magnetRegex = /magnet:\?xt=urn:btih:[a-zA-Z0-9]*/
     const twitterRegex = /https?:\/\/(www\.)?twitter\.com\/.*/
     const tiktokRegex = /https?:\/\/(www\.)?tiktok\.com\/.*/
@@ -70,17 +70,19 @@ const AddUrlForm: React.FC = () => {
       ),
     )
 
+    let isValidLinks = true
+
+    // Validate all links
     for (let i = 0; i < links.length; i++) {
       const link = links[i]
       let isValid = false
 
-      if (magnetRegex.test(link)) {
-        isValid = true
-      } else if (twitterRegex.test(link)) {
-        isValid = true
-      } else if (tiktokRegex.test(link)) {
-        isValid = true
-      } else if (facebookRegex.test(link)) {
+      if (
+        magnetRegex.test(link) ||
+        twitterRegex.test(link) ||
+        tiktokRegex.test(link) ||
+        facebookRegex.test(link)
+      ) {
         isValid = true
       }
 
@@ -89,30 +91,44 @@ const AddUrlForm: React.FC = () => {
           message: 'Invalid link format at link number ' + (i + 1),
           color: 'danger',
         })
-        setIsLoading(false)
-        return // Exit the function if any link is invalid
+        isValidLinks = false
+        break // Exit the loop if any link is invalid
       }
     }
 
-    try {
-      const response = await makeRequest('addURL', 'POST', {
-        url: text,
-        email: email,
-        user_dir: directory,
-      })
-      const data = response.data.result
+    if (isValidLinks) {
+      // All links are valid, proceed to make API calls
+      for (let i = 0; i < links.length; i++) {
+        try {
+          const response = await makeRequest('addURL', 'POST', {
+            url: links[i],
+            email: email,
+            user_dir: directory,
+          })
+          const data = response.data.result
 
-      if (data && data.upload_type === 'UPLOAD_TYPE_URL') {
-        setShowToast({ message: 'Task Created', color: 'success' })
-      } else {
-        setShowToast({ message: 'Error adding task', color: 'danger' })
+          if (data && data.upload_type === 'UPLOAD_TYPE_URL') {
+            setShowToast({
+              message: 'Task Created for link number ' + (i + 1),
+              color: 'success',
+            })
+          } else {
+            setShowToast({
+              message: 'Error adding task for link number ' + (i + 1),
+              color: 'danger',
+            })
+          }
+        } catch (error) {
+          console.error('Error adding task for link number', i + 1, ':', error)
+          setShowToast({
+            message: 'Error adding task for link number ' + (i + 1),
+            color: 'danger',
+          })
+        }
       }
-    } catch (error) {
-      console.error('Error:', error)
-      setShowToast({ message: 'Error adding task', color: 'danger' })
-    } finally {
-      setIsLoading(false)
     }
+
+    setIsLoading(false)
   }
 
   const usefullLinksList = usefullLinks.map((item, index) => (
