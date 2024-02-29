@@ -8,7 +8,7 @@ from pikpak import client as pik
 from pikpak import shell_cmds as cmd
 import logging, random, string
 import apiscrape
-import requests, re, json
+import requests
 
 app=Flask(__name__)
 app.config['SECRET_KEY']=''.join(random.choice(string.ascii_uppercase + string.digits))
