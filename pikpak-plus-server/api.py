@@ -19,6 +19,8 @@ CORS(app)
 initialized_client = None
 
 
+MAX_EACH_USER_STORAGE_LIMIT = os.getenv("MAX_EACH_USER_STORAGE_LIMIT", "1")
+
 def user_route(enforce_login=False):
     def decorator(route):
         @functools.wraps(route)
@@ -144,10 +146,16 @@ def browse(user):
         data = request.get_json()
         # print(data)
         item_index = data.get('item_index')
+        next_page_token = data.get('next_page_token')
 
-  
+        if next_page_token=="":
+            next_page_token = None
+        else:
+            next_page_token = str(next_page_token)
+        print(item_index, next_page_token)
+
         # Call the ls command with initialized client and item_index
-        res = cmd.cmds["ls"](initialized_client, "param", item_index)
+        res = cmd.cmds["ls"](initialized_client, "param", item_index, next_page_token)
         
         # Return the result as JSON
         return jsonify(res)
@@ -219,11 +227,10 @@ def create_folder(user_email):
                 
         file_id = res["id"]
 
-        supabase.table("pikpak_data").insert({"email": user_email,"directory_id": file_id}).execute()
+        supabase.table("pikpak_data").insert({"email": user_email,"directory_id": file_id, "drive_limit":MAX_EACH_USER_STORAGE_LIMIT}).execute()
 
         return res
     except Exception as e:
-        # print('called 3')
         
         return jsonify({"error": str(e)}), 500
 
@@ -294,7 +301,8 @@ def getRedirectUrl():
 
 @app.get("/ping")
 def pong():
-    return "pong"
+    initialize_client_route()
+    return jsonify({"ping":"pong"})
  
 # @app.route("/api/getDirectoryId", methods=["GET", "POST"])
 # def get_directory_id():
@@ -327,6 +335,20 @@ def get_directory_id(email):
     except Exception as e:
         return {'error': str(e)}
 
+def get_drive_limit(email):
+    try:
+        response = supabase.table('pikpak_data').select('drive_limit').eq('email', email).execute()
+        data = response.data
+
+        if data:
+            drive_limit = data[0]['drive_limit']
+            return {'drive_limit': drive_limit}
+        else:
+            return {'error': 'Email not found'}
+    except Exception as e:
+        return {'error': str(e)}
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -338,7 +360,8 @@ def login():
             if email and password:
                 data = supabase.auth.sign_in_with_password({'email': email, 'password': password})
                 dir_id = get_directory_id(email)
-                response = jsonify({'redirect': '/create',"dir":dir_id['directory_id'], "auth": data.session.access_token})                
+                drive_limit = get_drive_limit(email)
+                response = jsonify({'redirect': '/create',"dir":dir_id['directory_id'], "drive_limit": drive_limit['drive_limit'], "auth": data.session.access_token})       
                 supabase.auth.sign_out()
                 initialize_client_route()
                 return response

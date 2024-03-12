@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  formatFileSize,
   makeRequest,
   setCookie,
   setEmailandDirectory,
@@ -7,6 +8,7 @@ import {
 import LoginCard from './LoginCard.tsx/LoginCard'
 import { IonToast } from '@ionic/react'
 import BlockUiLoader from '../../BlockUiLoader/BlockUiLoader'
+import { TASK_LIST } from '../../../constants/constants'
 
 function Login() {
   const [showToast, setShowToast] = useState<{
@@ -54,6 +56,44 @@ function Login() {
       setLoading(false)
     }
   }
+
+  localStorage.setItem('TASK_LIST', JSON.stringify(TASK_LIST))
+
+  const count = TASK_LIST.files.filter(
+    (task) => task.parent_id === 'VNpZ2t9yyuyWG6TT7EGylYp2o1',
+  ).length
+
+  console.log('count', count)
+  let totalSize = 0
+  let fileCount = 0
+
+  function calculateFolderSize(folderId) {
+    TASK_LIST.files.forEach((task) => {
+      if (task.parent_id === folderId) {
+        if (task.kind === 'drive#folder') {
+          calculateFolderSize(task.id) // Recursively search subfolders
+        } else {
+          totalSize += parseInt(task.size) || 0
+          fileCount++ // Increment file count
+        }
+      }
+    })
+  }
+
+  TASK_LIST.files.forEach((task) => {
+    if (task.parent_id === 'VNpZ2t9yyuyWG6TT7EGylYp2o1') {
+      if (task.kind === 'drive#folder') {
+        calculateFolderSize(task.id) // Start recursive search for subfolders
+      } else {
+        totalSize += parseInt(task.size) || 0
+        fileCount++ // Increment file count
+      }
+    }
+  })
+
+  console.log('File Count:', fileCount)
+
+  console.log(formatFileSize(totalSize))
 
   return (
     <>

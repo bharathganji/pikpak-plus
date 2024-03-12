@@ -100,9 +100,17 @@ export const getEmailandDirectory = () => {
     dir: localStorage.getItem('dir'),
   }
 }
-export const deleteEmailandDirectory = () => {
-  localStorage.removeItem('email')
-  localStorage.removeItem('dir')
+
+export const set_file_list = (list) => {
+  localStorage.setItem('file_list', JSON.stringify(list))
+}
+
+export const get_file_list = () => {
+  return JSON.parse(localStorage.getItem('file_list') || '[]')
+}
+
+export const deleteLocalStorage = () => {
+  localStorage.clear()
 }
 
 export const deleteCookie = (name) => {

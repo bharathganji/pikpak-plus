@@ -21,7 +21,9 @@ import CustomInput from '../CustomInput/CustomInput'
 import {
   bytesToGB,
   getEmailandDirectory,
+  get_file_list,
   makeRequest,
+  set_file_list,
 } from '../../helpers/helpers'
 
 import CustomIonHeader from '../CustomIonHeader/CustomIonHeader'
@@ -50,6 +52,48 @@ const AddUrlForm: React.FC = () => {
     setEmail(email)
     setDirectory(dir)
   }, [])
+
+  useEffect(() => {
+    if (get_file_list().length === 0) {
+      fetch_file_list()
+    }
+  }, [])
+
+  const fetch_file_list = async () => {
+    let nextPageToken = ''
+    let fileList = []
+
+    // Define an inner function to make the API call recursively
+    const fetchFilesRecursive = async () => {
+      try {
+        const response = await makeRequest('browse', 'POST', {
+          item_index: '*',
+          next_page_token: nextPageToken.toString(),
+        })
+
+        const data = response.data
+        fileList = fileList.concat(data.files) // Append new files to the existing list
+
+        // Check if the next_page_token is empty or the length of files is less than 512
+        if (data.next_page_token === '' || data.files.length < 512) {
+          // If the condition is met, stop making further calls and set the file list
+          set_file_list(fileList)
+        } else {
+          // Update nextPageToken for the next iteration
+          nextPageToken = data.next_page_token
+          console.log('nextPageToken:', nextPageToken)
+
+          // Make the recursive call to fetch the next set of files
+          await fetchFilesRecursive()
+        }
+      } catch (error) {
+        console.error('Error fetching files:', error)
+      }
+    }
+
+    // Start the recursive function to fetch files
+    await fetchFilesRecursive()
+  }
 
   const handleSubmit = async (text: string) => {
     setIsLoading(true)

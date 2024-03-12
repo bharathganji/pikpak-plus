@@ -19,46 +19,9 @@ download [file index]: get url for download file
 share [file index]: get url for share file
 """
 
-def listdir(client, param, parentdir):
+def listdir(client, param, parentdir,  next_page_token,size=512):
     global _files
-    files=client.file_list(parent_id=str(parentdir))
-    ffs=[]
-    for ff in files['files']:
-        #print("  -id:", ff['id'])
-        #print("  -parent:", ff['parent_id'])
-        #print("  -kind:", ff['kind'])
-        #print("  -mime:", ff['mime_type'])
-        pp={"id": ff['id'], 'parent': ff['parent_id'],
-            'kind': ff['kind'], 'mime': ff['mime_type']}
-        if ff['kind']=="drive#folder":
-            pp["name"]= ff['name']+"/"
-        else:
-            pp["name"]= ff['name']
-        #print("-", ff['name'])
-        #print("  -size:", ff['size'])
-        ff['size']=int(ff['size'])
-        if ff['size']<1024:
-            pp['size']=f"{ff['size']}"
-            ffs.append(pp)
-            continue
-        if ff['size']<1024*1024:
-            pp['size']=f"{round(ff['size']/1024,2)}K"
-            ffs.append(pp)
-            continue
-        if ff['size']<1024*1024*1024:
-            pp['size']=f"{round(ff['size']/1024/1024,2)}M"
-            ffs.append(pp)
-            continue
-        pp['size']=f"{round(ff['size']/1024/1024/1024,2)}G"
-        ffs.append(pp)
-        #print(json.dumps(ff, indent=4))
-    i=0
-    for pp in ffs:
-        # print(f"{i}: ", pp['name'], f"{pp['size']}")
-        i+=1
-    #print("=" * 30, end="\n\n")
-    _files=ffs
-    # return ffs
+    files=client.file_list(parent_id=str(parentdir),next_page_token=next_page_token, size=size )
     return files
 
 def changedir(client, param):
