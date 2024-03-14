@@ -31,6 +31,7 @@ import BlockUiLoader from '../BlockUiLoader/BlockUiLoader'
 import ModalOptions from './ModalOptions/ModalOptions'
 import VideoPlayer from './VideoPlayer/VideoPlayer'
 import HelperCard from '../HelperCard/HelperCard'
+import autoAnimate from '@formkit/auto-animate'
 
 interface VideoPlayerProps {
   videoUrl?: string
@@ -54,7 +55,7 @@ const BrowseFolders: React.FC = () => {
     [key: string]: FileListResponse
   }>({})
   const contentRef = useRef<HTMLIonContentElement | null>(null)
-
+  const parent = useRef(null)
   const scrollToTop = () => {
     contentRef.current && contentRef.current.scrollToTop()
   }
@@ -176,6 +177,24 @@ const BrowseFolders: React.FC = () => {
       </IonButton>
     </>
   )
+  useEffect(() => {
+    parent.current &&
+      autoAnimate(parent.current, {
+        duration: 500,
+        disrespectUserMotionPreference: false,
+      })
+  }, [parent])
+
+  const handleDeleteItem = (itemId: string) => {
+    if (browseData) {
+      const updatedFiles = browseData.files.filter((item) => item.id !== itemId)
+      const updatedBrowseData: FileListResponse = {
+        ...browseData,
+        files: updatedFiles,
+      }
+      setBrowseData(updatedBrowseData)
+    }
+  }
 
   return (
     <>
@@ -203,7 +222,7 @@ const BrowseFolders: React.FC = () => {
               />
             )}
             <div className="browse-list">
-              <IonList>
+              <IonList ref={parent}>
                 {parentStack.length > 0 && (
                   <IonItem onClick={handleBackClick} className="hover-effect">
                     <IonIcon icon={chevronUpCircleOutline} />
@@ -308,6 +327,7 @@ const BrowseFolders: React.FC = () => {
                 setVideoDetails={setVideoDetails}
                 setShowVideoPlayer={setShowVideoPlayer}
                 scrollToTop={scrollToTop}
+                handleDeleteItem={handleDeleteItem}
               />
             </IonModal>
           </>

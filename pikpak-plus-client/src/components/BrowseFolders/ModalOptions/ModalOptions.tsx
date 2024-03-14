@@ -48,6 +48,7 @@ interface ModalOptionsProps {
   setShowVideoPlayer?: (value: boolean) => void
   setVideoDetails?: (value: any) => void
   scrollToTop?: () => void
+  handleDeleteItem?: (itemId: string) => void
 }
 
 const ModalOptions: React.FC<ModalOptionsProps> = ({
@@ -57,6 +58,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
   setShowVideoPlayer,
   setVideoDetails,
   scrollToTop,
+  handleDeleteItem,
 }) => {
   const fileName = item?.name
   const fileSize = item?.size
@@ -113,7 +115,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
     },
     delete: {
       color: 'danger',
-      header: 'Delete (~ coming soon ~)',
+      header: 'Delete',
       message: 'This will delete the item. Are you sure you want to proceed?',
       icon: trashBinOutline,
     },
@@ -240,9 +242,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
     } catch (error) {
       console.error('Error handling action:', error)
     } finally {
-      setTimeout(() => {
-        setIsLoading(false)
-      }, 1000)
+      setIsLoading(false)
     }
   }
 
@@ -297,7 +297,22 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
   }
 
   const handleDelete = async (itemId: string): Promise<any> => {
-    console.log('Delete logic' + itemId)
+    try {
+      setIsLoading(true)
+      const response = await makeRequest('delete', 'POST', {
+        email: email,
+        id: itemId,
+      })
+      const data = response.data
+      if (data.task_id) {
+        handleDeleteItem && handleDeleteItem(itemId)
+        setShowToast({ message: 'Deleted', color: 'success' })
+      }
+    } catch (error) {
+      setShowToast({ message: 'Failed to share', color: 'danger' })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const actionFunctionMap: Record<string, (itemId: string) => Promise<any>> = {
