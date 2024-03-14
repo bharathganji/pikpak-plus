@@ -17,7 +17,7 @@ CORS(app)
 
 # Global variable to store the initialized client
 initialized_client = None
-
+DELETE_OR_TRASH = os.getenv("DELETE_OR_TRASH", "trash")
 
 def user_route(enforce_login=False):
     def decorator(route):
@@ -287,7 +287,24 @@ def getRedirectUrl():
         remaining_string = error_message[start_index + 1:-1]
   
         return jsonify(str(remaining_string)), 200
-        
+  
+@app.route('/delete', methods=['POST'])
+@user_route(enforce_login=True)
+def delete(user):
+    data = request.get_json()
+    email = data.get('email')
+    id = data.get('id')
+    DELETE_OR_TRASH_local = DELETE_OR_TRASH.lower()
+    try:
+        if DELETE_OR_TRASH_local == 'delete':
+            res = cmd.cmds["delete"](initialized_client, id)
+            supabase.table("user_actions").insert({"email": email,"actions": "delete", "data":id}).execute()
+        else:
+            res = cmd.cmds["trash"](initialized_client, id)
+        return jsonify(res)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+  
 # -------------------------------------------------------------------------------------------------------------
 
 
