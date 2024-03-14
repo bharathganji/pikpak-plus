@@ -309,7 +309,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
         setShowToast({ message: 'Deleted', color: 'success' })
       }
     } catch (error) {
-      setShowToast({ message: 'Failed to share', color: 'danger' })
+      setShowToast({ message: 'Failed to delete ' + error, color: 'danger' })
     } finally {
       setIsLoading(false)
     }

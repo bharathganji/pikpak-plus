@@ -22,43 +22,6 @@ share [file index]: get url for share file
 def listdir(client, param, parentdir):
     global _files
     files=client.file_list(parent_id=str(parentdir))
-    ffs=[]
-    for ff in files['files']:
-        #print("  -id:", ff['id'])
-        #print("  -parent:", ff['parent_id'])
-        #print("  -kind:", ff['kind'])
-        #print("  -mime:", ff['mime_type'])
-        pp={"id": ff['id'], 'parent': ff['parent_id'],
-            'kind': ff['kind'], 'mime': ff['mime_type']}
-        if ff['kind']=="drive#folder":
-            pp["name"]= ff['name']+"/"
-        else:
-            pp["name"]= ff['name']
-        #print("-", ff['name'])
-        #print("  -size:", ff['size'])
-        ff['size']=int(ff['size'])
-        if ff['size']<1024:
-            pp['size']=f"{ff['size']}"
-            ffs.append(pp)
-            continue
-        if ff['size']<1024*1024:
-            pp['size']=f"{round(ff['size']/1024,2)}K"
-            ffs.append(pp)
-            continue
-        if ff['size']<1024*1024*1024:
-            pp['size']=f"{round(ff['size']/1024/1024,2)}M"
-            ffs.append(pp)
-            continue
-        pp['size']=f"{round(ff['size']/1024/1024/1024,2)}G"
-        ffs.append(pp)
-        #print(json.dumps(ff, indent=4))
-    i=0
-    for pp in ffs:
-        # print(f"{i}: ", pp['name'], f"{pp['size']}")
-        i+=1
-    #print("=" * 30, end="\n\n")
-    _files=ffs
-    # return ffs
     return files
 
 def changedir(client, param):
@@ -67,7 +30,7 @@ def changedir(client, param):
     # print("Parent dir: ", _parent)
     if not param: # 空， do nothing
         return 1
-    if param=='..': # parent
+    if param == '.' or param == '..' or param == '*':
         _curdir=_parent
         _parent=''
         return 0
@@ -129,6 +92,8 @@ def list_task_completed(client, param):
 
 # 删除一个文件，或文件夹
 def trash(client, id):
+    if id == '.' or id == '..' or id == '*':
+        return 0
     if not id: # 空， do nothing
         return 1
     try:
@@ -140,6 +105,8 @@ def trash(client, id):
 
 # 删除一个文件，或文件夹
 def remove(client, id):
+    if id == '.' or id == '..' or id == '*':
+        return 0
     if not id: # 空， do nothing
         return 1
     try:

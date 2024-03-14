@@ -289,7 +289,8 @@ def getRedirectUrl():
         return jsonify(str(remaining_string)), 200
   
 @app.route('/delete', methods=['POST'])
-def delete():
+@user_route(enforce_login=True)
+def delete(user):
     data = request.get_json()
     email = data.get('email')
     id = data.get('id')
