@@ -232,7 +232,7 @@ const BrowseFolders: React.FC = () => {
                     </IonLabel>
                   </IonItem>
                 )}
-                {isLoading || browseData ? (
+                {isLoading || browseData?.files.length !== 0 ? (
                   browseData?.files.map((item) => (
                     <IonItem
                       key={item.id}

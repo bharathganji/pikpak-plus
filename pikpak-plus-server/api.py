@@ -272,7 +272,15 @@ def serverstats():
         return jsonify(res['base'])
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
+
+@app.route('/drivestats', methods=['GET'])
+def drivestats():
+    try:
+        res = cmd.cmds["get_about_details"](initialized_client)
+        return jsonify(res)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500    
+
 @app.route('/getRedirectUrl', methods=['POST'])
 def getRedirectUrl():
     data = request.get_json()
