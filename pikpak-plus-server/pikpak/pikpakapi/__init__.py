@@ -438,5 +438,14 @@ class PikPakApi:
         )
         return result
 
+    def get_about_details(self) -> Dict[str, Any]:
 
-
+        url = f"https://{self.PIKPAK_API_HOST}/drive/v1/about?"
+        
+        result = self._request_get(
+            url, 
+            "",
+            self.get_headers(),
+            self.proxy
+        )
+        return result

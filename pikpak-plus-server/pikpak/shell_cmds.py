@@ -168,6 +168,14 @@ def get_traffic_details(client):
     except Exception as e:
         print("Error: ", e)
         return e
+
+def get_about_details(client):
+    try:
+        res = client.get_about_details()
+        return res
+    except Exception as e:
+        print("Error: ", e)
+        return e
     
 cmds={
     "help": helpme,
@@ -183,5 +191,6 @@ cmds={
     "cleardir": cleardir,
     "create_folder": create_folder,
     "share": share,
-    "get_traffic_details" : get_traffic_details
+    "get_traffic_details" : get_traffic_details,
+    "get_about_details" : get_about_details
 }

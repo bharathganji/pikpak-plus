@@ -134,7 +134,8 @@ export const makeRequest = async (
 
       data,
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json;charset=UTF-8',
+        'Access-Control-Allow-Origin': '*',
       },
     })
 
@@ -208,4 +209,13 @@ export const writeToClipboard = async (value: string) => {
   await Clipboard.write({
     string: value,
   })
+}
+
+export function bytesToTiB(value: string | number) {
+  const bytes = typeof value === 'string' ? parseFloat(value) : value
+
+  if (bytes === 0) return '0 TiB'
+
+  const tib = bytes / 1024 ** 4 // 1 TiB = 1024^4 bytes
+  return `${tib.toFixed(2)} TB`
 }

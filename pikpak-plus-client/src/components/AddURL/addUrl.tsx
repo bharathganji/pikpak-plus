@@ -7,6 +7,7 @@ import {
   IonButton,
   IonSpinner,
   IonProgressBar,
+  IonItemDivider,
 } from '@ionic/react'
 import {
   addSharp,
@@ -15,11 +16,14 @@ import {
   star,
   flash,
   statsChart,
+  cloudOutline,
+  calendarClearOutline,
 } from 'ionicons/icons'
 import './addUrlForm.css'
 import CustomInput from '../CustomInput/CustomInput'
 import {
   bytesToGB,
+  bytesToTiB,
   getEmailandDirectory,
   makeRequest,
 } from '../../helpers/helpers'
@@ -28,10 +32,9 @@ import CustomIonHeader from '../CustomIonHeader/CustomIonHeader'
 import HelperCard from '../HelperCard/HelperCard'
 import BlockUiLoader from '../BlockUiLoader/BlockUiLoader'
 import { help, usefullLinks } from '../../constants/constants'
-import { BaseResponseObjectType } from '../../types/sharedTypes'
+import { BaseResponseObjectType, DriveAbout } from '../../types/sharedTypes'
 
 const AddUrlForm: React.FC = () => {
-  // const [text, setText] = useState<string>('')
   const [email, setEmail] = useState<string | null>(null)
   const [directory, setDirectory] = useState<string | null>(null)
   const [showToast, setShowToast] = useState<{
@@ -44,11 +47,13 @@ const AddUrlForm: React.FC = () => {
     null,
   )
   const [isLoadingStats, setIsLoadingStats] = useState(false)
+  const [driveStats, setDriveStats] = useState<DriveAbout>()
 
   useEffect(() => {
     const { email, dir } = getEmailandDirectory()
     setEmail(email)
     setDirectory(dir)
+    fetchDriveStats()
   }, [])
 
   const handleSubmit = async (text: string) => {
@@ -191,6 +196,19 @@ const AddUrlForm: React.FC = () => {
     </>
   )
 
+  const fetchDriveStats = async () => {
+    try {
+      setIsLoadingStats(true)
+      const response = await makeRequest('drivestats', 'GET', {})
+      const data = response.data
+      setDriveStats(data)
+    } catch (error) {
+      console.error('Error:', error)
+    } finally {
+      setIsLoadingStats(false)
+    }
+  }
+
   const fetchServerstats = async () => {
     try {
       setIsLoadingStats(true)
@@ -231,6 +249,23 @@ const AddUrlForm: React.FC = () => {
                   </IonText>
                 </span>
                 {email}
+                <IonItemDivider style={{ visibility: 'hidden' }} />
+                <IonText className="text-flex-style">
+                  <span>
+                    <IonIcon color={'dark'} icon={cloudOutline} /> &nbsp;
+                    {bytesToTiB(driveStats?.quota.usage || 0) +
+                      ' / ' +
+                      bytesToTiB(driveStats?.quota.limit || 0)}
+                    &nbsp;
+                    {'used'} &nbsp;
+                  </span>
+                  <span>
+                    <IonIcon color={'dark'} icon={calendarClearOutline} />
+                    &nbsp;
+                    {'Expiry: ' +
+                      (import.meta.env.VITE_PIKPAK_EXPIRY_DATE || 'Contact Admin')}
+                  </span>
+                </IonText>
               </div>
               <CustomInput
                 handleSubmit={handleSubmit}
