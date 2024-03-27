@@ -9,11 +9,7 @@ import {
 } from '@ionic/react'
 import React, { useEffect, useState } from 'react'
 import { logOut } from 'ionicons/icons'
-import {
-  deleteCookie,
-  deleteEmailandDirectory,
-  makeRequest,
-} from '../../helpers/helpers'
+import { deleteCookie, deleteLocalStorage } from '../../helpers/helpers'
 
 interface CustomIonHeaderProps {
   title: string
@@ -25,32 +21,23 @@ const CustomIonHeader: React.FC<CustomIonHeaderProps> = ({ title }) => {
     message: string
     color: string
   } | null>(null)
-  const [isLoading, setIsLoading] = useState(false) // State for loader
+  const [isLoading, setIsLoading] = useState(false)
   useEffect(() => {}, [isLoading])
 
   async function signOut() {
     try {
-      setIsLoading(true) // Set loading state to true
+      setIsLoading(true)
       deleteCookie('auth')
-
-      const response = await makeRequest('logout', 'POST')
-      const data = response.data
-
-      if (!data) {
-        console.error('Sign-out failed:', data.error)
-        setShowToast({ message: 'Error adding task', color: 'danger' })
-      } else {
-        deleteEmailandDirectory()
-        setShowToast({ message: 'Sign-out successful', color: 'success' })
-        window.location.href = data.redirect
-      }
+      deleteLocalStorage()
+      setShowToast({ message: 'Sign-out successful', color: 'success' })
+      window.location.href = '/login'
     } catch (error) {
       setShowToast({
         message: `Error during sign-out:, ${error}`,
         color: 'danger',
       })
     } finally {
-      setIsLoading(false) // Set loading state to false when the operation is complete
+      setIsLoading(false)
     }
   }
 

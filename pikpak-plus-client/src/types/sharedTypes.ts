@@ -267,30 +267,44 @@ export type ShareData = {
   share_url: string
 }
 
-
 interface BaseObjectType {
-  user_id: string;
-  info: string;
-  sub_status: boolean;
-  vip_status: string;
-  expire_time: string;
-  assets: string;
-  size: number;
+  user_id: string
+  info: string
+  sub_status: boolean
+  vip_status: string
+  expire_time: string
+  assets: string
+  size: number
   offline: {
-      total_assets: number;
-      assets: number;
-      size: number;
-  };
+    total_assets: number
+    assets: number
+    size: number
+  }
   download: {
-      total_assets: number;
-      assets: number;
-      size: number;
-  };
+    total_assets: number
+    assets: number
+    size: number
+  }
   upload: {
-      total_assets: number;
-      assets: number;
-      size: number;
-  };
+    total_assets: number
+    assets: number
+    size: number
+  }
 }
 
-export type BaseResponseObjectType = BaseObjectType;
+export type BaseResponseObjectType = BaseObjectType
+
+export interface DriveAbout {
+  expires_at: string;
+  kind: string;
+  quota: {
+    is_unlimited: boolean;
+    kind: string;
+    limit: string;
+    play_times_limit: string;
+    play_times_usage: string;
+    usage: string;
+    usage_in_trash: string;
+  };
+  quotas: Record<string, any>; // You can define specific types for the "quotas" object if needed
+}

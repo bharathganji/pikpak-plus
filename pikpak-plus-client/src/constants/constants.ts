@@ -1,4 +1,4 @@
-import { logoGithub, heart, link, rocket } from 'ionicons/icons'
+import { logoGithub, heart, link, rocket, logoAndroid } from 'ionicons/icons'
 import telegram from '../assets/telegram.svg'
 
 export const usefullLinks = [
@@ -17,6 +17,13 @@ export const usefullLinks = [
     link: 'Github',
     value: 'https://github.com/bharathganji/pikpak-plus',
     icon: logoGithub,
+  },
+
+  {
+    link: 'PikPak-Plus APK',
+    value:
+      'https://github.com/bharathganji/pikpak-plus/raw/main/pikpak-plus-client/android/app/release/app-release.apk',
+    icon: logoAndroid,
   },
 
   {

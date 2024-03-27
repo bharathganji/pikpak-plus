@@ -25,3 +25,16 @@ a {
   color: unset;
   text-decoration: unset;
 }
+
+.text-flex-style {
+  display: flex;
+  align-items: center;
+}
+
+/* Media query for mobile devices */
+@media only screen and (max-width: 600px) {
+  .text-flex-style {
+    flex-direction: column; /* Change direction to column */
+    align-items: flex-start; /* Adjust alignment if needed */
+  }
+}

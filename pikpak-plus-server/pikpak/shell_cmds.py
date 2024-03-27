@@ -30,7 +30,7 @@ def changedir(client, param):
     # print("Parent dir: ", _parent)
     if not param: # 空， do nothing
         return 1
-    if param=='..': # parent
+    if param == '.' or param == '..' or param == '*':
         _curdir=_parent
         _parent=''
         return 0
@@ -91,36 +91,29 @@ def list_task_completed(client, param):
 
 
 # 删除一个文件，或文件夹
-def trash(client, param):
-    if not param: # 空， do nothing
+def trash(client, id):
+    if id == '.' or id == '..' or id == '*':
+        return 0
+    if not id: # 空， do nothing
         return 1
     try:
-        ii=int(param.strip())
-        id=_files[ii]['id']
-        
         a=client.delete_to_trash([id])
-        #a=client.delete_forever([id])
-        # print(a)
     except Exception as e:
         print("Error: ", e)
-    return 0
+    return a
 
 
 # 删除一个文件，或文件夹
-def remove(client, param):
-    if not param: # 空， do nothing
+def remove(client, id):
+    if id == '.' or id == '..' or id == '*':
+        return 0
+    if not id: # 空， do nothing
         return 1
     try:
-        ii=int(param.strip())
-        id=_files[ii]['id']
-        if id == '':
-            return 1
-        #a=client.delete_to_trash([id])
-        a=client.delete_forever([id])
-        # print(a)
+        a = client.delete_forever([id])
     except Exception as e:
         print("Error: ", e)
-    return 0
+    return a
 
 # 获取文件下载链接
 def download(client, param, id):
@@ -175,6 +168,14 @@ def get_traffic_details(client):
     except Exception as e:
         print("Error: ", e)
         return e
+
+def get_about_details(client):
+    try:
+        res = client.get_about_details()
+        return res
+    except Exception as e:
+        print("Error: ", e)
+        return e
     
 cmds={
     "help": helpme,
@@ -185,10 +186,11 @@ cmds={
     "tasks": list_task,
     "tasks_completed": list_task_completed,
     "trash": trash,
-    "del": remove,
+    "delete": remove,
     "download": download,
     "cleardir": cleardir,
     "create_folder": create_folder,
     "share": share,
-    "get_traffic_details" : get_traffic_details
+    "get_traffic_details" : get_traffic_details,
+    "get_about_details" : get_about_details
 }
