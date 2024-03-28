@@ -135,13 +135,15 @@ def get_tasks_completed():
     # Assuming tasks command returns a dictionary, modify accordingly
     return jsonify(matching_tasks)
 
-@app.route('/browse', methods=['POST'])
-@user_route(enforce_login=True)
-def browse(user):
+import json
+
+@app.route('/browse', methods=[ 'GET'])
+# @user_route(enforce_login=True)
+def browse():
 
     try:
         # Get JSON data from the request
-        data = request.get_json()
+        # data = request.get_json()
         # print(data)
         item_index = data.get('item_index')
 
@@ -150,7 +152,7 @@ def browse(user):
         res = cmd.cmds["ls"](initialized_client, "param", item_index)
         
         # Return the result as JSON
-        return jsonify(res)
+        return jsonify({"result": 'success'})
 
     except Exception as e:
         # Log error if an exception occurs

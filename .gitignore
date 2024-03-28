@@ -50,6 +50,3 @@ __pycache__/
 # temp or backup file
 *.swp
 *~
-
-
-api copy.py
