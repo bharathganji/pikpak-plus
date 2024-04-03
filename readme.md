@@ -154,7 +154,10 @@ This project is focused to run on server environment hence docker containers are
    ```JS
    sudo docker compose -f "docker-compose.yml" up -d --build
    ```
-
+5. [optional] in case server exposed via endpoint or tunnel create
+   <a href='https://cron-job.org/en/'>cron-job</a> or manually to hit end-point <b>/ping</b> every 2 hours.
+   <br/>
+   eg: api.pikpak-plus.com/ping
 <!-- USAGE EXAMPLES -->
 
 ## AndroidApk

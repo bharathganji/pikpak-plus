@@ -293,18 +293,3 @@ interface BaseObjectType {
 }
 
 export type BaseResponseObjectType = BaseObjectType
-
-export interface DriveAbout {
-  expires_at: string;
-  kind: string;
-  quota: {
-    is_unlimited: boolean;
-    kind: string;
-    limit: string;
-    play_times_limit: string;
-    play_times_usage: string;
-    usage: string;
-    usage_in_trash: string;
-  };
-  quotas: Record<string, any>; // You can define specific types for the "quotas" object if needed
-}

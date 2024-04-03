@@ -147,7 +147,7 @@ def create_folder(client, user_dir):
         # print(res['file'])
     except Exception as e:
         print("Error: ", e)
-        return e
+        return False
         
     return res['file']
 def share(client, dir_id):

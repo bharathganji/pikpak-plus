@@ -7,6 +7,7 @@ import {
 import LoginCard from './LoginCard.tsx/LoginCard'
 import { IonToast } from '@ionic/react'
 import BlockUiLoader from '../../BlockUiLoader/BlockUiLoader'
+import AuthButtons from '../AuthButtons/AuthButtons'
 
 function Login() {
   const [showToast, setShowToast] = useState<{
@@ -20,7 +21,7 @@ function Login() {
 
     setCookie('auth', auth, 2) // Set the cookie to expire in 2 hour
     setEmailandDirectory(email, dir)
-    window.location.href = redirect
+    fetchServers(redirect)
   }
 
   async function signIn(email: string, password: string) {
@@ -55,9 +56,34 @@ function Login() {
     }
   }
 
+  const fetchServers = async (redirect) => {
+    try {
+      setLoading(true)
+      const response = await makeRequest('getServers', 'GET', {})
+      const data = response.data
+      localStorage.setItem('serverOptions', JSON.stringify(data))
+
+      const values = Object.values(data)
+      const firstElement = values[0] as any
+      const selectedServer = localStorage.getItem('selectedServer')
+      // Check if selectedServer is not already set in local storage
+      if (selectedServer === null || selectedServer === '') {
+        // If not set, set the ID of the first server as the default
+        firstElement &&
+          localStorage.setItem('selectedServer', firstElement.server_id)
+      }
+      window.location.href = redirect
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <>
       <BlockUiLoader loading={loading}>
+        <AuthButtons />
         <LoginCard callbackFunc={signIn} />
       </BlockUiLoader>
       <IonToast

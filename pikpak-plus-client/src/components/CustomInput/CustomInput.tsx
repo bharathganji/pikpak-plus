@@ -22,7 +22,7 @@ export default function CustomInput({
       <div className="container ">
         <IonTextarea
           autoGrow={true}
-          style={{ ...inputStyle, background: '#f2f3f4' }}
+          style={{ ...inputStyle }}
           placeholder={customPlaceholder}
           ref={inputRef}
           fill="outline"

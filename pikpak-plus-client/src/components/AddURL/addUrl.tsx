@@ -24,15 +24,18 @@ import CustomInput from '../CustomInput/CustomInput'
 import {
   bytesToGB,
   bytesToTiB,
+  calculateDriveInfo,
   getEmailandDirectory,
+  getSelectedServer,
+  getServerExpireDate,
   makeRequest,
 } from '../../helpers/helpers'
-
+import GitHubButton from 'react-github-btn'
 import CustomIonHeader from '../CustomIonHeader/CustomIonHeader'
 import HelperCard from '../HelperCard/HelperCard'
 import BlockUiLoader from '../BlockUiLoader/BlockUiLoader'
 import { help, usefullLinks } from '../../constants/constants'
-import { BaseResponseObjectType, DriveAbout } from '../../types/sharedTypes'
+import { BaseResponseObjectType } from '../../types/sharedTypes'
 
 const AddUrlForm: React.FC = () => {
   const [email, setEmail] = useState<string | null>(null)
@@ -47,13 +50,11 @@ const AddUrlForm: React.FC = () => {
     null,
   )
   const [isLoadingStats, setIsLoadingStats] = useState(false)
-  const [driveStats, setDriveStats] = useState<DriveAbout>()
 
   useEffect(() => {
     const { email, dir } = getEmailandDirectory()
     setEmail(email)
     setDirectory(dir)
-    fetchDriveStats()
   }, [])
 
   const handleSubmit = async (text: string) => {
@@ -196,23 +197,10 @@ const AddUrlForm: React.FC = () => {
     </>
   )
 
-  const fetchDriveStats = async () => {
-    try {
-      setIsLoadingStats(true)
-      const response = await makeRequest('drivestats', 'GET', {})
-      const data = response.data
-      setDriveStats(data)
-    } catch (error) {
-      console.error('Error:', error)
-    } finally {
-      setIsLoadingStats(false)
-    }
-  }
-
   const fetchServerstats = async () => {
     try {
       setIsLoadingStats(true)
-      const response = await makeRequest('serverstats', 'GET', {})
+      const response = await makeRequest('serverstats', 'POST', {})
       const data = response.data
       setServerstats(data)
     } catch (error) {
@@ -253,9 +241,9 @@ const AddUrlForm: React.FC = () => {
                 <IonText className="text-flex-style">
                   <span>
                     <IonIcon color={'dark'} icon={cloudOutline} /> &nbsp;
-                    {bytesToTiB(driveStats?.quota.usage || 0) +
+                    {bytesToTiB(calculateDriveInfo()?.available || 0) +
                       ' / ' +
-                      bytesToTiB(driveStats?.quota.limit || 0)}
+                      bytesToTiB(calculateDriveInfo()?.limit || 0)}
                     &nbsp;
                     {'used'} &nbsp;
                   </span>
@@ -263,10 +251,33 @@ const AddUrlForm: React.FC = () => {
                     <IonIcon color={'dark'} icon={calendarClearOutline} />
                     &nbsp;
                     {'Expiry: ' +
-                      (import.meta.env.VITE_PIKPAK_EXPIRY_DATE || 'Contact Admin')}
+                      (getServerExpireDate(getSelectedServer()) ||
+                        'Contact Admin')}
                   </span>
                 </IonText>
+                <div className="github-btn-container">
+                  <GitHubButton
+                    href="https://github.com/sponsors/bharathganji"
+                    data-color-scheme="no-preference: light; light: light; dark: dark;"
+                    data-icon="octicon-heart"
+                    data-size="large"
+                    aria-label="Sponsor @bharathganji on GitHub"
+                  >
+                    Sponsor
+                  </GitHubButton>
+                  <GitHubButton
+                    href="https://github.com/bharathganji/pikpak-plus"
+                    data-color-scheme="no-preference: light; light: light; dark: dark;"
+                    data-icon="octicon-star"
+                    data-size="large"
+                    data-show-count="true"
+                    aria-label="Star bharathganji/pikpak-plus on GitHub"
+                  >
+                    Star
+                  </GitHubButton>
+                </div>
               </div>
+
               <CustomInput
                 handleSubmit={handleSubmit}
                 inputStyle={{

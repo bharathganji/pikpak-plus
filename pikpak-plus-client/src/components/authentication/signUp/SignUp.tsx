@@ -3,6 +3,7 @@ import SignUpCard from './SignUpCard/SignUpCard'
 import { IonToast } from '@ionic/react'
 import BlockUiLoader from '../../BlockUiLoader/BlockUiLoader'
 import { makeRequest } from '../../../helpers/helpers'
+import AuthButtons from '../AuthButtons/AuthButtons'
 
 function SignUp() {
   const [showToast, setShowToast] = useState<{
@@ -45,6 +46,8 @@ function SignUp() {
   return (
     <>
       <BlockUiLoader loading={loading}>
+      <AuthButtons />
+
         <SignUpCard callbackFunc={signUp} />
       </BlockUiLoader>
 

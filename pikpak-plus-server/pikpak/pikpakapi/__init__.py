@@ -271,7 +271,7 @@ class PikPakApi:
         return result
 
     def file_list(
-        self, size: int = 100, parent_id: str = None, next_page_token: str = None
+        self, size: int = 500 , parent_id: str = None, next_page_token: str = None
     ) -> Dict[str, Any]:
         """
         size: int - 每次请求的数量
