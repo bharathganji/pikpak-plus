@@ -32,6 +32,7 @@ venv
 run
 __pycache__
 temp.*
+PP-server#*.json
 
 
 down.bash

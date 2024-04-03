@@ -4,7 +4,7 @@
 
 .container-welcome {
   display: flex;
-  padding: 2rem;
+  padding: 1.25rem;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -37,4 +37,12 @@ a {
     flex-direction: column; /* Change direction to column */
     align-items: flex-start; /* Adjust alignment if needed */
   }
+}
+
+.github-btn-container{
+  display: flex;
+  justify-content: center;
+  flex-direction: row;
+  column-gap: 0.5rem;
+  margin-top: 1rem;
 }

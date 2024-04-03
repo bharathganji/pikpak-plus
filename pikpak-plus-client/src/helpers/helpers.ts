@@ -92,13 +92,87 @@ export const setCookie = (name, value, hours) => {
 
 export const setEmailandDirectory = (email, directory) => {
   localStorage.setItem('email', email)
-  localStorage.setItem('dir', directory)
+  localStorage.setItem('dir', JSON.stringify(directory || {}))
 }
 export const getEmailandDirectory = () => {
+  const selectedServer = getSelectedServer()
+  if (!selectedServer) {
+    // Handle case where selected server is not set
+    return { email: null, dir: null }
+  }
+
+  const directory_id = JSON.parse(localStorage.getItem('dir') || '{}')
+  const dir = directory_id[`PP-server#${selectedServer}`]?.directory_id || null
+
   return {
     email: localStorage.getItem('email'),
-    dir: localStorage.getItem('dir'),
+    dir: dir,
   }
+}
+
+export const getServerOptions = () => {
+  return localStorage.getItem('serverOptions')
+}
+
+export const getServerExpireDate = (selectedServer) => {
+  const serverOptions = getServerOptions()
+
+  const parsedServerOptions = serverOptions ? JSON.parse(serverOptions) : null
+
+  if (parsedServerOptions && selectedServer) {
+    const selectedServerDetails = parsedServerOptions[selectedServer]
+
+    if (selectedServerDetails) {
+      const createdDate = new Date(selectedServerDetails.created_at)
+      const expirationDate = new Date(
+        createdDate.getTime() +
+          selectedServerDetails.expiry * 24 * 60 * 60 * 1000,
+      )
+      const formattedExpirationDate = expirationDate.toLocaleDateString(
+        'en-US',
+        { day: '2-digit', month: 'short', year: 'numeric' },
+      )
+      return formattedExpirationDate
+    }
+  }
+
+  // Return null if server options or selected server is not valid
+  return null
+}
+
+interface DriveInfo {
+  limit: number
+  available: number
+}
+
+export const calculateDriveInfo = (): DriveInfo | null => {
+  const serverOptions = getServerOptions()
+
+  if (serverOptions) {
+    const parsedServerOptions = JSON.parse(serverOptions)
+
+    const selectedServerDetails =
+      parsedServerOptions[getSelectedServer() as any]
+
+    if (selectedServerDetails) {
+      const { limit, drive_used } = selectedServerDetails
+
+      const limitBytes = parseInt(limit)
+      const usedBytes = parseInt(drive_used)
+
+      return {
+        limit: limitBytes,
+        available: usedBytes,
+      }
+    }
+  }
+
+  // Return null if server options or selected server details are not valid
+  return null
+}
+
+export const getSelectedServer = () => {
+  return localStorage.getItem('selectedServer')
 }
 export const deleteEmailandDirectory = () => {
   localStorage.removeItem('email')
@@ -119,14 +193,14 @@ export const makeRequest = async (
 ) => {
   try {
     const auth = getauthCookie()
-
+    const server_number = localStorage.getItem('selectedServer')
     // Set the Authorization header with the access token
     axios.defaults.headers.common['Authorization'] = `Bearer ${auth}`
     // Set the base URL for android use
     const baseUrl = import.meta.env.VITE_PIKPAK_PLUS_API
       ? import.meta.env.VITE_PIKPAK_PLUS_API
       : `/api`
-
+    data = { ...data, server_number: parseInt(server_number as any) }
     // Make the request
     const response = await axios({
       method,
