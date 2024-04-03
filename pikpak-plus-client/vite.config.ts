@@ -68,7 +68,6 @@ export default ({ mode }) => {
     ],
     server: {
       host: '0.0.0.0',
-      open: true,
       port: parseInt(env.VITE_DEVELOPMENT_PORT) || 3001,
       proxy: {
         '/api': {
