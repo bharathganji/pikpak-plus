@@ -34,6 +34,9 @@ export default ({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'script-defer',
+        workbox: {
+          cleanupOutdatedCaches: false,
+        },
         includeAssets: [
           'favicon.ico',
           'apple-touch-icon.png',

@@ -6,13 +6,21 @@ import {
   IonTabButton,
   IonIcon,
   IonLabel,
+  IonText,
 } from '@ionic/react'
 import { IonReactRouter } from '@ionic/react-router'
-import { listCircle, folderOpen, magnetOutline, search, ellipsisHorizontal } from 'ionicons/icons'
+import {
+  listCircle,
+  folderOpen,
+  magnetOutline,
+  search,
+  ellipsisHorizontal,
+} from 'ionicons/icons'
 import { Redirect, Route } from 'react-router'
 import { getauthCookie, isJWTValid } from './helpers/helpers'
 import LoadingSpinner from './components/LoadingSpinner/LoadingSpinner'
 import DonationForm from './components/MoreOptionsPage/DonationForm/DonationForm'
+import './App.css'
 
 const DownloadList = lazy(() => import('./components/TasksList/taskslist'))
 const AddUrlForm = lazy(() => import('./components/AddURL/addUrl'))
@@ -22,8 +30,9 @@ const BrowseFolders = lazy(
 const Search = lazy(() => import('./components/Search/Search'))
 const Login = lazy(() => import('./components/authentication/login/Login'))
 const SignUp = lazy(() => import('./components/authentication/signUp/SignUp'))
-const MoreOptions = lazy(() => import('./components/MoreOptionsPage/MoreOptionsPage'))
-
+const MoreOptions = lazy(
+  () => import('./components/MoreOptionsPage/MoreOptionsPage'),
+)
 
 const App: React.FC = () => {
   const isEnable = useMemo(() => isJWTValid(getauthCookie()), [])
@@ -71,6 +80,9 @@ const App: React.FC = () => {
 
   return (
     <>
+      <IonText>
+        <h1 className="header-text">Welcome to PikPak Plus</h1>
+      </IonText>
       <IonReactRouter>
         <IonTabs>
           <IonRouterOutlet>

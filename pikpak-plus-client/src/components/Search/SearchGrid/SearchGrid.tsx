@@ -66,7 +66,7 @@ const SearchGrid: React.FC<AgGridProps> = ({ searchInfoList }) => {
     // ... (add other cell renderers for future columns)
   }
   return (
-    <div className="ag-theme-alpine grid-container">
+    <div className="ag-theme-quartz-auto-dark  grid-container">
       <AgGridReact
         columnDefs={[...columnDefs, copyColumn, openUrlColumn, shareColumn]}
         rowData={rowData}
