@@ -38,6 +38,7 @@
     "react-dom": "^18.2.0",
     "react-github-btn": "^1.4.0",
     "react-loader-spinner": "^6.1.6",
+    "react-photo-view": "^1.2.4",
     "react-router-dom": "^5.3.4"
   },
   "devDependencies": {
