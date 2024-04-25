@@ -26,16 +26,16 @@ export default ({ mode }) => {
         hostname: env.VITE_HOSTNAME || 'https://pikpak-plus.com',
         dynamicRoutes,
       }),
-
       optimizeCssModules(),
       Pages({
         onRoutesGenerated: (routes) => generateSitemap({ routes }),
       }),
       VitePWA({
         registerType: 'autoUpdate',
-        injectRegister: 'script-defer',
+        injectRegister: 'inline',
         workbox: {
           cleanupOutdatedCaches: false,
+          sourcemap: true,
         },
         includeAssets: [
           'favicon.ico',
@@ -62,7 +62,21 @@ export default ({ mode }) => {
             {
               src: 'masked-icon.png',
               type: 'image/png',
+              sizes: '512x512',
               purpose: 'maskable',
+            },
+          ],
+          screenshots: [
+            {
+              src: 'pikpak-plus.png',
+              sizes: '640x320',
+              type: 'image/png',
+            },
+            {
+              src: 'pikpak-plus.png',
+              sizes: '640x320',
+              type: 'image/png',
+              form_factor: 'wide',
             },
           ],
         },

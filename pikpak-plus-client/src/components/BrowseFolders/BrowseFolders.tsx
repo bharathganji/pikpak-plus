@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { PhotoProvider, PhotoView } from 'react-photo-view'
+import 'react-photo-view/dist/react-photo-view.css'
 import {
   IonList,
   IonItem,
@@ -196,6 +198,37 @@ const BrowseFolders: React.FC = () => {
     }
   }
 
+  const Thumbnail = ({ item }) => {
+    const thumbnailSrc =
+      item.kind === 'drive#folder' ? item.icon_link : item.thumbnail_link
+
+    const renderThumbnail = () => {
+      return (
+        <IonImg
+          src={thumbnailSrc}
+          className="thumbnail-img"
+          alt={item.name}
+          onError={(e) => {
+            e.currentTarget.src = item.icon_link
+          }}
+        ></IonImg>
+      )
+    }
+
+    return (
+      <>
+        {item.kind === 'drive#folder' ? (
+          <IonThumbnail className="thumbnail">{renderThumbnail()}</IonThumbnail>
+        ) : (
+          <PhotoView src={item.thumbnail_link}>
+            <IonThumbnail className="thumbnail">
+              {renderThumbnail()}
+            </IonThumbnail>
+          </PhotoView>
+        )}
+      </>
+    )
+  }
   return (
     <>
       <CustomIonHeader title="Browse Folders" />
@@ -243,22 +276,24 @@ const BrowseFolders: React.FC = () => {
                         item.kind === 'drive#folder' ? 'hover-effect' : ''
                       }
                     >
-                      {
-                        <IonThumbnail className="thumbnail">
-                          <IonImg
-                            src={
-                              item.kind === 'drive#folder'
-                                ? item.icon_link
-                                : item.thumbnail_link
-                            }
-                            className="thumbnail-img"
-                            alt={item.name}
-                            onIonError={(e) => {
-                              e.target.src = item.icon_link
-                            }}
-                          ></IonImg>
-                        </IonThumbnail>
-                      }
+                      {item.kind !== 'drive#folder' && (
+                        <PhotoProvider
+                          speed={() => 400}
+                          easing={(type) =>
+                            type === 2
+                              ? 'cubic-bezier(0.36, 0, 0.66, -0.56)'
+                              : 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+                          }
+                          maskOpacity={0.5}
+                          bannerVisible={false}
+                        >
+                          <Thumbnail item={item} />
+                        </PhotoProvider>
+                      )}
+
+                      {item.kind === 'drive#folder' && (
+                        <Thumbnail item={item} />
+                      )}
                       <IonLabel>{item.name}</IonLabel>
                       <IonIcon
                         color="primary"

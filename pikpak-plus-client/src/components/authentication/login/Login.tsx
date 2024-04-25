@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  deleteLocalStorage,
   makeRequest,
   setCookie,
   setEmailandDirectory,
@@ -74,7 +75,11 @@ function Login() {
       }
       window.location.href = redirect
     } catch (error) {
-      console.error(error)
+      deleteLocalStorage()
+      setShowToast({
+        message: `fetching server details failed, contact admin`,
+        color: 'danger',
+      })
     } finally {
       setLoading(false)
     }
