@@ -30,7 +30,7 @@ const CustomIonHeader: React.FC<CustomIonHeaderProps> = ({ title }) => {
   const [isLoading, setIsLoading] = useState(false)
   let darkMode = getItemFromLocalStorage('darkMode')
   const getDarkModeIcon = (): string => {
-    return darkMode === 'true' ? moonOutline : sunnyOutline
+    return darkMode === 'false' ? moonOutline : sunnyOutline
   }
 
   const [darkModeIcon, setDarkModeIcon] = useState(getDarkModeIcon())
