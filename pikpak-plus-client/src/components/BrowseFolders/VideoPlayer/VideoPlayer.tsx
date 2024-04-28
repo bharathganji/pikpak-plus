@@ -1,8 +1,12 @@
-import { IonButton, IonItemDivider } from '@ionic/react'
+import { IonButton } from '@ionic/react'
 import './VideoPlayer.css'
 import '@vidstack/react/player/styles/default/theme.css'
 import '@vidstack/react/player/styles/default/layouts/video.css'
-import { MediaPlayer, MediaProvider, Poster } from '@vidstack/react'
+import {
+  MediaPlayer,
+  MediaProvider,
+  Poster,
+} from '@vidstack/react'
 import { Captions } from '@vidstack/react'
 import {
   DefaultVideoLayout,
@@ -12,10 +16,10 @@ import {
 interface VideoPlayerProps {
   videoUrl: string
   thumbnailImg?: string
-
   videoTitle?: string
   videoType?: string
   setShowVideoPlayer?: (value: boolean) => void
+  isClosable?: boolean
 }
 
 export default function VideoPlayer({
@@ -24,17 +28,18 @@ export default function VideoPlayer({
   videoTitle,
   videoType,
   setShowVideoPlayer,
+  isClosable = true,
 }: VideoPlayerProps) {
   console.log('videoUrl', videoUrl)
   console.log('thumbnailImg', thumbnailImg)
   console.log('videoTitle', videoTitle)
   console.log('videoType', videoType)
-  
+
   return (
     <div className="video-player-container">
       <MediaPlayer
         storage="storage-key"
-        title="Sprite Fight"
+        title={videoTitle}
         src={{ src: videoUrl, type: 'video/mp4' }}
         aspectRatio="16/9"
         className="video-player-media-player"
@@ -52,17 +57,18 @@ export default function VideoPlayer({
           icons={defaultLayoutIcons}
         />
       </MediaPlayer>
-      <IonButton
-        color="danger"
-        fill="outline"
-        onClick={() => {
-          setShowVideoPlayer && setShowVideoPlayer(false)
-        }}
-        className="video-player-close-button"
-      >
-        close player
-      </IonButton>
-      <IonItemDivider></IonItemDivider>
+      {isClosable && (
+        <IonButton
+          color="danger"
+          fill="outline"
+          onClick={() => {
+            setShowVideoPlayer && setShowVideoPlayer(false)
+          }}
+          className="video-player-close-button"
+        >
+          close player
+        </IonButton>
+      )}
     </div>
   )
 }

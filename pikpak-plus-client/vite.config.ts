@@ -10,7 +10,16 @@ import Pages from 'vite-plugin-pages'
 import generateSitemap from 'vite-plugin-pages-sitemap'
 import Sitemap from 'vite-plugin-sitemap'
 
-const names = ['create', 'browse', 'login', 'search', 'signup', 'tasks']
+const names = [
+  'create',
+  'browse',
+  'login',
+  'search',
+  'signup',
+  'tasks',
+  'donate',
+  'faq',
+]
 const dynamicRoutes = names.map((name) => `/${name}`)
 
 export default ({ mode }) => {

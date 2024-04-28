@@ -134,7 +134,7 @@ const DownloadList: React.FC = () => {
       </IonSegment>
       <BlockUiLoader loading={isLoading}>
         <IonContent className="ion-padding">
-          <>
+          <div className="custom-list-container">
             {errorToast && (
               <IonToast
                 position="top"
@@ -202,7 +202,7 @@ const DownloadList: React.FC = () => {
                   </IonItem>
                 ))}
             </IonList>
-          </>
+          </div>
         </IonContent>
       </BlockUiLoader>
       {selectedTask && (

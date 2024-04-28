@@ -220,32 +220,30 @@ def create_folder(user_email):
     
     if not user_email:
         return jsonify({"error": "user parameter is missing"}), 400
-    
-    user_dir = get_username_from_email(user_email)
-    if not user_dir:
-        return jsonify({"error": "user_dir parameter is missing"}), 400
     try:
+        print("email ", user_email)
 
         # Define a dictionary to store server information
         server_info = {}
 
-        for server_number in range(1, len(usernamesArray) + 1):
-            print( "server_info ",server_info)
-            res = cmd.cmds["create_folder"](initialized_clients.get(server_number), user_dir)              
+        for server_number in range(0, len(usernamesArray)):
+            if usernamesArray[server_number] == "":
+                continue
+            server_number=server_number+1
+            res = check_for_duplicate_file_name(user_email, server_number)
             file_id = res["id"]
-            
             # Create a dictionary to represent the server information
             server_id = f"PP-server#{server_number}"
             server_info[server_id] = {
                 "directory_id": file_id,
                 "date": datetime.now().isoformat()  # Get the current date and time
             }
-
         # Insert server_info into the 'server_info' column of the 'pikpak_data' table
         supabase.table("pikpak_data").insert({"email": user_email, "server_info": server_info}).execute()
 
         return True
     except Exception as e:
+        print('error in create folder',e)
         return jsonify({"error": str(e)}), 500
 
 

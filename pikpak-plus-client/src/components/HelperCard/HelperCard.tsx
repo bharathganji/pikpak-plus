@@ -14,7 +14,7 @@ interface HelperCardProps {
   cardSubtitle?: any
   cardSubTitleStyle?: React.CSSProperties
   icon?: string
-  titleColor?: string,
+  titleColor?: string
   cardContent?: any
 }
 
@@ -46,7 +46,7 @@ function HelperCard({
             {cardSubtitle}
           </IonCardSubtitle>
         </IonCardHeader>
-        <IonCardContent>{cardContent}</IonCardContent>
+        {cardContent && <IonCardContent>{cardContent}</IonCardContent>}
       </IonCard>
     </div>
   )
