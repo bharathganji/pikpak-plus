@@ -250,7 +250,7 @@ const BrowseFolders: React.FC = () => {
                 videoUrl={videoDetails.videoUrl || ''}
                 thumbnailImg={videoDetails.thumbnailImg}
                 videoTitle={videoDetails.videoTitle}
-                videoType={videoDetails.videoType}
+                videoType={videoDetails.videoType || 'video/mp4'}
                 setShowVideoPlayer={setShowVideoPlayer}
               />
             )}

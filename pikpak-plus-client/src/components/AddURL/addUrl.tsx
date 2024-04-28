@@ -18,6 +18,8 @@ import {
   statsChart,
   cloudOutline,
   calendarClearOutline,
+  helpCircleOutline,
+  arrowRedoOutline,
 } from 'ionicons/icons'
 import './addUrlForm.css'
 import CustomInput from '../CustomInput/CustomInput'
@@ -284,6 +286,7 @@ const AddUrlForm: React.FC = () => {
                   minHeight: '184px',
                 }}
                 buttonText="Create Task"
+                onSubmitClearInput={true}
                 icon={addSharp}
                 customPlaceholder={`Supported link formats:
 - Magnet URI (magnet:?xt=urn:btih)
@@ -329,6 +332,16 @@ Multiple links can be added at once by line break.`}
                       Load stats . . .
                     </IonButton>
                   )
+                }
+              />
+              <HelperCard
+                cardTitle="Frequently Asked Questions"
+                titleColor="tertiary"
+                icon={helpCircleOutline}
+                cardContent={
+                  <IonButton fill="outline" routerLink="/faq">
+                    FAQ PAGE &nbsp; <IonIcon icon={arrowRedoOutline}></IonIcon>
+                  </IonButton>
                 }
               />
             </div>

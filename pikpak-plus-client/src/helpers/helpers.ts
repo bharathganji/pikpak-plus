@@ -183,6 +183,14 @@ export const deleteLocalStorage = () => {
   localStorage.clear()
 }
 
+export function getItemFromLocalStorage(key: string) {
+  return localStorage.getItem(key)
+}
+
+export function setItemToLocalStorage(key: string, value: string) {
+  localStorage.setItem(key, value)
+}
+
 export const deleteCookie = (name) => {
   document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`
 }
@@ -292,4 +300,20 @@ export function bytesToTiB(value: string | number) {
 
   const tib = bytes / 1024 ** 4 // 1 TiB = 1024^4 bytes
   return `${tib.toFixed(2)} TB`
+}
+
+export function enableDarkMode() {
+  const darkMode = getItemFromLocalStorage('darkMode')
+  // Use matchMedia to check the user preference
+  const darkTheme = darkMode === 'false' ? 'light' : 'dark'
+  const prefersDark = window.matchMedia(`(prefers-color-scheme: ${darkTheme})`)
+  toggleDarkTheme(prefersDark.matches)
+  // Listen for changes to the prefers-color-scheme media query
+  prefersDark.addEventListener('change', (mediaQuery) =>
+    toggleDarkTheme(mediaQuery.matches),
+  )
+  // Add or remove the "dark" class based on if the media query matches
+  function toggleDarkTheme(shouldAdd) {
+    document.body.classList.toggle('dark', shouldAdd)
+  }
 }

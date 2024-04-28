@@ -5,7 +5,7 @@ import { openOutline } from 'ionicons/icons'
 function AuthButtons() {
   return (
     <>
-      <div className="auth-button-container">
+      <div className="auth-github-button">
         <GitHubButton
           href="https://github.com/bharathganji/pikpak-plus"
           data-color-scheme="no-preference: light; light: light; dark: dark;"
@@ -15,8 +15,16 @@ function AuthButtons() {
         >
           Star
         </GitHubButton>
+      </div>
+      <div className="auth-button-container">
         <IonButton routerLink="/donate" fill="clear">
-          Contribute &nbsp;<IonIcon icon={openOutline} />
+          Contribute &nbsp;
+          <IonIcon icon={openOutline} />
+        </IonButton>
+
+        <IonButton routerLink="/faq" fill="clear">
+          FAQ &nbsp;
+          <IonIcon icon={openOutline} />
         </IonButton>
       </div>
     </>

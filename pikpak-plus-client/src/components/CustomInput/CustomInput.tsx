@@ -8,6 +8,7 @@ export default function CustomInput({
   inputStyle,
   buttonText,
   customPlaceholder,
+  onSubmitClearInput = false,
 }: any) {
   const inputRef = useRef<HTMLIonTextareaElement>(null) // Adjust the ref type
 
@@ -16,7 +17,7 @@ export default function CustomInput({
       onSubmit={(e) => {
         e.preventDefault()
         handleSubmit(inputRef.current?.value)
-        inputRef.current?.value ? (inputRef.current.value = '') : null
+        onSubmitClearInput &&  inputRef.current?.value ? (inputRef.current.value = '') : null
       }}
     >
       <div className="container ">

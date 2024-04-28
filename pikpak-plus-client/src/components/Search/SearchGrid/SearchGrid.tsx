@@ -6,6 +6,7 @@ import { ColDef, GridOptions } from 'ag-grid-community'
 import { IonButton, IonIcon } from '@ionic/react'
 import { copy, open, shareSocial } from 'ionicons/icons'
 import {
+  getItemFromLocalStorage,
   makeRequest,
   prepareColumnDefs,
   prepareRowData,
@@ -65,8 +66,14 @@ const SearchGrid: React.FC<AgGridProps> = ({ searchInfoList }) => {
 
     // ... (add other cell renderers for future columns)
   }
+  const darkMode = getItemFromLocalStorage('darkMode')
+
   return (
-    <div className="ag-theme-quartz-auto-dark  grid-container">
+    <div
+      className={`${
+        darkMode === 'true' ? 'ag-theme-quartz-auto-dark' : 'ag-theme-alpine'
+      } grid-container`}
+    >
       <AgGridReact
         columnDefs={[...columnDefs, copyColumn, openUrlColumn, shareColumn]}
         rowData={rowData}

@@ -16,3 +16,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.custom-list-container {
+  margin-bottom: 10rem;
+}

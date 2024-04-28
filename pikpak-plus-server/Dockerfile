@@ -14,5 +14,5 @@ COPY . .
 
 # Run Flask in the background and npm run dev
 
-CMD ["python", "api.py"]
+CMD ["python","-u", "api.py"]
 # CMD ["gunicorn","--config", "gunicorn_config.py", "api:app"]

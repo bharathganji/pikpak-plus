@@ -162,7 +162,7 @@ This project is focused to run on server environment hence docker containers are
 
 ## AndroidApk
 
-- <a href="pikpak-plus-client/android/app/release">Download Android .apk</a>
+- <a href="pikpak-plus-client/android/app/release/app-release.apk">Download Android .apk</a>
 
 ## Usage
 
