@@ -302,15 +302,12 @@ export function bytesToTiB(value: string | number) {
   return `${tib.toFixed(2)} TB`
 }
 
+export function getWindowIsDarkThemeMode(): string {
+  const prefersDark = window.matchMedia(`(prefers-color-scheme: dark)`)
+  return prefersDark.matches.toString()
+}
+
 export function enableDarkMode() {
   const darkMode = getItemFromLocalStorage('darkMode')
-  // Use matchMedia to check the user preference
-  const darkTheme = darkMode === 'false' ? 'dark' : 'light'
-  const prefersDark = window.matchMedia(`(prefers-color-scheme: ${darkTheme})`)
-  toggleDarkTheme(prefersDark.matches)
-
-  // Add or remove the "dark" class based on if the media query matches
-  function toggleDarkTheme(shouldAdd) {
-    document.body.classList.toggle('dark', shouldAdd)
-  }
+  document.body.classList.toggle('dark', darkMode === 'true')
 }
