@@ -14,6 +14,7 @@ import {
   deleteLocalStorage,
   enableDarkMode,
   getItemFromLocalStorage,
+  getWindowIsDarkThemeMode,
   setItemToLocalStorage,
 } from '../../helpers/helpers'
 
@@ -28,16 +29,27 @@ const CustomIonHeader: React.FC<CustomIonHeaderProps> = ({ title }) => {
     color: string
   } | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+
   let darkMode = getItemFromLocalStorage('darkMode')
+  const initialDarkMode = getWindowIsDarkThemeMode()
+
   const getDarkModeIcon = (): string => {
-    return darkMode === 'false' ? moonOutline : sunnyOutline
+    return darkMode === 'true' ? moonOutline : sunnyOutline
   }
 
   const [darkModeIcon, setDarkModeIcon] = useState(getDarkModeIcon())
   useEffect(() => {}, [isLoading])
   useEffect(() => {
     if (darkMode === null) {
-      setItemToLocalStorage('darkMode', 'false')
+      darkMode = initialDarkMode
+      setDarkModeIcon(getDarkModeIcon())
+      console.log('initialDarkMode', initialDarkMode)
+
+      if (initialDarkMode === 'true') {
+        setItemToLocalStorage('darkMode', 'true')
+      } else {
+        setItemToLocalStorage('darkMode', 'false')
+      }
     }
     enableDarkMode()
   }, [])

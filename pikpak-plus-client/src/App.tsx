@@ -1,4 +1,4 @@
-import React, { useMemo, lazy, Suspense } from 'react'
+import React, { useMemo, lazy, Suspense, useEffect } from 'react'
 import {
   IonTabs,
   IonRouterOutlet,
@@ -17,7 +17,12 @@ import {
   ellipsisHorizontal,
 } from 'ionicons/icons'
 import { Redirect, Route } from 'react-router'
-import { getauthCookie, isJWTValid } from './helpers/helpers'
+import {
+  getWindowIsDarkThemeMode,
+  getauthCookie,
+  isJWTValid,
+  setItemToLocalStorage,
+} from './helpers/helpers'
 import LoadingSpinner from './components/LoadingSpinner/LoadingSpinner'
 import DonationForm from './components/MoreOptionsPage/DonationForm/DonationForm'
 import './App.css'
@@ -38,6 +43,12 @@ const MoreOptions = lazy(
 const App: React.FC = () => {
   const isEnable = useMemo(() => isJWTValid(getauthCookie()), [])
   const isIgnoreList = ['/login', '/signup']
+
+  useEffect(() => {
+    getWindowIsDarkThemeMode() === 'true'
+      ? setItemToLocalStorage('darkMode', 'true')
+      : setItemToLocalStorage('darkMode', 'false')
+  }, [])
 
   const renderRoute = (path: string, component: React.FC, exact = true) => (
     <Route
