@@ -21,6 +21,7 @@ import {
   ellipsisVertical,
   cloudUploadOutline,
   cloudDoneOutline,
+  walkOutline,
   refreshCircleOutline,
 } from 'ionicons/icons'
 import CustomIonHeader from '../CustomIonHeader/CustomIonHeader'
@@ -30,6 +31,7 @@ import { getEmailandDirectory, makeRequest } from '../../helpers/helpers'
 import { Task } from '../../types/sharedTypes'
 import DownloadListPopover from './DownloadListPopover'
 import TaskDetailsModal from './TaskDetailsModal'
+import HelperCard from '../HelperCard/HelperCard'
 
 interface ErrorToast {
   message: string
@@ -58,6 +60,7 @@ const DownloadList: React.FC = () => {
       const response = await makeRequest(apiUrl, 'POST', { email: email })
       if (response.status === 200) {
         const tasks = response.data.tasks || []
+
         setDownloadData(tasks)
       } else {
         throw new Error(`Request failed with status: ${response.status}`)
@@ -107,6 +110,16 @@ const DownloadList: React.FC = () => {
     setPopoverEvent(null)
   }
 
+  const emptyTaskHelper = () => {
+    return (
+      <>
+        <IonText color={'dark'}>
+          Check completed tasks or Create a new task
+        </IonText>
+      </>
+    )
+  }
+
   return (
     <>
       <CustomIonHeader title="Cloud Tasks" />
@@ -115,24 +128,24 @@ const DownloadList: React.FC = () => {
           <IonIcon icon={refreshCircleOutline} size="large" />
         </IonFabButton>
       </IonFab>
-      <IonSegment
-        value={selectedValue}
-        onIonChange={(e) => {
-          e.stopPropagation()
-          handleSelectedValue(e.detail.value)
-        }}
-        color={selectedValue === 'ongoing' ? 'primary' : 'success'}
-      >
-        <IonSegmentButton value="ongoing" layout="icon-start">
-          <IonIcon icon={cloudUploadOutline} />
-          <IonLabel>Ongoing</IonLabel>
-        </IonSegmentButton>
-        <IonSegmentButton value="completed" layout="icon-start">
-          <IonIcon icon={cloudDoneOutline} />
-          <IonLabel>Completed</IonLabel>
-        </IonSegmentButton>
-      </IonSegment>
       <BlockUiLoader loading={isLoading}>
+        <IonSegment
+          value={selectedValue}
+          onIonChange={(e) => {
+            e.stopPropagation()
+            handleSelectedValue(e.detail.value)
+          }}
+          color={selectedValue === 'ongoing' ? 'primary' : 'success'}
+        >
+          <IonSegmentButton value="ongoing" layout="icon-start">
+            <IonIcon icon={cloudUploadOutline} />
+            <IonLabel>Ongoing</IonLabel>
+          </IonSegmentButton>
+          <IonSegmentButton value="completed" layout="icon-start">
+            <IonIcon icon={cloudDoneOutline} />
+            <IonLabel>Completed</IonLabel>
+          </IonSegmentButton>
+        </IonSegment>
         <IonContent className="ion-padding">
           <div className="custom-list-container">
             {errorToast && (
@@ -146,61 +159,74 @@ const DownloadList: React.FC = () => {
               />
             )}
             <IonList>
-              {downloadData &&
-                downloadData.map((task) => (
-                  <IonItem key={task.id}>
-                    <IonCol size="9">
-                      <IonLabel className="label-text">{task.name}</IonLabel>
-                      <div className="flex-container">
-                        <IonText>
-                          {`${(
-                            parseInt(task.file_size) /
-                            1024 /
-                            1024 /
-                            1024
-                          ).toFixed(1)}GB`}
-                        </IonText>
+              {downloadData && downloadData?.length > 0
+                ? downloadData.map((task) => (
+                    <IonItem key={task.id}>
+                      <IonCol size="9">
+                        <IonLabel className="label-text">{task.name}</IonLabel>
+                        <div className="flex-container">
+                          <IonText>
+                            {`${(
+                              parseInt(task.file_size) /
+                              1024 /
+                              1024 /
+                              1024
+                            ).toFixed(1)}GB`}
+                          </IonText>
 
-                        <IonText
-                          className="progress-text"
+                          <IonText
+                            className="progress-text"
+                            color={
+                              selectedValue === 'completed'
+                                ? 'tertiary'
+                                : task.phase === 'PHASE_TYPE_RUNNING'
+                                ? 'success'
+                                : 'danger'
+                            }
+                          >
+                            {task.message}
+                          </IonText>
+                        </div>
+                      </IonCol>
+                      <IonCol size="2">
+                        <IonLabel>{task.progress}%</IonLabel>
+                        <IonProgressBar
                           color={
                             selectedValue === 'completed'
-                              ? 'tertiary'
-                              : task.phase === 'PHASE_TYPE_RUNNING'
                               ? 'success'
+                              : task.phase === 'PHASE_TYPE_RUNNING'
+                              ? 'primary'
                               : 'danger'
                           }
-                        >
-                          {task.message}
-                        </IonText>
-                      </div>
-                    </IonCol>
-                    <IonCol size="2">
-                      <IonLabel>{task.progress}%</IonLabel>
-                      <IonProgressBar
-                        color={
-                          selectedValue === 'completed'
-                            ? 'success'
-                            : task.phase === 'PHASE_TYPE_RUNNING'
-                            ? 'primary'
-                            : 'danger'
-                        }
-                        value={task.progress / 100}
-                      />
-                    </IonCol>
-                    <IonCol size="1">
-                      <IonIcon
-                        className="hover-effect"
-                        icon={ellipsisVertical}
-                        color="tertiary"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleMoreIconClick(e, task)
-                        }}
-                      ></IonIcon>
-                    </IonCol>
-                  </IonItem>
-                ))}
+                          value={task.progress / 100}
+                        />
+                      </IonCol>
+                      <IonCol size="1">
+                        <IonIcon
+                          className="hover-effect"
+                          icon={ellipsisVertical}
+                          color="tertiary"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleMoreIconClick(e, task)
+                          }}
+                        ></IonIcon>
+                      </IonCol>
+                    </IonItem>
+                  ))
+                : !isLoading && (
+                    <HelperCard
+                      cardTitle="Nothing to show here"
+                      cardSubtitle={emptyTaskHelper()}
+                      cardSubTitleStyle={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        textAlign: 'justify',
+                      }}
+                      icon={walkOutline}
+                      titleColor="primary"
+                    />
+                  )}
             </IonList>
           </div>
         </IonContent>
