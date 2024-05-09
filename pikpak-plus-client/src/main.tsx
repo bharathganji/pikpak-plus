@@ -10,12 +10,15 @@ import React from 'react'
 
 setupIonicReact()
 import { registerSW } from 'virtual:pwa-register'
+import { IonReactRouter } from '@ionic/react-router'
 
 registerSW({ immediate: true })
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <IonApp>
-      <App />
-    </IonApp>
+    <IonReactRouter>
+      <IonApp>
+        <App />
+      </IonApp>
+    </IonReactRouter>
   </React.StrictMode>,
 )
