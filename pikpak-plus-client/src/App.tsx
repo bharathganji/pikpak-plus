@@ -8,7 +8,6 @@ import {
   IonLabel,
   IonText,
 } from '@ionic/react'
-import { IonReactRouter } from '@ionic/react-router'
 import {
   listCircle,
   folderOpen,
@@ -27,6 +26,8 @@ import LoadingSpinner from './components/LoadingSpinner/LoadingSpinner'
 import DonationForm from './components/MoreOptionsPage/DonationForm/DonationForm'
 import './App.css'
 import FaqPage from './components/FaqPage/FaqPage'
+import { useIonRouter } from '@ionic/react'
+import { App as AppPlugin } from '@capacitor/app'
 
 const DownloadList = lazy(() => import('./components/TasksList/taskslist'))
 const AddUrlForm = lazy(() => import('./components/AddURL/addUrl'))
@@ -49,6 +50,20 @@ const App: React.FC = () => {
       ? setItemToLocalStorage('darkMode', 'true')
       : setItemToLocalStorage('darkMode', 'false')
   }, [])
+
+  const ionRouter = useIonRouter()
+
+  const exitApp = () => {
+    const onExitApp = () => !ionRouter.canGoBack() && AppPlugin.exitApp()
+
+    const exit = (ev) => ev.detail.register(-1, onExitApp)
+    document.addEventListener('ionBackButton', exit)
+
+    const removeEventListener = () =>
+      document.addEventListener('ionBackButton', onExitApp)
+    return removeEventListener
+  }
+  useEffect(exitApp, [])
 
   const renderRoute = (path: string, component: React.FC, exact = true) => (
     <Route
@@ -80,30 +95,28 @@ const App: React.FC = () => {
       <IonText>
         <h1 className="header-text">Welcome to PikPak Plus</h1>
       </IonText>
-      <IonReactRouter>
-        <IonTabs>
-          <IonRouterOutlet>
-            <Redirect exact path="/" to="/create" />
-            <Route path="/donate" component={DonationForm} />
-            <Route path="/faq" component={FaqPage} />
-            {renderRoute('/tasks', DownloadList)}
-            {renderRoute('/create', AddUrlForm)}
-            {renderRoute('/login', Login)}
-            {renderRoute('/signup', SignUp)}
-            {renderRoute('/browse', BrowseFolders)}
-            {renderRoute('/search', Search)}
-            {renderRoute('/config', MoreOptions)}
-          </IonRouterOutlet>
+      <IonTabs>
+        <IonRouterOutlet>
+          <Redirect exact path="/" to="/create" />
+          <Route path="/donate" component={DonationForm} />
+          <Route path="/faq" component={FaqPage} />
+          {renderRoute('/tasks', DownloadList)}
+          {renderRoute('/create', AddUrlForm)}
+          {renderRoute('/login', Login)}
+          {renderRoute('/signup', SignUp)}
+          {renderRoute('/browse', BrowseFolders)}
+          {renderRoute('/search', Search)}
+          {renderRoute('/config', MoreOptions)}
+        </IonRouterOutlet>
 
-          <IonTabBar slot="bottom">
-            {renderTabButton('tasks', listCircle, 'Tasks')}
-            {renderTabButton('create', magnetOutline, 'Magnet')}
-            {renderTabButton('browse', folderOpen, 'Folders')}
-            {renderTabButton('search', search, 'Search')}
-            {renderTabButton('config', ellipsisHorizontal, 'More')}
-          </IonTabBar>
-        </IonTabs>
-      </IonReactRouter>
+        <IonTabBar slot="bottom">
+          {renderTabButton('tasks', listCircle, 'Tasks')}
+          {renderTabButton('create', magnetOutline, 'Magnet')}
+          {renderTabButton('browse', folderOpen, 'Folders')}
+          {renderTabButton('search', search, 'Search')}
+          {renderTabButton('config', ellipsisHorizontal, 'More')}
+        </IonTabBar>
+      </IonTabs>
     </>
   )
 }
