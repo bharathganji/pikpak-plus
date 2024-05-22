@@ -5,6 +5,7 @@ const config: CapacitorConfig = {
   appName: 'pikpak-plus',
   webDir: 'dist',
   server: {
+    hostname: 'pikpak-plus.com',
     androidScheme: 'https',
   },
 }
