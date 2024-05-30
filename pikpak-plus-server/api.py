@@ -33,7 +33,7 @@ def user_route(enforce_login=False):
             if enforce_login and not jwt:
                 return jsonify({"error": "token is missing"}), 401
             supabase_user = None
-            if jwt and jwt.startswith('Bearer '):
+            if enforce_login and jwt and jwt.startswith('Bearer '):
                 jwt = jwt.replace('Bearer ', '')
                 # print(f"JWT: {jwt}")
 
@@ -152,7 +152,7 @@ def get_tasks_completed():
     return jsonify(matching_tasks)
 
 @app.route('/browse', methods=['POST'])
-@user_route(enforce_login=True)
+@user_route(enforce_login=False)
 def browse(user):
 
     try:
@@ -188,7 +188,7 @@ def create_supabase_task_action(user_email, action, data):
 
 
 @app.route('/addURL', methods=['POST'])
-@user_route(enforce_login=True)
+@user_route(enforce_login=False)
 def add_url(user):
     # Get the URL from the request data
     data = request.get_json()
@@ -248,7 +248,7 @@ def create_folder(user_email):
 
 
 @app.route('/download', methods=['POST'])
-@user_route(enforce_login=True)
+@user_route(enforce_login=False)
 def download(user):
     # Get the URL from the request data
     data = request.get_json()
@@ -323,7 +323,7 @@ def getRedirectUrl():
         return jsonify(str(remaining_string)), 200
   
 @app.route('/delete', methods=['POST'])
-@user_route(enforce_login=True)
+@user_route(enforce_login=False)
 def delete(user):
     data = request.get_json()
     email = data.get('email')
@@ -538,6 +538,7 @@ def login():
             if email and password:
                 data = supabase.auth.sign_in_with_password({'email': email, 'password': password})
                 dir_id = get_directory_id(email)
+                print("dir_id", dir_id )
                 switchserver(email)
                 response = jsonify({'redirect': '/create',"dir":dir_id['directory_id'], "auth": data.session.access_token})                
                 supabase.auth.sign_out()
