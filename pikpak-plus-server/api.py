@@ -48,6 +48,7 @@ def user_route(enforce_login=False):
         return route_wrapper
     return decorator
 
+
 def initialize_client_route(server_number):
     global initialized_clients
 
@@ -302,7 +303,7 @@ def drivestats():
     data = request.get_json()
     server_number = data.get('server_number')
     try:
-        res = cmd.cmds["get_about_details"](initialized_clients.get(server_number))
+        res = cmd.cmds["get_quota_info"](initialized_clients.get(server_number))
         return jsonify(res)
     except Exception as e:
         return jsonify({"error": str(e)}), 500    
@@ -456,17 +457,17 @@ def get_servers():
     response = supabase.table('premium_accounts').select('*').in_('username', usernames).execute()
     supabase_data = response.data
     servers = {}
-
     
     for index, supabase_record in enumerate(supabase_data):
         username = supabase_record.get('username')
-        print("username in get_servers", username)
         server_id = usernamesArray.index(username) + 1
         contact = supabase_record.get('contact-email', '')
         created_at = supabase_record.get('created_at', '')
         expiry = supabase_record.get('expiry_in_days', '')
+        print("username in get_servers", username)
+        print("server_id in get_servers", server_id)
         
-        res = cmd.cmds["get_about_details"](initialized_clients.get(server_id))
+        res = cmd.cmds["get_quota_info"](initialized_clients.get(server_id))
         
         # Sample logic to retrieve drive stats, replace it with actual implementation
         limit = res.get('quota', {}).get('limit', '')  # Access limit for drive available
@@ -538,7 +539,6 @@ def login():
             if email and password:
                 data = supabase.auth.sign_in_with_password({'email': email, 'password': password})
                 dir_id = get_directory_id(email)
-                print("dir_id", dir_id )
                 switchserver(email)
                 response = jsonify({'redirect': '/create',"dir":dir_id['directory_id'], "auth": data.session.access_token})                
                 supabase.auth.sign_out()

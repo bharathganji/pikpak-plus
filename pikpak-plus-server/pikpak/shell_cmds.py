@@ -146,7 +146,7 @@ def create_folder(client, user_dir):
         res = client.create_folder(user_dir)
         # print(res['file'])
     except Exception as e:
-        print("Error: ", e)
+        print("Error in create_folder: ", e)
         return False
         
     return res['file']
@@ -169,9 +169,9 @@ def get_traffic_details(client):
         print("Error: ", e)
         return e
 
-def get_about_details(client):
+def get_quota_info(client):
     try:
-        res = client.get_about_details()
+        res = client.get_quota_info()
         return res
     except Exception as e:
         print("Error: ", e)
@@ -192,5 +192,5 @@ cmds={
     "create_folder": create_folder,
     "share": share,
     "get_traffic_details" : get_traffic_details,
-    "get_about_details" : get_about_details
+    "get_quota_info" : get_quota_info
 }
