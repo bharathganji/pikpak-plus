@@ -17,16 +17,16 @@ def client_from_credit(credfile, proxy=None):
     client = PikPakApi(
         username=conf['user'],
         password=conf['password'],
-        proxy=proxy if proxy else conf['proxy'],
     )
     # login, or refresh access
     if conf['access']: # 有 access token
         client.refresh_token=conf['refresh']
         client.access_token=conf['access']
         try:
-            result=client.offline_list()
+            # result=client.offline_list()            
             # print(result) # 看看access token 是否有效
             print("Access token valid")
+            client.refresh_access_token()
             print(__name__, "-"*20)
             return client, conf
         except Exception as e:
@@ -59,7 +59,6 @@ def client_from_password(username, password, credfile='', proxy=None):
     client = PikPakApi(
         username=conf['user'],
         password=conf['password'],
-        proxy=conf['proxy'],
     )
     # login, or refresh access
     client.login()
@@ -73,7 +72,7 @@ def client_from_password(username, password, credfile='', proxy=None):
 
 # create client from credfile, or by username, password
 # the result config will save to credfile for next time
-async def create_client(credfile, username, password, proxy=None):
+def create_client(credfile, username, password, proxy=None):
     try:
         with open(credfile, "r+") as f:
             print("=== read token from client.json ====")
@@ -90,14 +89,12 @@ async def create_client(credfile, username, password, proxy=None):
     client = PikPakApi(
         username=conf['user'],
         password=conf['password'],
-        proxy=conf['proxy'],
     )
     # login, or refresh access
     if conf['access']: # 有 access token
         client.refresh_token=conf['refresh']
         client.access_token=conf['access']
         try:
-            result=await client.offline_list()
             # print(result) # 看看access token 是否有效
             return client
         except Exception as e:
@@ -106,13 +103,13 @@ async def create_client(credfile, username, password, proxy=None):
     if conf['refresh']: # 有 refresh token
         client.refresh_token=conf['refresh']
         try:
-            await client.refresh_access_token()
+            client.refresh_access_token()
         except Exception as e:
             print("Refresh token error: ", e)
             print(__name__, "-------------------------")
-            await client.login()
+            client.login()
     else:
-        await client.login()
+        client.login()
     conf['access']=client.access_token
     conf['refresh']=client.refresh_token
     # write to config credfile="client.json"
