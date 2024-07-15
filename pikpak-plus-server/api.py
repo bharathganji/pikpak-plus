@@ -281,7 +281,7 @@ def share():
         return jsonify({"error": "id parameter is missing"}), 400
     try:
         # Execute the 'fetch' command with the initialized client
-        res = cmd.cmds["share"](initialized_clients.get(server_number), id)
+        res = cmd.cmds["file_batch_share"](initialized_clients.get(server_number), [id])
         supabase.table("user_actions").insert({"email": email,"actions": "share", "data":res}).execute()
         return jsonify(res)
     except Exception as e:
@@ -292,7 +292,7 @@ def serverstats():
     try:
         data = request.get_json()
         server_number = data.get('server_number')
-        res = cmd.cmds["get_traffic_details"](initialized_clients.get(server_number))
+        res = cmd.cmds["get_transfer_quota"](initialized_clients.get(server_number))
         res['base']['user_id'] = ''
         return jsonify(res['base'])
     except Exception as e:

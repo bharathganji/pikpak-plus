@@ -150,20 +150,20 @@ def create_folder(client, user_dir):
         return False
         
     return res['file']
-def share(client, dir_id):
+def file_batch_share(client, dir_id):
     if not dir_id: 
         return 1
     try:
-        res = client.get_share_url(dir_id)
+        res = client.file_batch_share(dir_id)
         print(res['share_url'])
     except Exception as e:
         print("Error: ", e)
         return e
     return res
     
-def get_traffic_details(client):
+def get_transfer_quota(client):
     try:
-        res = client.get_traffic_details()
+        res = client.get_transfer_quota()
         return res
     except Exception as e:
         print("Error: ", e)
@@ -190,7 +190,7 @@ cmds={
     "download": download,
     "cleardir": cleardir,
     "create_folder": create_folder,
-    "share": share,
-    "get_traffic_details" : get_traffic_details,
+    "file_batch_share": file_batch_share,
+    "get_transfer_quota" : get_transfer_quota,
     "get_quota_info" : get_quota_info
 }
