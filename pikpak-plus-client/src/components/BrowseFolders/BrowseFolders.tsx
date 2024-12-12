@@ -15,11 +15,14 @@ import {
   IonThumbnail,
   IonImg,
   IonButton,
+  IonCheckbox,
+  IonBadge,
 } from '@ionic/react'
 import {
   chevronUpCircleOutline,
   ellipsisVerticalSharp,
   sadOutline,
+  trashOutline,
 } from 'ionicons/icons'
 import { FileItem, FileListResponse } from '../../types/sharedTypes'
 import './BrowseFolders.css'
@@ -48,10 +51,14 @@ const BrowseFolders: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [errorToast, setErrorToast] = useState<string | null>(null) // State for error toast
   const [directory, setDirectory] = useState<string | null>(null)
+  const [email, setEmail] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState<FileItem | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [showVideoPlayer, setShowVideoPlayer] = useState(false)
   const [videoDetails, setVideoDetails] = useState<VideoPlayerProps>({})
+  const [isDeleteMode, setIsDeleteMode] = useState(false)
+
+  const [deleteSelectedItems, setDeleteSelectedItems] = useState<string[]>([])
 
   const [navigationCache, setNavigationCache] = useState<{
     [key: string]: FileListResponse
@@ -64,8 +71,9 @@ const BrowseFolders: React.FC = () => {
 
   // Effect hook to set initial directory on component mount
   useEffect(() => {
-    const { dir } = getEmailandDirectory()
+    const { dir, email } = getEmailandDirectory()
     setDirectory(dir)
+    setEmail(email)
   }, [])
 
   useEffect(() => {}, [selectedItem])
@@ -95,9 +103,51 @@ const BrowseFolders: React.FC = () => {
     }
   }
 
+  const handleDeleteSelectedItems = (selectedItem: string) => {
+    const alreadySelected = deleteSelectedItems.includes(selectedItem)
+    if (alreadySelected) {
+      setDeleteSelectedItems(
+        deleteSelectedItems.filter((item) => item !== selectedItem),
+      )
+    } else {
+      setDeleteSelectedItems([...deleteSelectedItems, selectedItem])
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    setIsLoading(true)
+    try {
+      const response = await makeRequest('delete', 'POST', {
+        email: email,
+        id: deleteSelectedItems,
+      })
+
+      // we need to remove deleteSelectedItems ids in browse data
+      if (browseData && response.status === 200) {
+        const updatedFiles = browseData.files.filter(
+          (item) => !deleteSelectedItems.includes(item.id),
+        )
+        const updatedBrowseData: FileListResponse = {
+          ...browseData,
+          files: updatedFiles,
+        }
+        setBrowseData(updatedBrowseData)
+      }
+      setErrorToast('Deleted successfully')
+    } catch (error) {
+      setErrorToast('Failed to delete ' + error)
+    } finally {
+      handleResetBulkDelete()
+      setIsLoading(false)
+    }
+  }
+
+  console.log('deleteSelectedItems', deleteSelectedItems)
+
   // Function to fetch browse data from the server // Function to fetch browse data from the server
   const fetchBrowseData = async (itemIndex: string | null) => {
     try {
+      // setBrowseData(mock_DATA)
       setIsLoading(true)
       if (itemIndex && navigationCache[itemIndex]) {
         setBrowseData(navigationCache[itemIndex])
@@ -118,15 +168,24 @@ const BrowseFolders: React.FC = () => {
     }
   }
 
+  const handleResetBulkDelete = () => {
+    setDeleteSelectedItems([])
+    setIsDeleteMode(false)
+  }
+
   // Function to handle item click, fetching data for folders
   const handleItemClick = async (
     index: string | null = directory,
     kind: string,
     parent_id: string,
   ) => {
+    if (isDeleteMode) {
+      return null
+    }
     if (kind === 'drive#folder') {
       try {
         setIsLoading(true)
+        handleResetBulkDelete()
         const response = await makeBrowseRequest(index)
         if (response.status !== 200) {
           throw new Error('Unauthorized')
@@ -148,6 +207,7 @@ const BrowseFolders: React.FC = () => {
     const newStack = [...parentStack]
     const parent_id = newStack.pop()
     setParentStack(newStack)
+    handleResetBulkDelete()
 
     if (parent_id && navigationCache[parent_id]) {
       // Set browse data from cache if available
@@ -254,6 +314,39 @@ const BrowseFolders: React.FC = () => {
                 setShowVideoPlayer={setShowVideoPlayer}
               />
             )}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: '1rem',
+                margin: '1rem',
+              }}
+            >
+              <IonButton
+                color={isDeleteMode ? 'danger' : 'primary'}
+                fill="outline"
+                expand="full"
+                onClick={() => {
+                  setIsDeleteMode(!isDeleteMode)
+                  setDeleteSelectedItems([])
+                }}
+              >
+                {isDeleteMode ? 'Exit Delete Mode' : 'Delete Mode'}
+              </IonButton>
+              {isDeleteMode && deleteSelectedItems.length > 0 && (
+                <IonButton
+                  color="danger"
+                  expand="full"
+                  onClick={handleBulkDelete}
+                >
+                  <IonIcon icon={trashOutline} />
+                  <IonBadge color="danger">
+                    {' '}
+                    {deleteSelectedItems.length}
+                  </IonBadge>
+                </IonButton>
+              )}
+            </div>
             <div className="browse-list">
               <IonList ref={parent}>
                 {parentStack.length > 0 && (
@@ -270,7 +363,9 @@ const BrowseFolders: React.FC = () => {
                     <IonItem
                       key={item.id}
                       onClick={() =>
-                        handleItemClick(item.id, item.kind, item.parent_id)
+                        isDeleteMode
+                          ? handleDeleteSelectedItems(item.id)
+                          : handleItemClick(item.id, item.kind, item.parent_id)
                       }
                       className={
                         item.kind === 'drive#folder' ? 'hover-effect' : ''
@@ -295,18 +390,22 @@ const BrowseFolders: React.FC = () => {
                         <Thumbnail item={item} />
                       )}
                       <IonLabel>{item.name}</IonLabel>
-                      <IonIcon
-                        color="primary"
-                        icon={ellipsisVerticalSharp}
-                        size="default"
-                        className="hover-effect"
-                        slot="end"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setSelectedItem(item)
-                          setShowModal(true) // Open modal on button click
-                        }}
-                      ></IonIcon>
+                      {isDeleteMode ? (
+                        <IonCheckbox></IonCheckbox>
+                      ) : (
+                        <IonIcon
+                          color="primary"
+                          icon={ellipsisVerticalSharp}
+                          size="default"
+                          className="hover-effect"
+                          slot="end"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedItem(item)
+                            setShowModal(true) // Open modal on button click
+                          }}
+                        ></IonIcon>
+                      )}
                     </IonItem>
                   ))
                 ) : (

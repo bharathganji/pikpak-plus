@@ -3,6 +3,7 @@ from hashlib import md5
 import json
 from base64 import b64decode, b64encode
 from typing import Any, Dict, List, Optional
+import re
 from .utils import (
     CLIENT_ID,
     CLIENT_SECRET,
@@ -75,7 +76,7 @@ class PikPakApi:
 
         self.httpx_client_args = httpx_client_args
 
-        self._path_id_cache = {}
+        self._path_id_cache: Dict[str, Any] = {}
 
         self.user_agent: Optional[str] = None
 
@@ -209,13 +210,29 @@ class PikPakApi:
         """
         Login to PikPak
         """
-        login_url = f"https://{PikPakApi.PIKPAK_USER_HOST}/v1/auth/token"
+        login_url = f"https://{PikPakApi.PIKPAK_USER_HOST}/v1/auth/signin"
+        metas = {}
+        if not self.username or not self.password:
+            raise PikpakException("username and password are required")
+        if re.match(r"\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*", self.username):
+            metas["email"] = self.username
+        elif re.match(r"\d{11,18}", self.username):
+            metas["phone_number"] = self.username
+        else:
+            metas["username"] = self.username
+        result = self.captcha_init(
+            action=f"POST:{login_url}",
+            meta=metas,
+        )
+        captcha_token = result.get("captcha_token", "")
+        if not captcha_token:
+            raise PikpakException("captcha_token get failed")
         login_data = {
             "client_id": CLIENT_ID,
             "client_secret": CLIENT_SECRET,
             "password": self.password,
             "username": self.username,
-            "grant_type": "password",
+            "captcha_token": captcha_token,
         }
         user_info = self._request_post(
             login_url,
@@ -307,6 +324,11 @@ class PikPakApi:
 
         永远删除文件夹、文件, 慎用
         """
+        captcha_result = self.captcha_init(
+            action=f"POST:/drive/v1/files:batchDelete",
+        )
+        self.captcha_token = captcha_result.get("captcha_token")
+
         url = f"https://{self.PIKPAK_API_HOST}/drive/v1/files:batchDelete"
         data = {
             "ids": ids,
