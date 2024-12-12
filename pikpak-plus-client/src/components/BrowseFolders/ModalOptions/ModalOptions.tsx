@@ -301,7 +301,7 @@ const ModalOptions: React.FC<ModalOptionsProps> = ({
       setIsLoading(true)
       const response = await makeRequest('delete', 'POST', {
         email: email,
-        id: itemId,
+        id: [itemId],
       })
       const data = response.data
       if (data.task_id) {

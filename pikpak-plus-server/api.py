@@ -323,25 +323,33 @@ def getRedirectUrl():
   
         return jsonify(str(remaining_string)), 200
   
+
 @app.route('/delete', methods=['POST'])
 @user_route(enforce_login=False)
 def delete(user):
     data = request.get_json()
     email = data.get('email')
-    id = data.get('id')
+    ids = data.get('id')  # Note the plural 'ids'
     server_number = data.get('server_number')
+
+    if not ids:
+        return jsonify({"error": "No IDs provided"}), 400
 
     DELETE_OR_TRASH_local = DELETE_OR_TRASH.lower()
     try:
         if DELETE_OR_TRASH_local == 'delete':
-            res = cmd.cmds["delete"](initialized_clients.get(server_number), id)
-            supabase.table("user_actions").insert({"email": email,"actions": "delete", "data":id}).execute()
+            res = cmd.cmds["delete"](
+                # Pass the array of IDs
+                initialized_clients.get(server_number), ids)
+            supabase.table("user_actions").insert(
+                {"email": email, "actions": "delete", "data": ids}).execute()
         else:
-            res = cmd.cmds["trash"](initialized_clients.get(server_number), id)
+            res = cmd.cmds["trash"](initialized_clients.get(
+                server_number), ids)  # Pass the array of IDs
         return jsonify(res)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-  
+ 
 def check_error(response):
     # Parse the error response
     error_response = response.json()
