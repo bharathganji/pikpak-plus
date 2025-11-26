@@ -184,17 +184,20 @@ def cleanup_status():
             "next_cleanup": None
         }
         
-        if app_scheduler:
-            result["scheduler_running"] = app_scheduler.running
-            
-            # Get the cleanup job
-            job = app_scheduler.get_job('cleanup_job')
-            if job:
-                # Get next run time
-                next_run = job.next_run_time
-                if next_run:
-                    # Convert to ISO format string
-                    result["next_cleanup"] = next_run.isoformat()
+        try:
+            if app_scheduler:
+                result["scheduler_running"] = app_scheduler.running
+                
+                # Get the cleanup job
+                job = app_scheduler.get_job('cleanup_job')
+                if job:
+                    # Get next run time
+                    next_run = job.next_run_time
+                    if next_run:
+                        # Convert to ISO format string
+                        result["next_cleanup"] = next_run.isoformat()
+        except Exception as scheduler_error:
+            logger.error(f"Error accessing scheduler status: {scheduler_error}")
         
         return jsonify(result)
     

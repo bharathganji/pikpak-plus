@@ -6,12 +6,33 @@ import { getApiUrl } from "@/lib/api-utils";
 import { WebDAVClientCard } from "./webdav-client-card";
 import { WebDAVClient, WebDAVResponse } from "./webdav-types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader2, WifiOff } from "lucide-react";
+import {
+  AlertCircle,
+  Loader2,
+  WifiOff,
+  Server,
+  Copy,
+  Check,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function WebDAVClientsGrid() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [webdavData, setWebdavData] = useState<WebDAVResponse | null>(null);
+  const [copiedServerUrl, setCopiedServerUrl] = useState(false);
+
+  const SERVER_URL = "https://dav.mypikpak.com";
+
+  const copyServerUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(SERVER_URL);
+      setCopiedServerUrl(true);
+      setTimeout(() => setCopiedServerUrl(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
 
   useEffect(() => {
     fetchWebDAVClients();
@@ -30,15 +51,16 @@ export function WebDAVClientsGrid() {
     } catch (err: any) {
       console.error("Failed to fetch WebDAV clients:", err);
       let errorMsg = "Failed to load WebDAV clients";
-      
+
       if (err.code === "ERR_NETWORK" || err.message === "Network Error") {
-        errorMsg = "Cannot connect to server. Please ensure the backend is running.";
+        errorMsg =
+          "Cannot connect to server. Please ensure the backend is running.";
       } else if (err.response?.data?.error) {
         errorMsg = err.response.data.error;
       } else if (err.message) {
         errorMsg = err.message;
       }
-      
+
       setError(errorMsg);
     } finally {
       setLoading(false);
@@ -99,11 +121,44 @@ export function WebDAVClientsGrid() {
   // Display clients in responsive grid
   return (
     <div className="space-y-4">
+      {/* Global Server URL Section */}
+      <div className="p-4 rounded-lg border bg-primary/5 border-primary/20">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 text-sm font-medium mb-2">
+              <Server className="h-4 w-4 text-primary" />
+              <span>Server URL (Same for all clients)</span>
+            </div>
+            <code className="block bg-background px-3 py-2 rounded text-sm font-mono border">
+              {SERVER_URL}
+            </code>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0"
+            onClick={copyServerUrl}
+          >
+            {copiedServerUrl ? (
+              <>
+                <Check className="h-4 w-4 mr-2 text-green-500" />
+                Copied!
+              </>
+            ) : (
+              <>
+                <Copy className="h-4 w-4 mr-2" />
+                Copy URL
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Active WebDAV Clients</h3>
         <span className="text-sm text-muted-foreground">
           {webdavData.clients.length} client
-          {webdavData.clients.length !== 1 ? "s" : ""} available
+          {webdavData.clients.length === 1 ? "" : "s"} available
         </span>
       </div>
 
@@ -117,8 +172,8 @@ export function WebDAVClientsGrid() {
         <h4 className="font-medium mb-2 text-sm">How to connect?</h4>
         <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
           <li>Open your WebDAV client (Raidrive, VLC, Infuse, etc.)</li>
-          <li>Enter the Server URL from any client above</li>
-          <li>Use the corresponding username and password</li>
+          <li>Enter the Server URL shown above</li>
+          <li>Choose any client and use its username and password</li>
           <li>Browse and download freely!</li>
         </ul>
         <p className="text-xs text-muted-foreground mt-3">

@@ -22,34 +22,51 @@ app = Flask(__name__)
 app.config.from_object(AppConfig())
 CORS(app)
 
-# Initialize scheduler
+# ... (imports)
+import atexit
+import os
+import sys
+
+# Try to import fcntl for file locking (Linux/Unix only)
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
+
+# ... (rest of imports)
+
+# ... (app config, logging, app init, CORS)
+
+# Initialize scheduler (but don't start it yet)
 scheduler = APScheduler()
 scheduler.init_app(app)
-scheduler.start()
 
 # Initialize services
 logger.info("Initializing services...")
 
-# Cache
+# Initialize cache manager
 cache_manager = CacheManager(AppConfig.CACHE_DIR, AppConfig.CACHE_TTL)
 
-# Supabase
-supabase_client = None
-try:
-    supabase_client = create_client(AppConfig.SUPABASE_URL, AppConfig.SUPABASE_KEY)
-    logger.info("Supabase client initialized successfully")
-except Exception as e:
-    logger.error(f"Failed to initialize Supabase: {e}")
+# Initialize Supabase client
+supabase_client = create_client(AppConfig.SUPABASE_URL, AppConfig.SUPABASE_KEY)
+logger.info("Supabase client initialized successfully")
 
+# Initialize Supabase service
 supabase_service = SupabaseService(supabase_client)
 
-# PikPak
+# Initialize PikPak service
 pikpak_service = PikPakService(AppConfig.PIKPAK_USER, AppConfig.PIKPAK_PASS)
+logger.info("PikPak client initialized successfully")
 
-# WebDAV Manager
-from webdav_manager import WebDAVManager
-webdav_manager = WebDAVManager(pikpak_service, AppConfig.WEBDAV_CLIENT_TTL_HOURS)
-logger.info("WebDAV manager initialized")
+# Initialize WebDAV manager
+webdav_manager = None
+try:
+    from webdav_manager import WebDAVManager
+    webdav_manager = WebDAVManager(pikpak_service, ttl_hours=AppConfig.WEBDAV_CLIENT_TTL_HOURS)
+    logger.info("WebDAV manager initialized")
+except Exception as e:
+    logger.warning(f"WebDAV manager initialization failed: {e}")
+
 
 # Initialize routes with services
 init_routes(pikpak_service, supabase_service, cache_manager, scheduler, webdav_manager)
@@ -103,23 +120,6 @@ def scheduled_task_status_update():
         logger.error(f"Scheduled task status update failed: {e}")
 
 
-# Schedule cleanup job
-scheduler.add_job(
-    id='cleanup_job',
-    func=scheduled_cleanup,
-    trigger='interval',
-    hours=AppConfig.CLEANUP_INTERVAL_HOURS
-)
-
-# Schedule task status update job
-scheduler.add_job(
-    id='task_status_update_job',
-    func=scheduled_task_status_update,
-    trigger='interval',
-    minutes=AppConfig.TASK_STATUS_UPDATE_INTERVAL_MINUTES
-)
-
-
 # Scheduled WebDAV generation job
 def scheduled_webdav_generation():
     """Generate WebDAV clients every 24 hours"""
@@ -135,23 +135,95 @@ def scheduled_webdav_generation():
         logger.error(f"Scheduled WebDAV generation failed: {e}")
 
 
-# Schedule WebDAV generation job
-scheduler.add_job(
-    id='webdav_generation_job',
-    func=scheduled_webdav_generation,
-    trigger='interval',
-    hours=AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS
-)
+def init_background_tasks():
+    """
+    Initialize background tasks (scheduler, initial jobs) with a lock
+    to ensure they only run in one worker process.
+    """
+    # Define lock file path
+    lock_file_path = os.path.join('/tmp', 'pikpak_scheduler.lock')
+    
+    # If on Windows or fcntl not available, just run it (dev mode usually)
+    if not fcntl:
+        logger.warning("fcntl not available, running background tasks without lock (Development Mode)")
+        _start_background_tasks()
+        return
 
-logger.info(f"WebDAV generation job scheduled (every {AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS} hours)")
+    try:
+        # Open lock file
+        f = open(lock_file_path, 'w')
+        
+        # Try to acquire an exclusive non-blocking lock
+        fcntl.lockf(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        
+        # If we got here, we have the lock
+        logger.info(f"Acquired scheduler lock. This worker ({os.getpid()}) will handle background tasks.")
+        
+        # Register cleanup to release lock on exit
+        def release_lock():
+            try:
+                fcntl.lockf(f, fcntl.LOCK_UN)
+                f.close()
+                if os.path.exists(lock_file_path):
+                    os.remove(lock_file_path)
+                logger.info("Released scheduler lock")
+            except Exception as e:
+                logger.error(f"Error releasing lock: {e}")
+        
+        atexit.register(release_lock)
+        
+        # Start tasks
+        _start_background_tasks()
+        
+    except IOError:
+        # Lock is held by another process
+        logger.info(f"Scheduler lock held by another worker. This worker ({os.getpid()}) will not run background tasks.")
+    except Exception as e:
+        logger.error(f"Error initializing background tasks: {e}")
 
-# Run WebDAV generation immediately on startup
-logger.info("Running initial WebDAV generation on startup...")
-try:
-    asyncio.run(webdav_manager.create_daily_webdav_clients())
-except Exception as e:
-    logger.error(f"Initial WebDAV generation failed: {e}")
+def _start_background_tasks():
+    """Helper to actually start the scheduler and run initial jobs"""
+    logger.info("Starting scheduler and background tasks...")
+    
+    # Schedule cleanup job
+    scheduler.add_job(
+        id='cleanup_job',
+        func=scheduled_cleanup,
+        trigger='interval',
+        hours=AppConfig.CLEANUP_INTERVAL_HOURS
+    )
 
+    # Schedule task status update job
+    scheduler.add_job(
+        id='task_status_update_job',
+        func=scheduled_task_status_update,
+        trigger='interval',
+        minutes=AppConfig.TASK_STATUS_UPDATE_INTERVAL_MINUTES
+    )
+    
+    # Schedule WebDAV generation job
+    scheduler.add_job(
+        id='webdav_generation_job',
+        func=scheduled_webdav_generation,
+        trigger='interval',
+        hours=AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS
+    )
+    
+    logger.info(f"WebDAV generation job scheduled (every {AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS} hours)")
+
+    # Start the scheduler
+    scheduler.start()
+    
+    # Run WebDAV generation immediately on startup
+    logger.info("Running initial WebDAV generation on startup...")
+    try:
+        asyncio.run(webdav_manager.create_daily_webdav_clients())
+    except Exception as e:
+        logger.error(f"Initial WebDAV generation failed: {e}")
+
+
+# Initialize background tasks (with locking)
+init_background_tasks()
 
 if __name__ == '__main__':
     # Validate config on startup

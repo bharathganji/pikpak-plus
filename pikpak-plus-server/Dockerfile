@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code
 COPY *.py .
+COPY gunicorn_config.py .
 COPY docs/ ./docs/
 
 # Create cache directory for diskcache

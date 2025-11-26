@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Copy, Check, Server, Key, User } from "lucide-react";
+import { Copy, Check, Key, User } from "lucide-react";
 import { WebDAVClient } from "./webdav-types";
 
 interface WebDAVClientCardProps {
-  client: WebDAVClient;
+  readonly client: WebDAVClient;
 }
 
 export function WebDAVClientCard({ client }: WebDAVClientCardProps) {
@@ -55,31 +55,6 @@ export function WebDAVClientCard({ client }: WebDAVClientCardProps) {
       </CardHeader>
 
       <CardContent className="relative space-y-3">
-        {/* Server URL */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            <Server className="h-3 w-3" />
-            <span>Server URL</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 bg-muted/50 px-3 py-2 rounded text-xs font-mono truncate">
-              {client.serverUrl}
-            </code>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 w-8 p-0"
-              onClick={() => copyToClipboard(client.serverUrl, "server")}
-            >
-              {copiedField === "server" ? (
-                <Check className="h-4 w-4 text-green-500" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-        </div>
-
         {/* Username */}
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
