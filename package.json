@@ -1,0 +1,26 @@
+{
+  "name": "pikpak-plus",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "release": "semantic-release",
+    "lint:commits": "commitlint --from=HEAD~1 --to=HEAD --verbose",
+    "sync-versions": "node scripts/sync-version.js"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.0.3",
+    "@commitlint/config-conventional": "^19.0.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.0.0",
+    "semantic-release": "^23.0.0"
+  },
+ "release": {
+    "extends": "./release.config.js"
+  },
+  "lint-staged": {
+    "*.{js,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
+}

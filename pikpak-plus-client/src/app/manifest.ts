@@ -1,0 +1,35 @@
+import { MetadataRoute } from "next";
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: "PikPak Plus - Web-based Clone of PikPak Service",
+    short_name: "PikPak Plus",
+    description:
+      "A web-based clone of the popular PikPak service that allows users to experience PikPak's features and functionality in a web environment for educational purposes.",
+    start_url: "/",
+    display: "standalone",
+    background_color: "#ffffff",
+    theme_color: "#6366f1",
+    icons: [
+      {
+        src: "/pwa-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        src: "/pwa-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+      {
+        src: "/maskable_icon.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "maskable",
+      },
+    ],
+    categories: ["productivity", "utilities"],
+    lang: "en",
+    dir: "ltr",
+  };
+}

@@ -1,8 +1,4 @@
 {
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": true,
-  "[xml]": {
-    "editor.defaultFormatter": "DotJoshJohnson.xml"
-  },
-  "java.configuration.updateBuildConfiguration": "automatic"
 }
