@@ -8,6 +8,7 @@
     "preview": "next preview",
     "start": "next start",
     "lint": "next lint",
+    "lint-staged": "lint-staged",
     "release": "semantic-release"
   },
   "release": {
@@ -38,8 +39,16 @@
     "autoprefixer": "^10.4.22",
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.0.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.0.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.17",
     "typescript": "^5.9.3"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }

@@ -196,6 +196,7 @@ class WebDAVManager:
             # Check if we have active clients
             if not self.active_clients or not self.creation_timestamp:
                 # Try to fetch from PikPak API
+                logger.info("Cache miss for active WebDAV clients, fetching from PikPak API")
                 result = await self.pikpak_service.get_webdav_applications()
                 applications = result.get('applications', [])
                 
@@ -232,6 +233,7 @@ class WebDAVManager:
                 }
             
             # Return cached active clients
+            logger.info("Cache hit for active WebDAV clients")
             return {
                 "available": True,
                 "message": f"{len(self.active_clients)} WebDAV clients active",
