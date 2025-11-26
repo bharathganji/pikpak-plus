@@ -1,0 +1,7 @@
+{
+  "access_token": "mock_access_token",
+  "refresh_token": "mock_refresh_token",
+  "sub": "mock_user_id",
+  "token_type": "Bearer",
+  "expires_in": 7200
+}

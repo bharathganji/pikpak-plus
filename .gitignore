@@ -51,3 +51,6 @@ __pycache__/
 # temp or backup file
 *.swp
 *~
+
+#cache
+cache_dir

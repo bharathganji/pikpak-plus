@@ -13,12 +13,6 @@ def get_supabase() -> Client:
         g.supabase = Client(
             url,
             key,
-            options=ClientOptions(
-                storage=FlaskSessionStorage(),
-                flow_type="pkce",
-                storage_client_timeout=None,
-                postgrest_client_timeout=None,
-            ),
         )
     return g.supabase
 

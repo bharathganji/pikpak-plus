@@ -1,0 +1,13 @@
+{
+  "kind": "drive#about",
+  "quota": {
+    "kind": "drive#quota",
+    "limit": "10995116277760",
+    "usage": "5113157556024",
+    "usage_in_trash": "1281564700871",
+    "play_times_limit": "-1",
+    "play_times_usage": "0"
+  },
+  "expires_at": "",
+  "quotas": {}
+}

@@ -4,15 +4,27 @@ FROM python:3.11-slim-buster
 # Set the working directory to /app
 WORKDIR /app
 
-COPY ./requirements.txt .
-RUN  pip install -r requirements.txt
+# Copy requirements first for better caching
+COPY requirements.txt .
 
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the application code
+COPY *.py .
+COPY docs/ ./docs/
+
+# Create cache directory for diskcache
+RUN mkdir -p .cache/pikpak
+
+# Expose port 5000
 EXPOSE 5000
-# Copy the contents of the entire project into the container at /app
-COPY . .
 
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
 
-# Run Flask in the background and npm run dev
+# Run the application with Gunicorn (production-ready)
+CMD ["gunicorn", "--config", "gunicorn_config.py", "app:app"]
 
-CMD ["python","-u", "api.py"]
-# CMD ["gunicorn","--config", "gunicorn_config.py", "api:app"]
+# Alternative: Development mode with Flask
+# CMD ["python", "-u", "app.py"]

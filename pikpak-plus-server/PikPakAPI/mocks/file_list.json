@@ -1,0 +1,25 @@
+{
+  "kind": "drive#fileList",
+  "next_page_token": "",
+  "files": [
+    {
+      "id": "mock_file_id_1",
+      "kind": "drive#file",
+      "name": "Mock File 1.mp4",
+      "size": "1024000",
+      "mime_type": "video/mp4",
+      "created_time": "2023-01-01T00:00:00.000Z",
+      "modified_time": "2023-01-01T00:00:00.000Z",
+      "icon_link": "https://example.com/icon.png",
+      "thumbnail_link": "https://example.com/thumbnail.png",
+      "web_content_link": "https://example.com/download/1"
+    },
+    {
+      "id": "mock_folder_id_1",
+      "kind": "drive#folder",
+      "name": "Mock Folder",
+      "created_time": "2023-01-01T00:00:00.000Z",
+      "modified_time": "2023-01-01T00:00:00.000Z"
+    }
+  ]
+}
