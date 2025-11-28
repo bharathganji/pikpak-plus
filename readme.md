@@ -59,115 +59,229 @@
 
 ## About The Project
 
-**Note:**
+**PikPak Plus** is an unofficial web application that enhances the [PikPak](https://mypikpak.com/drive/activity/invited?invitation-code=47295398) cloud storage experience by enabling easy sharing of your PikPak Premium account with friends and family. Built with modern web technologies, it provides a seamless interface for managing downloads, creating share links, and generating WebDAV clients.
 
-- This project started as a personal project to learn about docker and python flask. This was my first time working with flask so the code might not be the best, I have certainly learned a lot from this project and maintaining or updating it is just too much work for me, so I have decided to open source it.
+### Key Features
 
-- I have been using [PikPak](https://mypikpak.com/drive/activity/invited?invitation-code=47295398) for a long time now and it's great service available for affordable price, but I always felt that i haven't used atleast minimum 10% of montly quota available, I wanted to be share my account with and friends so, collectively we can use it to it's maximum potential, so I decided to build this application.
+- 🔐 **Secure Authentication**: Uses Supabase for user authentication without storing PikPak passwords
+- 📥 **Task Management**: Create and monitor download tasks with real-time status updates
+- 🔗 **Smart Share Links**: Global share deduplication ensures one link per file, reused by all users
+- 📁 **WebDAV Support**: Auto-generate WebDAV clients for easy access from any WebDAV-compatible application
+- 🗑️ **Auto Cleanup**: Automated task cleanup after 24 hours to maintain account hygiene
+- 📊 **Quota Monitoring**: Real-time tracking of storage and bandwidth usage
+- ⚡ **Performance**: Redis caching for faster API responses
+- 🎨 **Modern UI**: Built with Next.js, React 19, and Tailwind CSS for a premium user experience
+- 📱 **Responsive Design**: Works seamlessly across desktop and mobile devices
 
-- I may or maynot updating this project in future, but I have plans to enhance if i find any bugs, I have used using [React](https://react.dev/) + [Vitejs](https://vitejs.dev/) + [IonicFramework](https://ionicframework.com/) for the frontend, [Flask](https://flask.palletsprojects.com/) for the backend with [supabase](https://supabase.com/) for authentication and supabase(mySQL) for the database.
+### Architecture
 
-- This project do not store any passwords from users and tried to provide authentication to its atmost possible.
+**Frontend**: Modern [Next.js](https://nextjs.org/) application with React 19, TypeScript, and Tailwind CSS
 
-- IonicFramework is used by keeping in mind to implement cross platform applications but due to technical difficulties with vitejs and kind of poor archtecture (learner) it was kept of hold.
+**Backend**: Modular Python Flask application with:
 
-- [jackett](https://github.com/Jackett/Jackett/) was used for (pikpak-plus.com/search) searching torrents and i found this was the limitation with pikpak and try tried to enhance this feature as much as possible.
+- **API Layer**: RESTful endpoints for tasks, shares, WebDAV, and quota management
+- **Services Layer**: Dedicated services for PikPak, Supabase, and WebDAV operations
+- **Task Scheduler**: Automated jobs for task status updates, cleanup, and WebDAV generation
+- **Caching**: Redis-based caching for improved performance
+
+**Database**: Supabase (PostgreSQL) for user data and task management
+
+**Deployment**: Docker Compose with internal networking for enhanced security
+
+### Security & Privacy
+
+- No PikPak passwords are stored; authentication is handled via Supabase
+- Internal Docker networking keeps the Flask server unexposed
+- Row-level security (RLS) policies in Supabase ensure data isolation
 
 ![App Home](pikpak-plus-client/src/assets/mobile-views-combined.jpg)
 
-Download Drawback:
-
-- During download we wont be receiving filename via content disposition request response, it will store as download.bin file. so, we need a blob mechanism to store it with custom file name.
-
-solution:
-
-1. Rename the file after download (already an action provided to click and copy file/folder name).
-2. use 3rd party downloaders, provide the link and name and start download. (IDM, ADM, [NAVI](https://github.com/TachibanaGeneralLaboratories/download-navi/releases/), etc...).
-
 ### Built With
 
-The application is containarized so that you don't need to go through the hassle of installing dependencies, tech stack used to built this application is listed below.
+The application is containerized with Docker for easy deployment. The tech stack includes:
 
-- [React.js](https://reactjs.org/)
-- [Vitejs](https://vitejs.dev/)
-- [IonicFramework](https://ionicframework.com/)
-- [Python Flask](https://flask.palletsprojects.com/en/)
-- [supabase](https://supabase.com/)
-- [Docker](https://www.docker.com/)
+**Frontend**:
+
+- [Next.js 16](https://nextjs.org/) - React framework with server-side rendering
+- [React 19](https://react.dev/) - UI library
+- [TypeScript](https://www.typescriptlang.org/) - Type-safe JavaScript
+- [Tailwind CSS 4](https://tailwindcss.com/) - Utility-first CSS framework
+- [Radix UI](https://www.radix-ui.com/) - Accessible component primitives
+- [Lucide React](https://lucide.dev/) - Beautiful icon library
+
+**Backend**:
+
+- [Python Flask 3.0](https://flask.palletsprojects.com/) - Web framework
+- [Gunicorn](https://gunicorn.org/) - WSGI HTTP server
+- [APScheduler](https://apscheduler.readthedocs.io/) - Task scheduling
+- [Redis](https://redis.io/) - In-memory caching
+- [httpx](https://www.python-httpx.org/) - Async HTTP client
+
+**Database & Auth**:
+
+- [Supabase](https://supabase.com/) - PostgreSQL database with authentication
+
+**DevOps**:
+
+- [Docker](https://www.docker.com/) - Containerization
+- [Docker Compose](https://docs.docker.com/compose/) - Multi-container orchestration
 
 <!-- GETTING STARTED -->
 
 ## Getting Started
 
-This project is focused to run on server environment hence docker containers are used to deploy the application.
+This project is designed to run in a containerized environment using Docker Compose, making deployment simple and consistent across different platforms.
 
 ### Prerequisites
 
-- [Docker](https://docs.docker.com/get-docker/)
-- [docker-compose](https://docs.docker.com/compose/install/)
+- [Docker](https://docs.docker.com/get-docker/) (version 20.10 or higher)
+- [Docker Compose](https://docs.docker.com/compose/install/) (version 2.0 or higher)
+- A [Supabase](https://supabase.com/) account (free tier works)
+- A [PikPak Premium](https://mypikpak.com/drive/activity/invited?invitation-code=47295398) account
 
 ### Installation
 
-1. Clone the repo
+1. **Clone the repository**
 
-   ```
+   ```bash
    git clone https://github.com/bharathganji/pikpak-plus.git
+   cd pikpak-plus
    ```
 
-2. Create `.env` file inside the project root folder, add the following to it (refer `example.env`)
+2. **Configure environment variables**
 
-   ```
-   # pikpak email, password (Required)
-   user = example@example.com
-   passwd = example
+   Create a `.env` file in the project root (copy from `example.env`):
 
-   # Supabse Project URL, anon public-key (Required)
-   SUPABASE_URL = https://example.supabase.co
-   SUPABASE_KEY = example string key
-
-   # Jackett API key and domain (optional)
-   # if you want to use search Functionality (Required)
-   JACKETT_API_KEY = string key
-   JACKET_DOMAIN = https://jackett.example
-
-   # api hostname/URL if deployed external else dont change eg:'https://api.example.com/'
-   VITE_PIKPAK_PLUS_API = 'http://server:5000'
-
-   # UI Domain Name (optional)
-   VITE_HOSTNAME = 'https://example.com'
-
-   # Ports (optional)
-   VITE_DEVELOPMENT_PORT = "3001"
-   VITE_PRODUCTION_PORT = "3002"
+   ```bash
+   cp example.env .env
    ```
 
-3. Create Table and enable RLS policies in supabase
+   Edit `.env` with your credentials:
 
-   <div align="center">
-    <img  src="pikpak-plus-client/src/assets/supabse_table.png" alt="Logo" width="400">
-    <img src="pikpak-plus-client/src/assets/supabase_policies.png" alt="Logo" width="400">
-    <img src="pikpak-plus-client/src/assets/supabase_user_actions.png" alt="Logo" width="400">
-   </div>
+   ```ini
+   # PikPak Credentials (Required)
+   user=your_pikpak_email@example.com
+   passwd=your_pikpak_password
 
-4. Run the containers
+   # Supabase Configuration (Required)
+   SUPABASE_URL=https://your-project.supabase.co
+   SUPABASE_KEY=your_supabase_anon_key
 
-   ```JS
-   sudo docker compose -f "docker-compose.yml" up -d --build
+   # Optional: File Size Limit (in GB)
+   MAX_FILE_SIZE_GB=25
+
+   # Optional: Task Scheduler Configuration
+   TASK_STATUS_UPDATE_INTERVAL_MINUTES=15
+   CLEANUP_INTERVAL_HOURS=24
+   TASK_RETENTION_HOURS=24
+
+   # Optional: Cache Configuration
+   CACHE_TTL_SECONDS=300
+   QUOTA_CACHE_TTL_SECONDS=10800
+
+   # Optional: WebDAV Configuration
+   WEBDAV_GENERATION_INTERVAL_HOURS=24
+
+   # Redis Configuration (automatically configured in Docker)
+   REDIS_URL=redis://redis:6379/0
    ```
-5. [optional] in case server exposed via endpoint or tunnel create
-   <a href='https://cron-job.org/en/'>cron-job</a> or manually to hit end-point <b>/ping</b> every 2 hours.
-   <br/>
-   eg: api.pikpak-plus.com/ping
-<!-- USAGE EXAMPLES -->
 
-## AndroidApk
+3. **Set up Supabase database**
 
-- <a href="pikpak-plus-client/android/app/release/app-release.apk">Download Android .apk</a>
+   Create the required tables in your Supabase project:
+   - Navigate to the SQL Editor in your Supabase dashboard
+   - Run the SQL script from `pikpak-plus-server/supabase_schema.sql`
+   - Enable Row Level Security (RLS) policies as shown in the schema
 
-## Usage
+   Alternatively, use the automated setup script:
 
-- sign-up with email and password, check your inbox and verify email
-- sign-in and try out all features
+   ```bash
+   cd pikpak-plus-server
+   python setup_supabase.py
+   ```
+
+4. **Build and run the containers**
+
+   ```bash
+   docker compose up -d --build
+   ```
+
+   This will start three services:
+   - **web**: Next.js frontend (accessible at `http://localhost:3000`)
+   - **server**: Flask backend (internal only, proxied through Next.js)
+   - **redis**: Redis cache server
+
+5. **Access the application**
+
+   Open your browser and navigate to `http://localhost:3000`
+
+### Development Setup
+
+For local development without Docker:
+
+**Frontend**:
+
+```bash
+cd pikpak-plus-client
+npm install
+npm run dev
+```
+
+**Backend**:
+
+```bash
+cd pikpak-plus-server
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python run.py
+```
+
+See [DOCKER.md](DOCKER.md) for detailed Docker configuration and troubleshooting.
+
+## Overview
+
+### Features
+
+#### 📥 Download Management
+
+- Navigate to the **Download** tab
+- Paste a magnet link to create a download task
+- Monitor task progress with real-time status updates
+- Tasks are automatically cleaned up after 24 hours
+
+#### 🔗 Create & Share
+
+- Browse your PikPak files in the **Create and Share** tab
+- Click on any file to create a shareable link
+- Share links are globally deduplicated (one link per file, reused by all users)
+- Links expire after 24 hours for security
+
+#### 📁 WebDAV Access
+
+- Go to the **WebDAV** tab to view your WebDAV clients
+- New clients are automatically generated every 24 hours
+- Use the credentials with any WebDAV-compatible application:
+  - **Windows**: Map Network Drive
+  - **macOS**: Finder → Go → Connect to Server
+  - **Linux**: Mount via davfs2
+  - **Mobile**: Apps like Solid Explorer, FE File Explorer
+
+#### 📊 Quota Monitoring
+
+- View real-time storage and bandwidth usage in the **Quota** tab
+- Track download/upload limits
+- Monitor VIP status and expiration
+
+#### 👤 My Activity
+
+- View your download history
+- Track created share links
+
+### Tips
+
+- **File Size Limit**: By default, files larger than 25GB are blocked. Adjust `MAX_FILE_SIZE_GB` in `.env` to change this.
+- **Scheduler**: The application runs automated tasks for status updates, cleanup, and WebDAV generation. Check the UI for countdown timers.
 
 <!-- ROADMAP -->
 
@@ -205,6 +319,7 @@ Project Link: [https://github.com/bharathganji/pikpak-plus](https://github.com/b
 
 ## Acknowledgements
 
+- <https://github.com/Quan666/PikPakAPI>
 - <https://github.com/sudozid/jackett-metasearch-flask>
 - <https://github.com/n-wall/pikpak/>
 
@@ -221,3 +336,66 @@ Project Link: [https://github.com/bharathganji/pikpak-plus](https://github.com/b
 [issues-url]: https://github.com/bharathganji/pikpak-plus/issues
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://www.linkedin.com/in/bharath-ganji-912556194
+
+## Automated Release Process
+
+This project uses automated releases with conventional commits. Here's how to properly format your commits and trigger releases:
+
+### Commit Format
+
+All commits should follow the conventional commit format:
+
+```
+
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+
+```
+
+### Commit Types
+
+- `feat`: A new feature (triggers minor version bump)
+- `fix`: A bug fix (triggers patch version bump)
+- `perf`: Performance improvements (triggers patch version bump)
+- `docs`: Documentation changes (triggers patch version bump)
+- `style`: Code style changes (triggers patch version bump)
+- `refactor`: Code refactoring (triggers patch version bump)
+- `test`: Adding or modifying tests (triggers patch version bump)
+- `build`: Build system changes (triggers patch version bump)
+- `ci`: CI configuration changes (triggers patch version bump)
+- `chore`: Other changes (triggers patch version bump)
+- `revert`: Reverting a previous commit (triggers patch version bump)
+
+### Breaking Changes
+
+To trigger a major version bump, include a breaking change in your commit:
+
+```
+
+feat: add new API implementation
+
+BREAKING CHANGE: The old API endpoints have been removed
+
+```
+
+### Release Process
+
+1. Make sure your commits follow the conventional format
+2. Push your changes to the `main` branch to trigger an automated release
+3. The system will automatically:
+   - Determine the new version based on commit types
+   - Update both client and server package versions
+   - Generate release notes
+   - Create a GitHub release
+   - Tag the release with the new version
+
+### Pre-releases
+
+For beta releases, push to the `beta` branch. For alpha releases, push to the `alpha` branch.
+
+```
+
+```

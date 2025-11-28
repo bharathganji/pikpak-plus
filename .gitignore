@@ -51,3 +51,10 @@ __pycache__/
 # temp or backup file
 *.swp
 *~
+
+#cache
+cache_dir
+
+#pikpak token
+pikpak_tokens.json
+pikpak_login_state.json

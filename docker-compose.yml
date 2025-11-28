@@ -1,21 +1,42 @@
-version: '3.9'
+version: "3.9"
 services:
   web:
-    build: ./pikpak-plus-client
+    build:
+      context: ./pikpak-plus-client
+      args:
+        NEXT_PUBLIC_API_URL: /api
+        API_URL_INTERNAL: http://server:5000
     depends_on:
-    - server
+      - server
     ports:
-      - '3002:3002'
-      - '3001:3001'
+      - "3000:3000"
     volumes:
-    - ./pikpak-plus-client:/user/src/app
+      - ./pikpak-plus-client:/user/src/app
     env_file:
-    - ./.env
+      - ./.env
+    environment:
+      - API_URL_INTERNAL=http://server:5000
+      - NEXT_PUBLIC_API_URL=/api
+
   server:
     build: ./pikpak-plus-server
-    ports:
-    - '5000:5000'
+    depends_on:
+      - redis
+    # ports:
+    # - '5000:5000'
     volumes:
-    - ./pikpak-plus-server:/app
+      - ./pikpak-plus-server:/app
     env_file:
-    - ./.env
+      - ./.env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:
