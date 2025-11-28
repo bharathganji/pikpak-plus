@@ -1,17 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { HardDrive, Download, Upload, RefreshCw } from "lucide-react";
+import { HardDrive, Download, Upload } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { QuotaResponse } from "@/types/api";
 import axios from "axios";
 import { getApiUrl } from "@/lib/api-utils";
+import { calculateTimeRemaining } from "@/lib/time-utils";
 
 const formatBytes = (bytes: number | string): string => {
-  const numBytes = typeof bytes === "string" ? parseInt(bytes, 10) : bytes;
+  const numBytes = typeof bytes === "string" ? Number.parseInt(bytes, 10) : bytes;
   if (numBytes === 0) return "0 B";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB", "TB"];
@@ -35,8 +35,9 @@ export function QuotaDisplay() {
       let errorMsg = "Unknown error";
 
       // Check if it's a network error (backend not running)
-      if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
-        errorMsg = "Cannot connect to server. Please ensure the backend is running.";
+      if (err.code === "ERR_NETWORK" || err.message === "Network Error") {
+        errorMsg =
+          "Cannot connect to server. Please ensure the backend is running.";
       } else if (err.response?.data?.error) {
         errorMsg = err.response.data.error;
       } else if (err.message) {
@@ -64,15 +65,6 @@ export function QuotaDisplay() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-destructive">{error}</p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchQuota}
-            className="mt-2"
-          >
-            <RefreshCw className="h-3 w-3 mr-2" />
-            Retry
-          </Button>
         </CardContent>
       </Card>
     );
@@ -99,38 +91,29 @@ export function QuotaDisplay() {
     );
   }
 
-  const storageUsage = parseInt(quotaData.storage.quota.usage, 10);
-  const storageLimit = parseInt(quotaData.storage.quota.limit, 10);
+  const storageUsage = Number.parseInt(quotaData.storage.quota.usage, 10);
+  const storageLimit = Number.parseInt(quotaData.storage.quota.limit, 10);
   const storagePercent = (storageUsage / storageLimit) * 100;
 
   // Cloud Download Traffic (offline)
   const offlineUsed = quotaData.transfer.base?.offline?.size || 0;
   const offlineTotal = quotaData.transfer.base?.offline?.total_assets || 0;
-  const offlinePercent = offlineTotal > 0 ? (offlineUsed / offlineTotal) * 100 : 0;
+  const offlinePercent =
+    offlineTotal > 0 ? (offlineUsed / offlineTotal) * 100 : 0;
 
   // Downstream Traffic (download)
   const downloadUsed = quotaData.transfer.base?.download?.size || 0;
   const downloadTotal = quotaData.transfer.base?.download?.total_assets || 0;
-  const downloadPercent = downloadTotal > 0 ? (downloadUsed / downloadTotal) * 100 : 0;
+  const downloadPercent =
+    downloadTotal > 0 ? (downloadUsed / downloadTotal) * 100 : 0;
 
   return (
     <Card className="border-primary/20">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <HardDrive className="h-4 w-4" />
-            Quota Information
-          </CardTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={fetchQuota}
-            disabled={loading}
-            className="h-7 w-7"
-          >
-            <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
-          </Button>
-        </div>
+        <CardTitle className="text-sm flex items-center gap-2">
+          <HardDrive className="h-4 w-4" />
+          Quota Information
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Storage Quota */}
@@ -167,11 +150,10 @@ export function QuotaDisplay() {
             <Progress value={offlinePercent} className="h-2" />
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">
-                Used {formatBytes(offlineUsed)} / Total {formatBytes(offlineTotal)}
+                Used {formatBytes(offlineUsed)} / Total{" "}
+                {formatBytes(offlineTotal)}
               </span>
-              <span className="font-medium">
-                {offlinePercent.toFixed(2)}%
-              </span>
+              <span className="font-medium">{offlinePercent.toFixed(2)}%</span>
             </div>
           </div>
 
@@ -186,11 +168,10 @@ export function QuotaDisplay() {
             <Progress value={downloadPercent} className="h-2" />
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">
-                Used {formatBytes(downloadUsed)} / Total {formatBytes(downloadTotal)}
+                Used {formatBytes(downloadUsed)} / Total{" "}
+                {formatBytes(downloadTotal)}
               </span>
-              <span className="font-medium">
-                {downloadPercent.toFixed(2)}%
-              </span>
+              <span className="font-medium">{downloadPercent.toFixed(2)}%</span>
             </div>
             <p className="text-xs text-muted-foreground italic">
               Includes online streaming, viewing, and downloading transfer
@@ -205,8 +186,26 @@ export function QuotaDisplay() {
             </Badge>
           </div>
         )}
+
+        {/* Quota Refresh Information */}
+        {quotaData.refresh_info && (
+          <div className="pt-4 border-t mt-4">
+            <div className="text-xs font-medium text-muted-foreground mb-2">
+              Quota Refresh Information
+            </div>
+            <div className="text-xs">
+              <div className="flex justify-between py-1">
+                <span className="text-muted-foreground">Refreshes in:</span>
+                <span className="font-mono">
+                  {calculateTimeRemaining(
+                    quotaData.refresh_info.quota_next_refresh,
+                  )}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 }
-

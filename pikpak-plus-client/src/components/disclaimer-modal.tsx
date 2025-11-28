@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useLocalStorage } from "primereact/hooks";
 import {
   Dialog,
   DialogContent,
@@ -12,18 +14,23 @@ import {
 import { Button } from "@/components/ui/button";
 
 export function DisclaimerModal() {
+  const router = useRouter();
+  const [consent, setConsent] = useLocalStorage<boolean>(
+    false,
+    "pikpak-plus-consent",
+  );
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const hasAgreed = localStorage.getItem("pikpak-plus-consent");
-    if (!hasAgreed) {
-      setOpen(true);
-    }
-  }, []);
+    setOpen(!consent);
+  }, [consent]);
 
   const handleAgree = () => {
-    localStorage.setItem("pikpak-plus-consent", "true");
-    setOpen(false);
+    setConsent(true);
+  };
+
+  const handleDisagree = () => {
+    router.back();
   };
 
   return (
@@ -66,8 +73,11 @@ export function DisclaimerModal() {
             and accepted these terms.
           </p>
         </div>
-        <DialogFooter>
-          <Button onClick={handleAgree} className="w-full">
+        <DialogFooter className="flex gap-2">
+          <Button variant="outline" onClick={handleDisagree} className="flex-1">
+            Disagree
+          </Button>
+          <Button onClick={handleAgree} className="flex-1">
             I Agree
           </Button>
         </DialogFooter>

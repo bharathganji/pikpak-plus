@@ -17,11 +17,26 @@ services:
     environment:
       - API_URL_INTERNAL=http://server:5000
       - NEXT_PUBLIC_API_URL=/api
+
   server:
     build: ./pikpak-plus-server
+    depends_on:
+      - redis
     # ports:
     # - '5000:5000'
     volumes:
       - ./pikpak-plus-server:/app
     env_file:
       - ./.env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:

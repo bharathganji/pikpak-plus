@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Copy, Check, Key, User } from "lucide-react";
 import { WebDAVClient } from "./webdav-types";
+import copy from "copy-to-clipboard";
 
 interface WebDAVClientCardProps {
   readonly client: WebDAVClient;
@@ -13,27 +14,10 @@ interface WebDAVClientCardProps {
 export function WebDAVClientCard({ client }: WebDAVClientCardProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  const copyToClipboard = async (text: string, field: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedField(field);
-      setTimeout(() => setCopiedField(null), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
-  };
-
-  const calculateTimeRemaining = () => {
-    const now = new Date();
-    const expires = new Date(client.expiresAt);
-    const diff = expires.getTime() - now.getTime();
-
-    if (diff <= 0) return "Expired";
-
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-    return `${hours}h ${minutes}m`;
+  const copyToClipboard = (text: string, field: string) => {
+    copy(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
   };
 
   return (
@@ -46,12 +30,6 @@ export function WebDAVClientCard({ client }: WebDAVClientCardProps) {
           <span className="text-2xl">{client.planetEmoji}</span>
           <span>{client.planetName}</span>
         </CardTitle>
-        <div className="text-xs text-muted-foreground mt-1">
-          Expires in:{" "}
-          <span className="font-semibold text-primary">
-            {calculateTimeRemaining()}
-          </span>
-        </div>
       </CardHeader>
 
       <CardContent className="relative space-y-3">

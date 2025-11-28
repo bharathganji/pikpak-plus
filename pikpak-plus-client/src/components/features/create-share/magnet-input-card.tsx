@@ -17,6 +17,7 @@ import { addMagnetLink, fetchConfig, fetchCleanupStatus } from "./api-utils";
 interface MagnetInputCardProps {
   onAddSuccess: (taskInfo: any, fileInfo: any) => void;
   maxFileSizeGB: number | null;
+  taskStatusUpdateIntervalMinutes: number | null;
   cleanupStatus: {
     next_cleanup: string | null;
     cleanup_interval_hours: number;
@@ -29,9 +30,10 @@ interface MagnetInputCardProps {
 export function MagnetInputCard({
   onAddSuccess,
   maxFileSizeGB,
+  taskStatusUpdateIntervalMinutes,
   cleanupStatus,
   timeUntilCleanup,
-}: MagnetInputCardProps) {
+}: Readonly<MagnetInputCardProps>) {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -112,6 +114,11 @@ export function MagnetInputCard({
             Maximum file size: {maxFileSizeGB} GB
           </CardDescription>
         )}
+        {taskStatusUpdateIntervalMinutes && (
+          <CardDescription className="text-xs">
+            Task status updates every {taskStatusUpdateIntervalMinutes} minutes
+          </CardDescription>
+        )}
       </CardHeader>
       <CardContent className="space-y-2 px-4 pb-4">
         <div className="flex flex-col md:flex-row gap-2">
@@ -183,7 +190,7 @@ export function MagnetInputCard({
           </div>
         )}
         {cleanupStatus?.scheduler_running && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-muted/50 text-sm">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-muted/50 text-xs">
             <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
             <span className="text-muted-foreground">
               Auto-cleanup in{" "}

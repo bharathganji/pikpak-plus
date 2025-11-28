@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocalStorage } from "primereact/hooks";
 import { Github, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -17,7 +18,15 @@ interface CachedStars {
 const CACHE_KEY_PREFIX = "github_stars_";
 const CACHE_DURATION = 1000 * 60 * 60; // 1 hour in milliseconds
 
-export function GitHubButton({ repo, showCount = true }: GitHubButtonProps) {
+export function GitHubButton({
+  repo,
+  showCount = true,
+}: Readonly<GitHubButtonProps>) {
+  const cacheKey = `${CACHE_KEY_PREFIX}${repo}`;
+  const [cachedData, setCachedData] = useLocalStorage<CachedStars | null>(
+    null,
+    cacheKey,
+  );
   const [stars, setStars] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -27,25 +36,18 @@ export function GitHubButton({ repo, showCount = true }: GitHubButtonProps) {
       return;
     }
 
-    const cacheKey = `${CACHE_KEY_PREFIX}${repo}`;
-
     // Check cache first
     const checkCache = () => {
-      try {
-        const cached = localStorage.getItem(cacheKey);
-        if (cached) {
-          const { count, timestamp }: CachedStars = JSON.parse(cached);
-          const now = Date.now();
+      if (cachedData) {
+        const { count, timestamp } = cachedData;
+        const now = Date.now();
 
-          // If cache is still valid, use it
-          if (now - timestamp < CACHE_DURATION) {
-            setStars(count);
-            setLoading(false);
-            return true;
-          }
+        // If cache is still valid, use it
+        if (now - timestamp < CACHE_DURATION) {
+          setStars(count);
+          setLoading(false);
+          return true;
         }
-      } catch (error) {
-        console.error("Failed to read GitHub stars cache:", error);
       }
       return false;
     };
@@ -65,15 +67,10 @@ export function GitHubButton({ repo, showCount = true }: GitHubButtonProps) {
           setStars(starCount);
 
           // Cache the result
-          try {
-            const cacheData: CachedStars = {
-              count: starCount,
-              timestamp: Date.now(),
-            };
-            localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-          } catch (error) {
-            console.error("Failed to cache GitHub stars:", error);
-          }
+          setCachedData({
+            count: starCount,
+            timestamp: Date.now(),
+          });
         }
       } catch (error) {
         console.error("Failed to fetch GitHub stars:", error);
@@ -93,12 +90,7 @@ export function GitHubButton({ repo, showCount = true }: GitHubButtonProps) {
   };
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      asChild
-      className="gap-2 h-9"
-    >
+    <Button variant="outline" size="sm" asChild className="gap-2 h-9">
       <a
         href={`https://github.com/${repo}`}
         target="_blank"
@@ -117,4 +109,3 @@ export function GitHubButton({ repo, showCount = true }: GitHubButtonProps) {
     </Button>
   );
 }
-

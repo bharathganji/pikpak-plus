@@ -16,15 +16,15 @@ export const formatTimeAgo = (timestamp: number): string => {
   } else if (days < 7) {
     return `${days} ${days === 1 ? "day" : "days"} ago`;
   } else {
-    return new Date(timestamp).toLocaleDateString();
+    return new Date(timestamp).toLocaleDateString("en-CA");
   }
 };
 
 // Format file size in a human-readable way
 export const formatFileSize = (bytes: string | number | undefined): string => {
   if (!bytes) return "";
-  const size = typeof bytes === "string" ? parseInt(bytes) : bytes;
-  if (isNaN(size)) return "";
+  const size = typeof bytes === "string" ? Number.parseInt(bytes) : bytes;
+  if (Number.isNaN(size)) return "";
 
   const units = ["B", "KB", "MB", "GB", "TB"];
   let unitIndex = 0;
@@ -37,4 +37,3 @@ export const formatFileSize = (bytes: string | number | undefined): string => {
 
   return `${fileSize.toFixed(2)} ${units[unitIndex]}`;
 };
-

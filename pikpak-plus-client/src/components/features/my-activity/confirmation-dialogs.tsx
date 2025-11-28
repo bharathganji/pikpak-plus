@@ -20,7 +20,7 @@ export function DeleteTaskDialog({
   open,
   onOpenChange,
   onConfirm,
-}: DeleteDialogProps) {
+}: Readonly<DeleteDialogProps>) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -56,7 +56,7 @@ export function ClearAllDialog({
   onOpenChange,
   onConfirm,
   taskCount,
-}: ClearAllDialogProps) {
+}: Readonly<ClearAllDialogProps>) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -65,7 +65,7 @@ export function ClearAllDialog({
           <DialogDescription>
             Are you sure you want to clear all tasks from your activity? This
             will permanently delete all {taskCount} task
-            {taskCount !== 1 ? "s" : ""} and cannot be undone.
+            {taskCount === 1 ? "" : "s"} and cannot be undone.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -80,4 +80,3 @@ export function ClearAllDialog({
     </Dialog>
   );
 }
-

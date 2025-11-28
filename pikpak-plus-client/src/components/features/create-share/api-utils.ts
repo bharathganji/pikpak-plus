@@ -1,15 +1,20 @@
 import axios from "axios";
 import { getApiUrl } from "@/lib/api-utils";
+import type { ConfigResponse } from "@/types";
 
-export const fetchConfig = async () => {
+export const fetchConfig = async (): Promise<ConfigResponse> => {
   try {
     const apiUrl = getApiUrl();
     const res = await axios.get(`${apiUrl}/config`);
     return res.data;
   } catch (error: any) {
     console.error("Failed to fetch config", error);
-    // Return default value if config fetch fails
-    return { max_file_size_gb: 25 };
+    // Return default values if config fetch fails
+    return {
+      max_file_size_gb: 25,
+      task_status_update_interval_minutes: 15,
+      next_task_status_update: null,
+    };
   }
 };
 

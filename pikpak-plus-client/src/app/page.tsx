@@ -13,7 +13,7 @@ export default function Home() {
   return (
     <main
       className="flex min-h-screen flex-col items-center p-2 md:p-4 lg:p-8 
-      bg-linear-to-b from-background to-muted/20"
+      bg-linear-to-b from-background to-muted/20 overflow-x-hidden w-full"
     >
       <Header />
 
@@ -24,15 +24,15 @@ export default function Home() {
           <TabsTrigger value="my-activity">My Activity</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="create">
+        <TabsContent value="create" className="w-full max-w-full">
           <CreateShareTab />
         </TabsContent>
 
-        <TabsContent value="downloads">
+        <TabsContent value="downloads" className="w-full max-w-full">
           <DownloadsTab />
         </TabsContent>
 
-        <TabsContent value="my-activity">
+        <TabsContent value="my-activity" className="w-full max-w-full">
           <MyActivityTab />
         </TabsContent>
       </Tabs>

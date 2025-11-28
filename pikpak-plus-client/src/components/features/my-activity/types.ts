@@ -19,4 +19,3 @@ export interface LocalShare {
 
 export const STORAGE_KEY = "pikpak_user_tasks";
 export const SHARES_STORAGE_KEY = "pikpak_user_shares";
-

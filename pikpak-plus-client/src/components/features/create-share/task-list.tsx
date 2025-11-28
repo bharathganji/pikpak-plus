@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useLocalStorage } from "primereact/hooks";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Filter } from "lucide-react";
+import { Filter as BadWordsFilter } from "bad-words";
 import type { SupabaseTaskRecord } from "@/types";
 import { TaskCard } from "./task-card";
 import { TaskPreviewDialog } from "./task-preview-dialog";
+import { getTaskName } from "./task-utils";
 
 interface TaskListProps {
   tasks: SupabaseTaskRecord[];
@@ -31,19 +34,32 @@ export function TaskList({
   onPageSizeChange,
 }: Readonly<TaskListProps>) {
   const [previewTask, setPreviewTask] = useState<SupabaseTaskRecord | null>(
-    null
+    null,
   );
   const [previewOpen, setPreviewOpen] = useState(false);
   const [showMyTasksOnly, setShowMyTasksOnly] = useState(false);
+  const [nsfwFilterEnabled, setNsfwFilterEnabled] = useLocalStorage(
+    false,
+    "nsfwFilterEnabled",
+  );
 
   const handlePreview = (task: SupabaseTaskRecord) => {
     setPreviewTask(task);
     setPreviewOpen(true);
   };
 
-  const filteredTasks = showMyTasksOnly
-    ? tasks.filter((task) => localTaskUrls?.includes(task.data.url))
-    : tasks;
+  let filteredTasks = tasks;
+  if (showMyTasksOnly) {
+    filteredTasks = filteredTasks.filter((task) =>
+      localTaskUrls?.includes(task.data.url),
+    );
+  }
+  if (nsfwFilterEnabled) {
+    const filter = new BadWordsFilter({});
+    filteredTasks = filteredTasks.filter(
+      (task) => !filter.isProfane(getTaskName(task)),
+    );
+  }
 
   if (loading) {
     return (
@@ -75,13 +91,22 @@ export function TaskList({
       <div className="space-y-3">
         <div className="flex items-center justify-end gap-2">
           <Button
-            variant={showMyTasksOnly ? "default" : "outline"}
+            variant="default"
             size="sm"
-            onClick={() => setShowMyTasksOnly(!showMyTasksOnly)}
+            onClick={() => setShowMyTasksOnly(false)}
             className="gap-2 h-8"
           >
             <Filter className="h-3 w-3" />
-            My Tasks Only
+            Show All Tasks
+          </Button>
+          <Button
+            variant={nsfwFilterEnabled ? "default" : "outline"}
+            size="sm"
+            onClick={() => setNsfwFilterEnabled(!nsfwFilterEnabled)}
+            className="gap-2 h-8"
+          >
+            <Filter className="h-3 w-3" />
+            NSFW Filter
           </Button>
         </div>
         <div className="text-center py-6 text-muted-foreground text-sm">
@@ -103,6 +128,15 @@ export function TaskList({
         >
           <Filter className="h-3 w-3" />
           {showMyTasksOnly ? "Show All Tasks" : "My Tasks Only"}
+        </Button>
+        <Button
+          variant={nsfwFilterEnabled ? "default" : "outline"}
+          size="sm"
+          onClick={() => setNsfwFilterEnabled(!nsfwFilterEnabled)}
+          className="gap-2 h-8"
+        >
+          <Filter className="h-3 w-3" />
+          NSFW Filter
         </Button>
       </div>
 

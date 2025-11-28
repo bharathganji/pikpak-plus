@@ -5,14 +5,9 @@ interface TelegramButtonProps {
   url: string;
 }
 
-export function TelegramButton({ url }: TelegramButtonProps) {
+export function TelegramButton({ url }: Readonly<TelegramButtonProps>) {
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      asChild
-      className="gap-2 h-9"
-    >
+    <Button variant="outline" size="sm" asChild className="gap-2 h-9">
       <a
         href={url}
         target="_blank"
@@ -25,4 +20,3 @@ export function TelegramButton({ url }: TelegramButtonProps) {
     </Button>
   );
 }
-

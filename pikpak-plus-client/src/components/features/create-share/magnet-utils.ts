@@ -1,6 +1,6 @@
 // Magnet link validation
 export const validateMagnetLink = (
-  link: string
+  link: string,
 ): { valid: boolean; error?: string } => {
   const trimmedLink = link.trim();
   if (!trimmedLink) {

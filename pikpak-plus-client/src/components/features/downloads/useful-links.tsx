@@ -35,6 +35,12 @@ const links: UsefulLink[] = [
     description: "Android download manager",
   },
   {
+    title: "CX File Explorer Android",
+    url: "https://cxfileexplorer.com/",
+    icon: <Link className="h-4 w-4" />,
+    description: "Android file manager",
+  },
+  {
     title: "VLC Media Player",
     url: "https://www.videolan.org/vlc/",
     icon: <Link className="h-4 w-4" />,

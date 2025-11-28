@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useLocalStorage } from "primereact/hooks";
 import { MagnetInputCard } from "./magnet-input-card";
 import { GlobalActivityCard } from "./global-activity-card";
 import { LocalTask, STORAGE_KEY } from "./magnet-utils";
-import { fetchConfig, fetchCleanupStatus, fetchGlobalTasks, addMagnetLink } from "./api-utils";
+import { fetchConfig, fetchCleanupStatus, fetchGlobalTasks } from "./api-utils";
 
 export function CreateShareTab() {
   // Global tasks state
@@ -16,7 +17,7 @@ export function CreateShareTab() {
   const [pageSize, setPageSize] = useState(25);
 
   // Cleanup status state
- const [cleanupStatus, setCleanupStatus] = useState<{
+  const [cleanupStatus, setCleanupStatus] = useState<{
     next_cleanup: string | null;
     cleanup_interval_hours: number;
     task_retention_hours: number;
@@ -26,22 +27,25 @@ export function CreateShareTab() {
 
   // Config state
   const [maxFileSizeGB, setMaxFileSizeGB] = useState<number | null>(null);
+  const [taskStatusUpdateIntervalMinutes, setTaskStatusUpdateIntervalMinutes] =
+    useState<number | null>(null);
+  const [nextTaskStatusUpdate, setNextTaskStatusUpdate] = useState<
+    string | null
+  >(null);
+
+  // Local tasks storage
+  const [localTasks, setLocalTasks] = useLocalStorage<LocalTask[]>(
+    [],
+    STORAGE_KEY,
+  );
 
   // Local task URLs for highlighting
   const [localTaskUrls, setLocalTaskUrls] = useState<string[]>([]);
 
-  // Load local task URLs for highlighting
+  // Update local task URLs when localTasks changes
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const tasks: LocalTask[] = JSON.parse(stored);
-        setLocalTaskUrls(tasks.map((t) => t.url));
-      } catch (e) {
-        console.error("Failed to parse local tasks", e);
-      }
-    }
-  }, []);
+    setLocalTaskUrls(localTasks.map((t) => t.url));
+  }, [localTasks]);
 
   // Fetch config and cleanup status on mount
   useEffect(() => {
@@ -49,6 +53,10 @@ export function CreateShareTab() {
       // Fetch config
       const configData = await fetchConfig();
       setMaxFileSizeGB(configData.max_file_size_gb);
+      setTaskStatusUpdateIntervalMinutes(
+        configData.task_status_update_interval_minutes,
+      );
+      setNextTaskStatusUpdate(configData.next_task_status_update);
 
       // Fetch cleanup status
       const cleanupData = await fetchCleanupStatus();
@@ -61,7 +69,7 @@ export function CreateShareTab() {
   // Calculate time until cleanup and refresh it periodically
   useEffect(() => {
     if (!cleanupStatus?.next_cleanup) return;
-    
+
     const updateCountdown = () => {
       const now = new Date();
       const next = new Date(cleanupStatus.next_cleanup!);
@@ -76,7 +84,7 @@ export function CreateShareTab() {
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       setTimeUntilCleanup(`${hours}h ${minutes}m`);
     };
-    
+
     updateCountdown();
     const interval = setInterval(updateCountdown, 60000);
     return () => clearInterval(interval);
@@ -119,15 +127,22 @@ export function CreateShareTab() {
     };
 
     // Update local storage with new task
-    const stored = localStorage.getItem(STORAGE_KEY);
-    const existing = stored ? JSON.parse(stored) : [];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([newTask, ...existing]));
+    let existing = [...localTasks];
 
-    // Refresh the local task URLs to highlight the new task
-    setLocalTaskUrls([newTask.url, ...existing.map((t: any) => t.url)]);
+    // Check if task with same ID already exists
+    const existingIndex = existing.findIndex((t) => t.id === newTask.id);
+
+    if (existingIndex !== -1) {
+      // Remove existing task so we can add it to the top
+      existing.splice(existingIndex, 1);
+    }
+
+    // Add new task to the top
+    const updatedTasks = [newTask, ...existing];
+    setLocalTasks(updatedTasks);
 
     // Refresh global tasks and reset to first page
-    fetchGlobalTasks(1, pageSize).then(result => {
+    fetchGlobalTasks(1, pageSize).then((result) => {
       setGlobalTasks(result.data);
       setTotalPages(Math.ceil(result.count / pageSize));
     });
@@ -139,6 +154,7 @@ export function CreateShareTab() {
       <MagnetInputCard
         onAddSuccess={handleAddSuccess}
         maxFileSizeGB={maxFileSizeGB}
+        taskStatusUpdateIntervalMinutes={taskStatusUpdateIntervalMinutes}
         cleanupStatus={cleanupStatus}
         timeUntilCleanup={timeUntilCleanup}
       />
@@ -155,6 +171,7 @@ export function CreateShareTab() {
           setPageSize(newSize);
           setPage(1); // Reset to first page when changing page size
         }}
+        nextTaskStatusUpdate={nextTaskStatusUpdate}
       />
     </div>
   );

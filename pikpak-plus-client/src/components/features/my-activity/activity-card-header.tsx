@@ -12,7 +12,7 @@ interface ActivityCardHeaderProps {
 export function ActivityCardHeader({
   taskCount,
   onClearAll,
-}: ActivityCardHeaderProps) {
+}: Readonly<ActivityCardHeaderProps>) {
   return (
     <CardHeader>
       <div className="flex items-center justify-between">
@@ -21,9 +21,7 @@ export function ActivityCardHeader({
             <Clock className="h-5 w-5" />
             My Activity
           </CardTitle>
-          <CardDescription>
-            Tasks you've added (stored locally)
-          </CardDescription>
+          <CardDescription>Tasks you've added (stored locally)</CardDescription>
         </div>
         {taskCount > 0 && (
           <Button
@@ -40,4 +38,3 @@ export function ActivityCardHeader({
     </CardHeader>
   );
 }
-
