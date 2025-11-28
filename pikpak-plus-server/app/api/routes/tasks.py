@@ -79,10 +79,26 @@ def add_task():
 
         # Trigger immediate task status update in background
         try:
-            from app.tasks.scheduler import scheduled_task_status_update_sync
+            from app.tasks.jobs import scheduled_task_status_update
+            from app.tasks.runners import run_async_job
+            from app.api.utils.dependencies import get_redis_client
+
+            # Get required services
+            redis_cli = get_redis_client()
+
             # Run in background thread
             import threading
-            thread = threading.Thread(target=scheduled_task_status_update_sync, daemon=True)
+
+            def trigger_update():
+                run_async_job(
+                    scheduled_task_status_update,
+                    pikpak_service,
+                    supabase_service,
+                    cache_manager,
+                    redis_cli
+                )
+
+            thread = threading.Thread(target=trigger_update, daemon=True)
             thread.start()
             logger.info("Triggered immediate task status update")
         except Exception as e:

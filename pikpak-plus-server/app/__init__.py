@@ -66,14 +66,14 @@ def create_app():
 
     # Initialize routes with services
     init_routes(pikpak_service, supabase_service,
-                cache_manager, None, webdav_manager)
+                cache_manager, None, webdav_manager, redis_client)
 
     # Register blueprints
     app.register_blueprint(api_bp)
 
     # Initialize scheduler and background tasks
     # We pass services to the scheduler module so it can use them in jobs
-    init_scheduler(app, pikpak_service, supabase_service,
+    init_scheduler(pikpak_service, supabase_service,
                    webdav_manager, redis_client, cache_manager)
 
     return app

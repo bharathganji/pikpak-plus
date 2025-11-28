@@ -248,5 +248,10 @@ class SupabaseService:
             return updated_count
 
         except Exception as e:
-            logger.error(f"Failed to update task statuses: {e}")
+            import httpx
+            if isinstance(e, httpx.ConnectError):
+                logger.error(
+                    f"Connection error updating task statuses: {e}. Check Supabase URL and network connection.")
+            else:
+                logger.error(f"Failed to update task statuses: {e}")
             raise

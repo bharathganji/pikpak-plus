@@ -20,6 +20,7 @@ class WebDAVManager:
             ttl_hours: Time-to-live for WebDAV clients in hours
             cache_manager: CacheManager instance for caching
         """
+        self.ttl_hours = ttl_hours
         self.traffic_checker = TrafficChecker(pikpak_service, cache_manager)
         self.client_manager = ClientManager(
             pikpak_service, self.traffic_checker, ttl_hours, cache_manager)
