@@ -3,7 +3,7 @@ PikPak Client with diskcache-based token management
 Simplified for single-server setup with automatic token refresh
 """
 from PikPakAPI import PikPakApi
-from token_manager import get_token_manager
+from app.core.token_manager import get_token_manager
 from typing import Optional
 import os
 

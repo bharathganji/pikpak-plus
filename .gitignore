@@ -54,3 +54,7 @@ __pycache__/
 
 #cache
 cache_dir
+
+#pikpak token
+pikpak_tokens.json
+pikpak_login_state.json
