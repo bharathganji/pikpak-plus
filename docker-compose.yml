@@ -18,8 +18,8 @@ services:
       - IS_DEVELOPMENT=${IS_DEVELOPMENT:-false}
       - API_URL_INTERNAL=${API_URL_INTERNAL:-http://server:5000}
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api}
-      - USER=${USER}
-      - PASSWD=${PASSWD}
+      - USER=${USER:-${user}}
+      - PASSWD=${PASSWD:-${passwd}}
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
       - PROXY=${PROXY:-}
@@ -46,8 +46,8 @@ services:
       - IS_DEVELOPMENT=${IS_DEVELOPMENT:-false}
       - API_URL_INTERNAL=${API_URL_INTERNAL:-http://server:5000}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
-      - USER=${USER}
-      - PASSWD=${PASSWD}
+      - USER=${USER:-${user}}
+      - PASSWD=${PASSWD:-${passwd}}
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
       - PROXY=${PROXY:-}
