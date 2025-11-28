@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="https://github.com/bharathganji/pikpak-plus/">
-    <img src="pikpak-plus-client/src/assets/pikpak_plus.png" alt="Logo" width="400">
+    <img src="pikpak-plus-client/public/pikpak-plus.png" alt="Logo" width="400">
   </a>
 
   <h3 align="center">unofficial implementation of <a href='https://mypikpak.com/drive/activity/invited?invitation-code=47295398'> PikPak </a>
@@ -93,8 +93,6 @@
 - No PikPak passwords are stored; authentication is handled via Supabase
 - Internal Docker networking keeps the Flask server unexposed
 - Row-level security (RLS) policies in Supabase ensure data isolation
-
-![App Home](pikpak-plus-client/src/assets/mobile-views-combined.jpg)
 
 ### Built With
 
