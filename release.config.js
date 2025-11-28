@@ -16,16 +16,6 @@ module.exports = {
       "@semantic-release/release-notes-generator",
       {
         preset: "conventionalcommits",
-        transform: (commit) => {
-          try {
-            if (!commit.date || Number.isNaN(Date.parse(commit.date))) {
-              commit.date = new Date().toISOString();
-            }
-          } catch (err) {
-            commit.date = new Date().toISOString();
-          }
-          return commit;
-        },
       },
     ],
     [
