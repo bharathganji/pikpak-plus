@@ -17,5 +17,5 @@ export interface LocalShare {
   file_id: string;
 }
 
-export const STORAGE_KEY = "pikpak_user_tasks";
-export const SHARES_STORAGE_KEY = "pikpak_user_shares";
+export const LOCAL_TASKS_STORAGE_KEY = "pikpak_user_tasks";
+export const LOCAL_SHARES_STORAGE_KEY = "pikpak_user_shares";

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useLocalStorage } from "primereact/hooks";
 import { MagnetInputCard } from "./magnet-input-card";
 import { GlobalActivityCard } from "./global-activity-card";
-import { LocalTask, STORAGE_KEY } from "./magnet-utils";
+import { LocalTask, LOCAL_TASKS_STORAGE_KEY } from "../my-activity/types";
 import { fetchConfig, fetchCleanupStatus, fetchGlobalTasks } from "./api-utils";
 
 export function CreateShareTab() {
@@ -36,7 +36,7 @@ export function CreateShareTab() {
   // Local tasks storage
   const [localTasks, setLocalTasks] = useLocalStorage<LocalTask[]>(
     [],
-    STORAGE_KEY,
+    LOCAL_TASKS_STORAGE_KEY,
   );
 
   // Local task URLs for highlighting
