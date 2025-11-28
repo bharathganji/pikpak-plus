@@ -11,7 +11,8 @@ import { getApiUrl } from "@/lib/api-utils";
 import { calculateTimeRemaining } from "@/lib/time-utils";
 
 const formatBytes = (bytes: number | string): string => {
-  const numBytes = typeof bytes === "string" ? Number.parseInt(bytes, 10) : bytes;
+  const numBytes =
+    typeof bytes === "string" ? Number.parseInt(bytes, 10) : bytes;
   if (numBytes === 0) return "0 B";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB", "TB"];

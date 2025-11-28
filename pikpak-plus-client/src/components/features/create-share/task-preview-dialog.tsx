@@ -54,17 +54,19 @@ export function TaskPreviewDialog({
             Detailed information about this download task
           </DialogDescription>
         </DialogHeader>
-        <FileDetails
-          task={task}
-          copyToClipboard={copyToClipboard}
-          copiedId={copiedId}
-        />
-        <TaskStatus task={task} />
-        <ShareSection
-          task={task}
-          copyToClipboard={copyToClipboard}
-          copiedId={copiedId}
-        />
+        <div className="overflow-y-auto pr-2 space-y-4">
+          <FileDetails
+            task={task}
+            copyToClipboard={copyToClipboard}
+            copiedId={copiedId}
+          />
+          <TaskStatus task={task} />
+          <ShareSection
+            task={task}
+            copyToClipboard={copyToClipboard}
+            copiedId={copiedId}
+          />
+        </div>
       </DialogContent>
     </Dialog>
   );

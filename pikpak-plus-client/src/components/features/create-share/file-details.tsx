@@ -18,7 +18,7 @@ export function FileDetails({
   const taskData = task.data.task?.task;
 
   return (
-    <div className="space-y-4 overflow-y-auto pr-2">
+    <div className="space-y-4">
       {/* File Name */}
       <div>
         <h4 className="text-sm font-semibold mb-1">File Name</h4>

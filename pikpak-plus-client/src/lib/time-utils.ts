@@ -33,7 +33,12 @@ export const calculateTimeRemaining = (
   targetDate: Date | string | number,
 ): string => {
   try {
-    const target = new Date(targetDate).getTime();
+    let dateStr = targetDate.toString();
+    // Fix double timezone suffix if present (e.g. from backend bug)
+    if (typeof targetDate === "string" && targetDate.endsWith("+00:00Z")) {
+      dateStr = targetDate.replace("+00:00Z", "Z");
+    }
+    const target = new Date(dateStr).getTime();
     const now = Date.now();
 
     let diff = target - now;

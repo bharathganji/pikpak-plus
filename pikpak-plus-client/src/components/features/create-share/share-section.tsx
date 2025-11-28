@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocalStorage } from "primereact/hooks";
 import { Button } from "@/components/ui/button";
 import { Copy, Share2, Loader2, AlertTriangle, Info } from "lucide-react";
@@ -35,37 +35,6 @@ export function ShareSection({
 
   const taskData = task.data.task?.task;
 
-  // Check for existing share on mount
-  useEffect(() => {
-    if (taskData?.id) {
-      checkExistingShare(taskData.id);
-    }
-  }, [taskData?.id]);
-
-  const checkExistingShare = async (fileId: string) => {
-    try {
-      const apiUrl = getApiUrl();
-      const response = await axios.post(`${apiUrl}/share`, {
-        id: fileId,
-      });
-
-      const shareResult = response.data;
-
-      // If share exists, display it
-      if (shareResult.share_url) {
-        setShareData(shareResult);
-
-        // Save to localStorage if it's a new share
-        if (!shareResult.is_existing) {
-          saveToLocalStorage(shareResult, fileId);
-        }
-      }
-    } catch (error: any) {
-      // Silently fail on mount check - user can still click button
-      console.error("Failed to check existing share:", error);
-    }
-  };
-
   const saveToLocalStorage = (shareResult: any, fileId: string) => {
     const newShare: LocalShare = {
       id: shareResult.share_id || `share-${Date.now()}`,
@@ -77,14 +46,14 @@ export function ShareSection({
     };
 
     // Check if share already exists
-    const alreadyExists = shares.some((s) => s.id === fileId);
+    const alreadyExists = shares.some((s) => s.file_id === fileId);
     if (!alreadyExists) {
       setShares([newShare, ...shares]);
     }
   };
 
   const handleShare = async () => {
-    if (!taskData?.id) {
+    if (!taskData?.file_id) {
       setShareError("File ID not available. Task may not be completed yet.");
       return;
     }
@@ -95,7 +64,7 @@ export function ShareSection({
     try {
       const apiUrl = getApiUrl();
       const response = await axios.post(`${apiUrl}/share`, {
-        id: taskData.id,
+        id: taskData.file_id,
       });
 
       const shareResult = response.data;
@@ -103,7 +72,7 @@ export function ShareSection({
 
       // Save to localStorage if it's a new share
       if (!shareResult.is_existing) {
-        saveToLocalStorage(shareResult, taskData.id);
+        saveToLocalStorage(shareResult, taskData.file_id);
       }
     } catch (error: any) {
       setShareError(
@@ -129,6 +98,13 @@ export function ShareSection({
               <Info className="h-3 w-3" />
               <span>Existing share link</span>
             </div>
+          )}
+
+          {/* Share Error */}
+          {shareError && (
+            <Alert variant="destructive" className="mt-3">
+              <AlertDescription>{shareError}</AlertDescription>
+            </Alert>
           )}
 
           <div className="flex items-center gap-2">
@@ -166,7 +142,7 @@ export function ShareSection({
         variant="outline"
         size="sm"
         onClick={handleShare}
-        disabled={shareLoading || !taskData?.id || shareData?.is_existing}
+        disabled={shareLoading || shareData?.is_existing}
         className="gap-2 w-full"
       >
         {(() => {
@@ -207,13 +183,6 @@ export function ShareSection({
           ensure access.
         </AlertDescription>
       </Alert>
-
-      {/* Share Error */}
-      {shareError && (
-        <Alert variant="destructive" className="mt-3">
-          <AlertDescription>{shareError}</AlertDescription>
-        </Alert>
-      )}
     </div>
   );
 }

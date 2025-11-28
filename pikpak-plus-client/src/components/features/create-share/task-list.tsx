@@ -37,7 +37,10 @@ export function TaskList({
     null,
   );
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [showMyTasksOnly, setShowMyTasksOnly] = useState(false);
+  const [showMyTasksOnly, setShowMyTasksOnly] = useLocalStorage(
+    false,
+    "showMyTasksOnly",
+  );
   const [nsfwFilterEnabled, setNsfwFilterEnabled] = useLocalStorage(
     false,
     "nsfwFilterEnabled",
