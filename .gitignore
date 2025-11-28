@@ -40,8 +40,6 @@ down.bash
 # self used virtual env
 venv/
 venv-*/
-# config file
-config.py
 
 #================ Python3
 # Byte-compiled / optimized / DLL files
