@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the application code
 COPY *.py .
 COPY app/ ./app/
+COPY PikPakAPI/ ./PikPakAPI/
 
 # Create cache directory for diskcache (still needed for fallback or temporary use)
 RUN mkdir -p .cache/pikpak
