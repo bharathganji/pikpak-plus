@@ -14,7 +14,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY *.py .
 COPY gunicorn_config.py .
 COPY app/ ./app/
-COPY docs/ ./docs/
 
 # Create cache directory for diskcache (still needed for fallback or temporary use)
 RUN mkdir -p .cache/pikpak
