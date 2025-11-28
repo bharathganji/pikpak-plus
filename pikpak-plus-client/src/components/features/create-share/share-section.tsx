@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getApiUrl } from "@/lib/api-utils";
 import axios from "axios";
 import type { SupabaseTaskRecord } from "@/types";
-import { LocalShare, SHARES_STORAGE_KEY } from "../my-activity/types";
+import { LocalShare, LOCAL_SHARES_STORAGE_KEY } from "../my-activity/types";
 
 interface ShareSectionProps {
   task: SupabaseTaskRecord;
@@ -30,7 +30,7 @@ export function ShareSection({
   const [shareError, setShareError] = useState<string | null>(null);
   const [shares, setShares] = useLocalStorage<LocalShare[]>(
     [],
-    SHARES_STORAGE_KEY,
+    LOCAL_SHARES_STORAGE_KEY
   );
 
   const taskData = task.data.task?.task;
@@ -76,7 +76,7 @@ export function ShareSection({
       }
     } catch (error: any) {
       setShareError(
-        error.response?.data?.error || "Failed to create share link",
+        error.response?.data?.error || "Failed to create share link"
       );
     } finally {
       setShareLoading(false);
@@ -142,7 +142,7 @@ export function ShareSection({
         variant="outline"
         size="sm"
         onClick={handleShare}
-        disabled={shareLoading || shareData?.is_existing}
+        disabled={shareLoading || !taskData?.file_id || shareData?.is_existing}
         className="gap-2 w-full"
       >
         {(() => {

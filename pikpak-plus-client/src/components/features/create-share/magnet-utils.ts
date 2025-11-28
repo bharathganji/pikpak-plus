@@ -16,15 +16,3 @@ export const validateMagnetLink = (
       "Invalid magnet link. Please provide a valid magnet link starting with 'magnet:?xt=urn:btih:'",
   };
 };
-
-export interface LocalTask {
-  id: string;
-  url: string;
-  status: string;
-  timestamp: number;
-  name?: string;
-  file_size?: string;
-  file_type?: string;
-}
-
-export const STORAGE_KEY = "pikpak_user_tasks";

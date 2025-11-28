@@ -9,8 +9,8 @@ import { Trash2 } from "lucide-react";
 import {
   LocalTask,
   LocalShare,
-  STORAGE_KEY,
-  SHARES_STORAGE_KEY,
+  LOCAL_TASKS_STORAGE_KEY,
+  LOCAL_SHARES_STORAGE_KEY,
 } from "../my-activity/types";
 import { EmptyState } from "../my-activity/empty-state";
 import { TaskItem } from "../my-activity/task-item";
@@ -21,10 +21,13 @@ import {
 } from "../my-activity/confirmation-dialogs";
 
 export function MyActivityTab() {
-  const [tasks, setTasks] = useLocalStorage<LocalTask[]>([], STORAGE_KEY);
+  const [tasks, setTasks] = useLocalStorage<LocalTask[]>(
+    [],
+    LOCAL_TASKS_STORAGE_KEY,
+  );
   const [shares, setShares] = useLocalStorage<LocalShare[]>(
     [],
-    SHARES_STORAGE_KEY,
+    LOCAL_SHARES_STORAGE_KEY,
   );
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clearAllDialogOpen, setClearAllDialogOpen] = useState(false);
