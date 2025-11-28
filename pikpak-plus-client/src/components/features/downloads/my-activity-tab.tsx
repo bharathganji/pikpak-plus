@@ -23,11 +23,11 @@ import {
 export function MyActivityTab() {
   const [tasks, setTasks] = useLocalStorage<LocalTask[]>(
     [],
-    LOCAL_TASKS_STORAGE_KEY,
+    LOCAL_TASKS_STORAGE_KEY
   );
   const [shares, setShares] = useLocalStorage<LocalShare[]>(
     [],
-    LOCAL_SHARES_STORAGE_KEY,
+    LOCAL_SHARES_STORAGE_KEY
   );
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clearAllDialogOpen, setClearAllDialogOpen] = useState(false);
@@ -74,7 +74,7 @@ export function MyActivityTab() {
 
   return (
     <Card className="border-primary/20 shadow-lg shadow-primary/5 w-full max-w-full">
-      <CardContent className="pt-2 pb-2 w-full">
+      <CardContent className="pl-2 pr-2 w-full">
         {/* Tasks Section */}
         <div className="border-b border-border/50 pb-6 mb-6 w-full">
           <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 mb-4">
