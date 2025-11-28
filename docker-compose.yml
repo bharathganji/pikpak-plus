@@ -38,8 +38,8 @@ services:
       - redis
     # ports:
     # - '5000:5000'
-    volumes:
-      - ./pikpak-plus-server:/app
+    # volumes:
+    #   - ./pikpak-plus-server:/app
     environment:
       - FLASK_APP=${FLASK_APP:-app.py}
       - FLASK_DEBUG=${FLASK_DEBUG:-1}
