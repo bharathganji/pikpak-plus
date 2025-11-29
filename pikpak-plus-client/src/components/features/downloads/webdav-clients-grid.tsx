@@ -77,6 +77,10 @@ export function WebDAVClientsGrid() {
         <WebDAVTrafficWarning message={webdavData.message} />
       )}
 
+      {webdavData.refresh_info && (
+        <WebDAVRefreshInfo refreshInfo={webdavData.refresh_info} />
+      )}
+
       <WebDAVServerUrl />
 
       <div className="flex items-center justify-between">
@@ -94,10 +98,6 @@ export function WebDAVClientsGrid() {
       </div>
 
       <WebDAVUsageInstructions />
-
-      {webdavData.refresh_info && (
-        <WebDAVRefreshInfo refreshInfo={webdavData.refresh_info} />
-      )}
     </div>
   );
 }
