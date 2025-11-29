@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { CloudDownload, AlertCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { validateMagnetLink } from "./magnet-utils";
-import { addMagnetLink, fetchConfig, fetchCleanupStatus } from "./api-utils";
+import { addMagnetLink } from "./api-utils";
 
 interface MagnetInputCardProps {
   onAddSuccess: (taskInfo: any, fileInfo: any) => void;
@@ -39,24 +39,6 @@ export function MagnetInputCard({
   const [message, setMessage] = useState("");
   const [validationError, setValidationError] = useState("");
   const [fileInfo, setFileInfo] = useState<any>(null);
-
-  // Calculate time until cleanup
-  useEffect(() => {
-    if (!cleanupStatus?.next_cleanup) return;
-    const updateCountdown = () => {
-      const now = new Date();
-      const next = new Date(cleanupStatus.next_cleanup!);
-      const diff = next.getTime() - now.getTime();
-      if (diff <= 0) {
-        // Note: We're not calling fetchCleanupStatus here because that would create a circular dependency
-        // The parent component should handle this
-        return;
-      }
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60)) / (1000 * 60));
-      // Note: Time until cleanup is managed by parent component
-    };
-  }, [cleanupStatus]);
 
   const handleAdd = async () => {
     if (!url.trim()) {
@@ -163,7 +145,7 @@ export function MagnetInputCard({
             >
               {message}
             </p>
-            {fileInfo && fileInfo.size && (
+            {fileInfo?.size && (
               <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded-md space-y-1">
                 {fileInfo.name && (
                   <div>
@@ -197,7 +179,7 @@ export function MagnetInputCard({
               <strong className="text-foreground">
                 {timeUntilCleanup || "..."}
               </strong>{" "}
-              · Content removed after {cleanupStatus.task_retention_hours}h
+              · Content removed every {cleanupStatus.task_retention_hours}h
             </span>
           </div>
         )}

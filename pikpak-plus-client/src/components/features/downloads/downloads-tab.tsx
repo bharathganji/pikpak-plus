@@ -20,8 +20,7 @@ export function DownloadsTab() {
         <CardHeader>
           <CardTitle>Connect via WebDAV</CardTitle>
           <CardDescription>
-            Access all public files using any WebDAV client. New credentials are
-            generated every 24 hours.
+            Access all public files using any WebDAV client.
           </CardDescription>
         </CardHeader>
         <CardContent>
