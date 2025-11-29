@@ -5,56 +5,41 @@ module.exports = {
     { name: "beta", prerelease: "beta" },
     { name: "alpha", prerelease: "alpha" },
   ],
-
   plugins: [
-    // Analyze commits
     [
       "@semantic-release/commit-analyzer",
       {
         preset: "conventionalcommits",
       },
     ],
-
-    // Generate changelog notes
     [
       "@semantic-release/release-notes-generator",
       {
         preset: "conventionalcommits",
       },
     ],
-
-    // Publish GitHub Release
     [
       "@semantic-release/github",
       {
-        assets: [
-          { path: "dist/**", label: "Build Output" },
-          { path: "pikpak-plus-client/dist/**", label: "Client Build" },
-          { path: "pikpak-plus-server/*.whl", label: "Python Wheel" },
-        ],
-
+        assets: ["dist/**", "pikpak-plus-client/**", "pikpak-plus-server/**"],
         releasedLabels: ["Status: Released"],
       },
     ],
-
-    // Publish NPM package (client)
+    // Client (npm)
     [
       "@semantic-release/npm",
       {
         pkgRoot: "pikpak-plus-client",
       },
     ],
-
-    // Python Server — package + release
+    // Server (Python) - optional GitHub release asset
     [
       "@semantic-release/exec",
       {
-        // Build Python wheel correctly
-        prepareCmd:
-          "cd pikpak-plus-server && python setup.py sdist bdist_wheel && cd ..",
-
-        // Upload the wheel via GitHub asset (already handled in assets)
-        publishCmd: 'echo "Server package v${nextRelease.version} created"',
+        // Build or package your server
+        prepareCmd: "echo 'Preparing server version ${nextRelease.version}'",
+        publishCmd:
+          'echo "Server version ${nextRelease.version} ready for release"',
       },
     ],
   ],
