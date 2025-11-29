@@ -17,33 +17,41 @@ jobs:
     if: "!contains(github.event.head_commit.message, 'skip ci')"
 
     steps:
+      # Checkout full history (required for semantic-release)
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
 
+      # Node setup
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: 20
 
+      # Install client dependencies
       - name: Install client dependencies
-        run: npm ci
         working-directory: ./pikpak-plus-client
+        run: npm ci
 
+      # Python setup
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
 
+      # Install server dependencies
       - name: Install server dependencies
-        run: pip install -r requirements.txt
         working-directory: ./pikpak-plus-server
+        run: pip install -r requirements.txt
 
+      # Install root project JS dependencies
       - name: Install dependencies
         run: npm ci
 
+      # Run Semantic Release
       - name: Semantic Release
         run: npx semantic-release
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }} # REQUIRED by @semantic-release/github
+          GH_TOKEN: ${{ secrets.GH_TOKEN }} # Optional fallback for other plugins
