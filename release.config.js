@@ -21,7 +21,7 @@ module.exports = {
     [
       "@semantic-release/github",
       {
-        assets: ["dist/**", "pikpak-plus-client/**", "pikpak-plus-server/**"],
+        assets: ["dist/**"],
         releasedLabels: ["Status: Released"],
       },
     ],
