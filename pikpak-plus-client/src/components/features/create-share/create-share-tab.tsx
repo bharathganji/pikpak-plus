@@ -5,7 +5,13 @@ import { useLocalStorage } from "primereact/hooks";
 import { MagnetInputCard } from "./magnet-input-card";
 import { GlobalActivityCard } from "./global-activity-card";
 import { LocalTask, LOCAL_TASKS_STORAGE_KEY } from "../my-activity/types";
-import { fetchConfig, fetchCleanupStatus, fetchGlobalTasks } from "./api-utils";
+import {
+  fetchConfig,
+  fetchCleanupStatus,
+  fetchGlobalTasks,
+  fetchVipInfo,
+  VipInfoResponse,
+} from "./api-utils";
 
 export function CreateShareTab() {
   // Global tasks state
@@ -15,6 +21,9 @@ export function CreateShareTab() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+
+  // VIP Info state
+  const [vipInfo, setVipInfo] = useState<VipInfoResponse["data"] | null>(null);
 
   // Cleanup status state
   const [cleanupStatus, setCleanupStatus] = useState<{
@@ -36,7 +45,7 @@ export function CreateShareTab() {
   // Local tasks storage
   const [localTasks, setLocalTasks] = useLocalStorage<LocalTask[]>(
     [],
-    LOCAL_TASKS_STORAGE_KEY,
+    LOCAL_TASKS_STORAGE_KEY
   );
 
   // Local task URLs for highlighting
@@ -54,13 +63,19 @@ export function CreateShareTab() {
       const configData = await fetchConfig();
       setMaxFileSizeGB(configData.max_file_size_gb);
       setTaskStatusUpdateIntervalMinutes(
-        configData.task_status_update_interval_minutes,
+        configData.task_status_update_interval_minutes
       );
       setNextTaskStatusUpdate(configData.next_task_status_update);
 
       // Fetch cleanup status
       const cleanupData = await fetchCleanupStatus();
       setCleanupStatus(cleanupData);
+
+      // Fetch VIP info
+      const vipData = await fetchVipInfo();
+      if (vipData?.data) {
+        setVipInfo(vipData.data);
+      }
     };
 
     fetchData();
@@ -151,6 +166,15 @@ export function CreateShareTab() {
 
   return (
     <div className="flex flex-col w-full space-y-3">
+      {vipInfo && (
+        <div className="w-full text-xs text-muted-foreground px-2 py-1 flex items-center justify-between">
+          <span>
+            {vipInfo.vipItem?.find((item) => item.status === "ok")
+              ?.description || "Premium"}
+          </span>
+          <span>Expires: {new Date(vipInfo.expire).toLocaleDateString()}</span>
+        </div>
+      )}
       <MagnetInputCard
         onAddSuccess={handleAddSuccess}
         maxFileSizeGB={maxFileSizeGB}

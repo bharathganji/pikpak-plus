@@ -2,6 +2,23 @@ import axios from "axios";
 import { getApiUrl } from "@/lib/api-utils";
 import type { ConfigResponse } from "@/types";
 
+export interface VipItem {
+  type: string;
+  description: string;
+  status: string;
+  expire: string;
+  surplus_day: number;
+}
+
+export interface VipInfoResponse {
+  data: {
+    expire: string;
+    type: string;
+    status: string;
+    vipItem: VipItem[];
+  };
+}
+
 export const fetchConfig = async (): Promise<ConfigResponse> => {
   try {
     const apiUrl = getApiUrl();
@@ -81,5 +98,16 @@ export const addMagnetLink = async (url: string) => {
     // Add the response data to the error for file info
     (error as any).response = error.response;
     throw error;
+  }
+};
+
+export const fetchVipInfo = async (): Promise<VipInfoResponse | null> => {
+  try {
+    const apiUrl = getApiUrl();
+    const res = await axios.get(`${apiUrl}/vip-info`);
+    return res.data;
+  } catch (error: any) {
+    console.error("Failed to fetch VIP info", error);
+    return null;
   }
 };

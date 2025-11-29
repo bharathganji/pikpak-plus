@@ -27,16 +27,19 @@ def get_config():
 
     # Get next task status update time from Redis
     try:
-        redis_client = redis.from_url(AppConfig.REDIS_URL, decode_responses=True)
+        redis_client = redis.from_url(
+            AppConfig.REDIS_URL, decode_responses=True)
         scheduler_status_data = redis_client.get("pikpak_scheduler_status")
         if scheduler_status_data:
             try:
                 scheduler_info = json.loads(scheduler_status_data)
-                result["next_task_status_update"] = scheduler_info.get("next_task_status_update")
+                result["next_task_status_update"] = scheduler_info.get(
+                    "next_task_status_update")
             except json.JSONDecodeError:
                 pass  # Ignore if JSON parsing fails
     except Exception as redis_error:
-        logger.error(f"Error accessing Redis for task status update info: {redis_error}")
+        logger.error(
+            f"Error accessing Redis for task status update info: {redis_error}")
 
     return jsonify(result)
 
@@ -70,3 +73,20 @@ def health():
         issues.append(error)
 
     return jsonify({"status": status, "issues": issues})
+
+
+@bp.route('/vip-info', methods=['GET'])
+def get_vip_info():
+    """Get VIP information"""
+    from app.api.utils.async_helpers import run_async
+
+    async def _async_get_vip_info():
+        pikpak_service = get_pikpak_service()
+        try:
+            vip_info = await pikpak_service.get_vip_info()
+            return jsonify(vip_info)
+        except Exception as e:
+            logger.error(f"Failed to fetch VIP info: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    return run_async(_async_get_vip_info())

@@ -23,6 +23,8 @@ class AppConfig:
     CACHE_TTL = int(os.getenv("CACHE_TTL_SECONDS", "300"))
     QUOTA_CACHE_TTL = int(
         os.getenv("QUOTA_CACHE_TTL_SECONDS", "10800"))  # Default: 3 hours
+    VIP_INFO_CACHE_TTL = int(
+        os.getenv("VIP_INFO_CACHE_TTL_SECONDS", "604800"))  # Default: 7 days
 
     # PikPak Login
     PIKPAK_LOGIN_INTERVAL = 720  # 12 minutes in seconds (re-login interval)

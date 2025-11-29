@@ -3,7 +3,10 @@ import logging
 import time
 import os
 import json
+import asyncio
 from typing import Optional, Dict, Any, Callable
+import aiofiles
+import aiofiles.os
 from PikPakAPI import PikPakApi
 
 logger = logging.getLogger(__name__)
@@ -39,8 +42,8 @@ class PikPakService:
             try:
                 # Clear persistence files
                 for file in ["pikpak_tokens.json", "pikpak_login_state.json"]:
-                    if os.path.exists(file):
-                        os.remove(file)
+                    if await aiofiles.os.path.exists(file):
+                        await aiofiles.os.remove(file)
                         logger.info(f"Removed {file}")
 
                 # Reset client state
@@ -199,3 +202,41 @@ class PikPakService:
             return result
 
         return await self._execute_with_retry(_do_create_share)
+
+    async def get_vip_info(self) -> dict:
+        """Get VIP info with 7-day caching"""
+        if not self.client:
+            raise RuntimeError(PIKPAK_CLIENT_NOT_INITIALIZED)
+
+        from app.core.config import AppConfig
+        cache_file = "vip_info.json"
+        cache_duration = AppConfig.VIP_INFO_CACHE_TTL
+
+        # Check cache
+        if await aiofiles.os.path.exists(cache_file):
+            try:
+                stat = await aiofiles.os.stat(cache_file)
+                mtime = stat.st_mtime
+                if time.time() - mtime < cache_duration:
+                    async with aiofiles.open(cache_file, 'r') as f:
+                        content = await f.read()
+                        data = json.loads(content)
+                        logger.info("Returning cached VIP info")
+                        return data
+            except Exception as e:
+                logger.warning(f"Failed to read VIP info cache: {e}")
+
+        async def _do_get_vip_info():
+            result = await self.client.get_vip_info()
+            logger.info("Retrieved VIP info from PikPak")
+
+            # Save to cache
+            try:
+                async with aiofiles.open(cache_file, 'w') as f:
+                    await f.write(json.dumps(result))
+            except Exception as e:
+                logger.warning(f"Failed to save VIP info cache: {e}")
+
+            return result
+
+        return await self._execute_with_retry(_do_get_vip_info)
