@@ -142,7 +142,8 @@ def get_active_webdav_clients():
                 quota_cache_key = "quota_info"
                 remaining_quota_ttl = 0
                 if cache_manager:
-                    remaining_quota_ttl = cache_manager.get_ttl(quota_cache_key)
+                    remaining_quota_ttl = cache_manager.get_ttl(
+                        quota_cache_key)
 
                 result = {
                     "available": False,
@@ -182,7 +183,8 @@ def get_active_webdav_clients():
             }
 
             # logger.info(f"Final response structure: {simple_result}")
-            logger.info(f"Clients count: {len(simple_result.get('clients', []))}")
+            logger.info(
+                f"Clients count: {len(simple_result.get('clients', []))}")
 
             # Get WebDAV refresh info from Redis
             try:
@@ -194,7 +196,7 @@ def get_active_webdav_clients():
                     try:
                         scheduler_info = json.loads(scheduler_status_data)
                         simple_result["refresh_info"]["webdav_next_refresh"] = scheduler_info.get(
-                            "next_cleanup")
+                            "next_webdav_generation")
                         logger.info(f"Found scheduler info: {scheduler_info}")
                     except json.JSONDecodeError:
                         logger.warning("Failed to parse scheduler status JSON")
