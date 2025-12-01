@@ -13,7 +13,7 @@ import json
 from datetime import datetime, timedelta, timezone
 
 from app.core.config import AppConfig
-from app.tasks.jobs import scheduled_cleanup, scheduled_task_status_update, scheduled_webdav_generation
+from app.tasks.jobs import scheduled_cleanup, scheduled_task_status_update, scheduled_webdav_generation, collect_daily_statistics
 from app.tasks.runners import run_async_job, ScheduledJobThread
 from app.tasks.locking import RedisDistributedLock
 
@@ -36,6 +36,7 @@ cache_manager = None
 _task_status_thread = None
 _cleanup_thread = None
 _webdav_thread = None
+_statistics_thread = None
 
 # Distributed lock
 _distributed_lock = None
@@ -79,9 +80,21 @@ def _create_webdav_job_wrapper():
     return wrapper
 
 
+def _create_statistics_job_wrapper():
+    """Create a wrapper function for the statistics collection job."""
+    def wrapper():
+        run_async_job(
+            collect_daily_statistics,
+            pikpak_service,
+            supabase_service,
+            redis_client
+        )
+    return wrapper
+
+
 def _start_background_tasks():
     """Start all background task threads."""
-    global _task_status_thread, _cleanup_thread, _webdav_thread
+    global _task_status_thread, _cleanup_thread, _webdav_thread, _statistics_thread
 
     logger.info(
         f"Starting background tasks at {datetime.now(timezone.utc).isoformat()}...")
@@ -124,6 +137,17 @@ def _start_background_tasks():
     logger.info(
         f"Started WebDAV generation thread (every {AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS} hours)")
 
+    # Start Statistics collection thread (every 24 hours)
+    statistics_job = _create_statistics_job_wrapper()
+    _statistics_thread = ScheduledJobThread(
+        job_func=statistics_job,
+        interval_seconds=24 * 3600,
+        job_name="statistics_collection",
+        redis_client=redis_client
+    )
+    _statistics_thread.start()
+    logger.info("Started statistics collection thread (every 24 hours)")
+
     # Run WebDAV generation immediately on startup
     logger.info("Running initial WebDAV generation on startup...")
     try:
@@ -146,12 +170,14 @@ def _update_scheduler_status():
             timedelta(hours=AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS)
         next_task_status_time = now + \
             timedelta(minutes=AppConfig.TASK_STATUS_UPDATE_INTERVAL_MINUTES)
+        next_statistics_time = now + timedelta(hours=24)
 
         scheduler_info = {
             "status": "running",
             "next_cleanup": next_cleanup_time.isoformat().split('+')[0] + 'Z',
             "next_webdav_generation": next_webdav_time.isoformat().split('+')[0] + 'Z',
             "next_task_status_update": next_task_status_time.isoformat().split('+')[0] + 'Z',
+            "next_statistics_collection": next_statistics_time.isoformat().split('+')[0] + 'Z',
             "worker_id": _distributed_lock.worker_id if _distributed_lock else "unknown",
             "started_at": now.isoformat().split('+')[0] + 'Z',
             "task_status_interval_minutes": AppConfig.TASK_STATUS_UPDATE_INTERVAL_MINUTES

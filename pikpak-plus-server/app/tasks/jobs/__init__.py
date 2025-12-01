@@ -7,9 +7,11 @@ by the scheduler on a periodic basis.
 from app.tasks.jobs.cleanup_job import scheduled_cleanup
 from app.tasks.jobs.task_status_job import scheduled_task_status_update
 from app.tasks.jobs.webdav_job import scheduled_webdav_generation
+from app.tasks.jobs.statistics_job import collect_daily_statistics
 
 __all__ = [
     'scheduled_cleanup',
     'scheduled_task_status_update',
     'scheduled_webdav_generation',
+    'collect_daily_statistics',
 ]

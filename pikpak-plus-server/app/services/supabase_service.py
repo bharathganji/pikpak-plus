@@ -255,3 +255,68 @@ class SupabaseService:
             else:
                 logger.error(f"Failed to update task statuses: {e}")
             raise
+
+    def count_tasks_added_since(self, since_time: str) -> int:
+        """
+        Count tasks added since a specific time
+
+        Args:
+            since_time: ISO format timestamp string
+        """
+        if not self.client:
+            return 0
+
+        try:
+            response = self.client.table("public_actions") \
+                .select("id", count="exact") \
+                .eq("action", "add") \
+                .gte("created_at", since_time) \
+                .execute()
+
+            return response.count or 0
+        except Exception as e:
+            logger.error(f"Failed to count tasks: {e}")
+            return 0
+
+    def log_daily_stats(self, stats_data: dict):
+        """
+        Log daily statistics
+
+        Args:
+            stats_data: Dictionary containing statistics
+        """
+        if not self.client:
+            return
+
+        try:
+            # Upsert based on date
+            self.client.table("daily_statistics").upsert(
+                stats_data,
+                on_conflict="date"
+            ).execute()
+            logger.info(
+                f"Logged daily statistics for {stats_data.get('date')}")
+        except Exception as e:
+            logger.error(f"Failed to log daily statistics: {e}")
+
+    def get_daily_stats(self, limit: int = 30):
+        """
+        Get daily statistics history
+
+        Args:
+            limit: Number of days to retrieve
+        """
+        if not self.client:
+            return []
+
+        try:
+            response = self.client.table("daily_statistics") \
+                .select("*") \
+                .order("date", desc=True) \
+                .limit(limit) \
+                .execute()
+
+            return response.data
+        except Exception as e:
+            logger.error(f"Failed to get daily statistics: {e}")
+            return []
