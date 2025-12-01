@@ -1,4 +1,7 @@
 import Image from "next/image";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { BarChart } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { GitHubButton } from "@/components/github-button";
 import { TelegramButton } from "@/components/telegram-button";
@@ -27,6 +30,11 @@ export function Header() {
         />
       </div>
       <div className="flex items-center gap-1.5 sm:gap-2">
+        <Link href="/statistics">
+          <Button variant="ghost" size="icon" title="Statistics">
+            <BarChart className="h-[1.2rem] w-[1.2rem]" />
+          </Button>
+        </Link>
         <TelegramButton url="https://t.me/pikpak_plus" />
         <GitHubButton repo="bharathganji/pikpak-plus" />
         <ModeToggle />

@@ -69,6 +69,7 @@
 - 📁 **WebDAV Support**: Auto-generate WebDAV clients for easy access from any WebDAV-compatible application
 - 🗑️ **Auto Cleanup**: Automated task cleanup after 24 hours to maintain account hygiene
 - 📊 **Quota Monitoring**: Real-time tracking of storage and bandwidth usage
+- 📈 **Statistics Dashboard**: Track daily usage metrics including tasks added, storage utilization, and cloud download usage with interactive charts
 - ⚡ **Performance**: Redis caching for faster API responses
 - 🎨 **Modern UI**: Built with Next.js, React 19, and Tailwind CSS for a premium user experience
 - 📱 **Responsive Design**: Works seamlessly across desktop and mobile devices
@@ -106,6 +107,7 @@ The application is containerized with Docker for easy deployment. The tech stack
 - [Tailwind CSS 4](https://tailwindcss.com/) - Utility-first CSS framework
 - [Radix UI](https://www.radix-ui.com/) - Accessible component primitives
 - [Lucide React](https://lucide.dev/) - Beautiful icon library
+- [Recharts](https://recharts.org/) - Composable charting library
 
 **Backend**:
 
@@ -271,7 +273,18 @@ See [DOCKER.md](DOCKER.md) for detailed Docker configuration and troubleshooting
 - Track download/upload limits
 - Monitor VIP status and expiration
 
-#### 👤 My Activity
+#### � Statistics Dashboard
+
+- Access the **Statistics Dashboard** via the bar chart icon in the header
+- View historical usage trends with interactive charts:
+  - **Tasks Added**: Daily count of download tasks created
+  - **Storage Utilization**: Track how your storage usage changes over time
+  - **Cloud Download Usage**: Monitor transfer quota consumption
+- Data is collected automatically every 24 hours
+- View up to 30 days of historical statistics
+- Responsive charts that work on both desktop and mobile
+
+#### �👤 My Activity
 
 - View your download history
 - Track created share links
