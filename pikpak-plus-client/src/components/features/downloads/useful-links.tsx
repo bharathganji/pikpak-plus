@@ -41,10 +41,22 @@ const links: UsefulLink[] = [
     description: "Android file manager",
   },
   {
+    title: "OwlFiles",
+    url: "https://www.skyjos.com/owlfiles/",
+    icon: <Link className="h-4 w-4" />,
+    description: "Multi-platform file manager",
+  },
+  {
     title: "VLC Media Player",
     url: "https://www.videolan.org/vlc/",
     icon: <Link className="h-4 w-4" />,
     description: "Media player",
+  },
+  {
+    title: "Just (Video) Player",
+    url: "https://play.google.com/store/apps/details?id=com.brouken.player",
+    icon: <Link className="h-4 w-4" />,
+    description: "Android video player",
   },
   {
     title: "RaiDrive",
