@@ -16,7 +16,7 @@ export function Header() {
           alt="PikPak Plus"
           width={200}
           height={50}
-          className="hidden sm:block h-12 w-auto"
+          className="hidden sm:block h-12 w-auto transition-transform duration-200 hover:scale-105"
           priority
         />
         {/* Mobile logo */}
@@ -25,7 +25,7 @@ export function Header() {
           alt="PikPak Plus"
           width={40}
           height={40}
-          className="block sm:hidden h-10 w-auto"
+          className="block sm:hidden h-10 w-auto transition-transform duration-200 hover:scale-105"
           priority
         />
       </div>

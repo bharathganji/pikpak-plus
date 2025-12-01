@@ -108,101 +108,126 @@ export function QuotaDisplay() {
   const downloadPercent =
     downloadTotal > 0 ? (downloadUsed / downloadTotal) * 100 : 0;
 
+  const getProgressColor = (percent: number) => {
+    if (percent >= 90)
+      return "[&>div]:bg-gradient-to-r [&>div]:from-red-500 [&>div]:to-red-600";
+    if (percent >= 70)
+      return "[&>div]:bg-gradient-to-r [&>div]:from-yellow-500 [&>div]:to-yellow-600";
+    return ""; // Default primary gradient
+  };
+
   return (
-    <Card className="border-primary/20">
+    <Card className="border-primary/20 transition-all duration-300 hover:shadow-md">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm flex items-center gap-2">
-          <HardDrive className="h-4 w-4" />
+          <HardDrive className="h-4 w-4 text-primary" />
           Quota Information
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-5">
         {/* Storage Quota */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground flex items-center gap-1">
-              <HardDrive className="h-3 w-3" />
+            <span className="text-muted-foreground flex items-center gap-2">
+              <div className="p-1 rounded-md bg-primary/10">
+                <HardDrive className="h-3 w-3 text-primary" />
+              </div>
               Storage
             </span>
-            <span className="font-medium">
+            <span className="font-medium font-mono text-xs">
               {formatBytes(storageUsage)} / {formatBytes(storageLimit)}
             </span>
           </div>
-          <Progress value={storagePercent} className="h-2" />
-          <p className="text-xs text-muted-foreground text-right">
-            {storagePercent.toFixed(1)}% used
-          </p>
+          <Progress
+            value={storagePercent}
+            className={`h-2.5 ${getProgressColor(storagePercent)}`}
+          />
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-muted-foreground">
+              {storagePercent >= 90 ? "Critical usage" : "Space used"}
+            </span>
+            <span
+              className={`font-medium ${storagePercent >= 90 ? "text-destructive" : "text-muted-foreground"}`}
+            >
+              {storagePercent.toFixed(1)}%
+            </span>
+          </div>
         </div>
 
         {/* Transfer Quotas */}
-        <div className="space-y-3 pt-2 border-t">
-          <div className="text-xs font-medium text-muted-foreground">
-            Monthly Transfer Quota
+        <div className="space-y-4 pt-4 border-t border-dashed">
+          <div className="flex items-center justify-between">
+            <div className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
+              Monthly Transfer
+            </div>
+            {quotaData.transfer.base?.vip_status && (
+              <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
+                {quotaData.transfer.base.vip_status}
+              </Badge>
+            )}
           </div>
 
           {/* Cloud Download Traffic */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground flex items-center gap-1">
-                <Download className="h-3 w-3" />
-                Cloud Download Traffic
+              <span className="text-muted-foreground flex items-center gap-2">
+                <div className="p-1 rounded-md bg-green-500/10">
+                  <Download className="h-3 w-3 text-green-600" />
+                </div>
+                Cloud Download
+              </span>
+              <span className="font-medium font-mono text-xs">
+                {offlinePercent.toFixed(1)}%
               </span>
             </div>
-            <Progress value={offlinePercent} className="h-2" />
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">
-                Used {formatBytes(offlineUsed)} / Total{" "}
-                {formatBytes(offlineTotal)}
-              </span>
-              <span className="font-medium">{offlinePercent.toFixed(2)}%</span>
+            <Progress
+              value={offlinePercent}
+              className={`h-2 ${getProgressColor(offlinePercent)}`}
+            />
+            <div className="flex justify-end text-[10px] text-muted-foreground">
+              {formatBytes(offlineUsed)} / {formatBytes(offlineTotal)}
             </div>
           </div>
 
           {/* Downstream Traffic */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground flex items-center gap-1">
-                <Upload className="h-3 w-3" />
-                Downstream Traffic
+              <span className="text-muted-foreground flex items-center gap-2">
+                <div className="p-1 rounded-md bg-orange-500/10">
+                  <Upload className="h-3 w-3 text-orange-600" />
+                </div>
+                Downstream
+              </span>
+              <span className="font-medium font-mono text-xs">
+                {downloadPercent.toFixed(1)}%
               </span>
             </div>
-            <Progress value={downloadPercent} className="h-2" />
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">
-                Used {formatBytes(downloadUsed)} / Total{" "}
-                {formatBytes(downloadTotal)}
+            <Progress
+              value={downloadPercent}
+              className={`h-2 ${getProgressColor(downloadPercent)}`}
+            />
+            <div className="flex justify-between items-center text-[10px] text-muted-foreground">
+              <span className="italic opacity-80">Streaming & Downloading</span>
+              <span>
+                {formatBytes(downloadUsed)} / {formatBytes(downloadTotal)}
               </span>
-              <span className="font-medium">{downloadPercent.toFixed(2)}%</span>
             </div>
-            <p className="text-xs text-muted-foreground italic">
-              Includes online streaming, viewing, and downloading transfer
-            </p>
           </div>
         </div>
 
-        {quotaData.transfer.base?.vip_status && (
-          <div className="pt-2 border-t">
-            <Badge variant="secondary" className="text-xs">
-              {quotaData.transfer.base.vip_status}
-            </Badge>
-          </div>
-        )}
-
         {/* Quota Refresh Information */}
         {quotaData.refresh_info && (
-          <div className="pt-4 border-t mt-4">
-            <div className="text-xs font-medium text-muted-foreground mb-2">
-              Quota Refresh Information
-            </div>
-            <div className="text-xs">
-              <div className="flex justify-between py-1">
-                <span className="text-muted-foreground">Refreshes in:</span>
-                <span className="font-mono">
-                  {calculateTimeRemaining(
-                    quotaData.refresh_info.quota_next_refresh,
-                  )}
-                </span>
-              </div>
+          <div className="pt-3 border-t border-dashed mt-2">
+            <div className="bg-muted/50 rounded-lg p-2.5 flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Resets in</span>
+              <Badge
+                variant="outline"
+                className="font-mono text-xs bg-background"
+              >
+                {calculateTimeRemaining(
+                  quotaData.refresh_info.quota_next_refresh,
+                )}
+              </Badge>
             </div>
           </div>
         )}

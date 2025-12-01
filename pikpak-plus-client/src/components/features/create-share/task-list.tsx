@@ -111,15 +111,23 @@ export function TaskList({
   } else {
     content = (
       <div className="space-y-1.5 overflow-hidden">
-        {filteredTasks.map((task) => {
+        {filteredTasks.map((task, index) => {
           const isLocal = localTaskUrls?.includes(task.data.url) || false;
           return (
-            <TaskCard
+            <div
               key={task.id}
-              task={task}
-              isLocal={isLocal}
-              onClick={() => handlePreview(task)}
-            />
+              className="animate-slide-up"
+              style={{
+                animationDelay: `${index * 0.05}s`,
+                animationFillMode: "both",
+              }}
+            >
+              <TaskCard
+                task={task}
+                isLocal={isLocal}
+                onClick={() => handlePreview(task)}
+              />
+            </div>
           );
         })}
       </div>
