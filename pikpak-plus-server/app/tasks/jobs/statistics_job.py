@@ -45,14 +45,12 @@ async def collect_daily_statistics(pikpak_service, supabase_service, redis_clien
         quota_info = await local_pikpak_service.client.get_quota_info()
         storage_quota = quota_info.get("quota", {})
         storage_used = int(storage_quota.get("usage", 0))
+        
+        # 2. Get Downstream Traffic (Play Times Usage)
+        downstream_traffic = int(storage_quota.get("play_times_usage", 0))
 
-        # 2. Get Transfer (Cloud Download) Usage
-        # Note: get_transfer_quota returns a list of quotas, we need to find the one for transfer
+        # 3. Get Transfer (Cloud Download) Usage
         transfer_info = await local_pikpak_service.client.get_transfer_quota()
-        # transfer_info structure might vary, assuming it returns a dict with quotas
-        # If it's a list, we iterate. Based on name 'get_transfer_quota', let's see what it returns.
-        # It calls /vip/v1/quantity/list?type=transfer
-        # Usually returns { "quotas": [ ... ] }
         transfer_used = 0
         if "quotas" in transfer_info:
             for q in transfer_info["quotas"]:
@@ -60,12 +58,12 @@ async def collect_daily_statistics(pikpak_service, supabase_service, redis_clien
                     transfer_used = int(q.get("usage", 0))
                     break
 
-        # 3. Count Tasks Added (Last 24 hours)
+        # 4. Count Tasks Added (Last 24 hours)
         yesterday = run_time - timedelta(days=1)
         tasks_added = supabase_service.count_tasks_added_since(
             yesterday.isoformat())
 
-        # 4. Premium Expiration
+        # 5. Premium Expiration
         vip_info = await local_pikpak_service.client.vip_info()
         premium_expiration = vip_info.get("data", {}).get("expire")
 
@@ -75,6 +73,7 @@ async def collect_daily_statistics(pikpak_service, supabase_service, redis_clien
             "tasks_added": tasks_added,
             "storage_used": storage_used,
             "transfer_used": transfer_used,
+            "downstream_traffic": downstream_traffic,
             "premium_expiration": premium_expiration,
             "created_at": run_time.isoformat()
         }
