@@ -193,15 +193,13 @@ class SupabaseService:
 
     def update_task_statuses(self, pikpak_tasks: list):
         """
-        Update task statuses in Supabase based on PikPak task data
+        Update task statuses in Supabase based on PikPak task data using bulk upsert
 
         Args:
             pikpak_tasks: List of task dictionaries from PikPak offline_list
         """
         if not self.client:
             raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
-
-        updated_count = 0
 
         try:
             # Get all tasks from Supabase
@@ -215,7 +213,9 @@ class SupabaseService:
             # Create a mapping of task_id to PikPak task data
             pikpak_task_map = {task['id']: task for task in pikpak_tasks}
 
-            # Update each Supabase task with latest PikPak data
+            # Prepare bulk update data
+            bulk_updates = []
+
             for supabase_task in supabase_tasks:
                 task_data = supabase_task.get('data', {})
 
@@ -236,15 +236,28 @@ class SupabaseService:
                         'updated_time': pikpak_task.get('updated_time'),
                     })
 
-                    # Update in Supabase
-                    self.client.table("public_actions") \
-                        .update({"data": task_data}) \
-                        .eq("id", supabase_task['id']) \
-                        .execute()
+                    # Add to bulk update list
+                    bulk_updates.append({
+                        'id': supabase_task['id'],
+                        'action': 'add',
+                        'data': task_data
+                    })
 
-                    updated_count += 1
+            # Perform bulk upsert if there are updates
+            updated_count = 0
+            if bulk_updates:
+                # Use upsert with 'id' as the conflict resolution column
+                # This will update existing rows and insert new ones (though we only expect updates here)
+                self.client.table("public_actions") \
+                    .upsert(bulk_updates, on_conflict='id') \
+                    .execute()
 
-            logger.info(f"Updated {updated_count} task statuses in Supabase")
+                updated_count = len(bulk_updates)
+                logger.info(
+                    f"Bulk updated {updated_count} task statuses in Supabase")
+            else:
+                logger.info("No tasks to update")
+
             return updated_count
 
         except Exception as e:
