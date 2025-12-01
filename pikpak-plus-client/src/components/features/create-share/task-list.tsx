@@ -64,57 +64,64 @@ export function TaskList({
     );
   }
 
+  // Helper to determine the empty state message
+  const getEmptyStateMessage = () => {
+    if (tasks.length === 0) {
+      if (page > 1) {
+        return "No tasks on this page.";
+      }
+      return "No tasks found.";
+    }
+
+    if (filteredTasks.length === 0) {
+      if (showMyTasksOnly) {
+        return "No tasks from you on this page.";
+      }
+      if (nsfwFilterEnabled) {
+        return "No tasks match your filters.";
+      }
+      return "No tasks match your criteria.";
+    }
+
+    return null;
+  };
+
+  const emptyMessage = getEmptyStateMessage();
+
+  let content;
   if (loading) {
-    return (
+    content = (
       <div className="text-center py-6 text-muted-foreground text-sm">
         Loading tasks...
       </div>
     );
-  }
-
-  if (error) {
-    return (
+  } else if (error) {
+    content = (
       <div className="text-center py-6 text-destructive">
         <p className="font-medium text-sm">Error loading tasks</p>
         <p className="text-xs opacity-80 mt-1">{error}</p>
       </div>
     );
-  }
-
-  if (tasks.length === 0) {
-    return (
+  } else if (emptyMessage) {
+    content = (
       <div className="text-center py-6 text-muted-foreground text-sm">
-        No tasks found.
+        {emptyMessage}
       </div>
     );
-  }
-
-  if (filteredTasks.length === 0 && showMyTasksOnly) {
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => setShowMyTasksOnly(false)}
-            className="gap-2 h-8"
-          >
-            <Filter className="h-3 w-3" />
-            Show All Tasks
-          </Button>
-          <Button
-            variant={nsfwFilterEnabled ? "default" : "outline"}
-            size="sm"
-            onClick={() => setNsfwFilterEnabled(!nsfwFilterEnabled)}
-            className="gap-2 h-8"
-          >
-            <Filter className="h-3 w-3" />
-            NSFW Filter
-          </Button>
-        </div>
-        <div className="text-center py-6 text-muted-foreground text-sm">
-          No tasks from you yet. Add a magnet link above to get started!
-        </div>
+  } else {
+    content = (
+      <div className="space-y-1.5 overflow-hidden">
+        {filteredTasks.map((task) => {
+          const isLocal = localTaskUrls?.includes(task.data.url) || false;
+          return (
+            <TaskCard
+              key={task.id}
+              task={task}
+              isLocal={isLocal}
+              onClick={() => handlePreview(task)}
+            />
+          );
+        })}
       </div>
     );
   }
@@ -143,59 +150,49 @@ export function TaskList({
         </Button>
       </div>
 
-      {/* Card-based List */}
-      <div className="space-y-1.5 overflow-hidden">
-        {filteredTasks.map((task) => {
-          const isLocal = localTaskUrls?.includes(task.data.url) || false;
-          return (
-            <TaskCard
-              key={task.id}
-              task={task}
-              isLocal={isLocal}
-              onClick={() => handlePreview(task)}
-            />
-          );
-        })}
-      </div>
+      {/* Content */}
+      {content}
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
-        <div className="flex items-center gap-2">
-          <span>
-            Page {page} of {totalPages}
-          </span>
-          <span>·</span>
-          <select
-            value={pageSize}
-            onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            className="h-8 rounded-md border border-input bg-background px-2 text-xs hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          >
-            <option value={25}>25 / page</option>
-            <option value={50}>50 / page</option>
-            <option value={100}>100 / page</option>
-          </select>
+      {/* Pagination - Always visible unless loading or error */}
+      {!loading && !error && (
+        <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
+          <div className="flex items-center gap-2">
+            <span>
+              Page {page} of {totalPages}
+            </span>
+            <span>·</span>
+            <select
+              value={pageSize}
+              onChange={(e) => onPageSizeChange(Number(e.target.value))}
+              className="h-8 rounded-md border border-input bg-background px-2 text-xs hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              <option value={25}>25 / page</option>
+              <option value={50}>50 / page</option>
+              <option value={100}>100 / page</option>
+            </select>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(page - 1)}
+              disabled={page <= 1}
+              className="h-8"
+            >
+              <ChevronLeft className="h-3 w-3" /> Prev
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(page + 1)}
+              disabled={page >= totalPages}
+              className="h-8"
+            >
+              Next <ChevronRight className="h-3 w-3" />
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(page - 1)}
-            disabled={page <= 1}
-            className="h-8"
-          >
-            <ChevronLeft className="h-3 w-3" /> Prev
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(page + 1)}
-            disabled={page >= totalPages}
-            className="h-8"
-          >
-            Next <ChevronRight className="h-3 w-3" />
-          </Button>
-        </div>
-      </div>
+      )}
 
       {/* Preview Dialog */}
       <TaskPreviewDialog

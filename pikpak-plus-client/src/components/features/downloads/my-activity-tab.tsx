@@ -23,11 +23,11 @@ import {
 export function MyActivityTab() {
   const [tasks, setTasks] = useLocalStorage<LocalTask[]>(
     [],
-    LOCAL_TASKS_STORAGE_KEY
+    LOCAL_TASKS_STORAGE_KEY,
   );
   const [shares, setShares] = useLocalStorage<LocalShare[]>(
     [],
-    LOCAL_SHARES_STORAGE_KEY
+    LOCAL_SHARES_STORAGE_KEY,
   );
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clearAllDialogOpen, setClearAllDialogOpen] = useState(false);
