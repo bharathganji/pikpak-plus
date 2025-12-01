@@ -35,23 +35,31 @@ export function isTaskCompleted(task: SupabaseTaskRecord): boolean {
  */
 export function getTaskStatus(task: SupabaseTaskRecord): {
   label: string;
-  variant: "default" | "secondary" | "outline" | "destructive";
+  variant:
+    | "default"
+    | "secondary"
+    | "outline"
+    | "destructive"
+    | "success"
+    | "warning"
+    | "info"
+    | "processing";
 } {
   const taskData = task.data.task?.task;
   const phase = taskData?.phase;
   const progress = taskData?.progress;
 
   if (isTaskCompleted(task)) {
-    return { label: "Completed", variant: "default" };
+    return { label: "Completed", variant: "success" };
   } else if (
     phase === "PHASE_TYPE_RUNNING" ||
     (progress !== undefined && progress >= 0)
   ) {
-    return { label: `${progress || 0}%`, variant: "secondary" };
+    return { label: `${progress || 0}%`, variant: "processing" };
   } else if (phase === "PHASE_TYPE_ERROR") {
     return { label: "Failed", variant: "destructive" };
   } else {
-    return { label: "Pending", variant: "outline" };
+    return { label: "Pending", variant: "secondary" };
   }
 }
 

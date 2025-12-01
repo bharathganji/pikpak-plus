@@ -34,7 +34,7 @@ export function TaskCard({ task, isLocal, onClick }: Readonly<TaskCardProps>) {
   return (
     <button
       type="button"
-      className={`flex items-center gap-2.5 p-2.5 rounded-md border transition-colors hover:bg-accent/50 cursor-pointer w-full text-left ${
+      className={`flex items-center gap-2.5 p-2.5 rounded-md border transition-all duration-200 hover:bg-accent/50 hover:shadow-md hover:-translate-y-0.5 cursor-pointer w-full text-left ${
         isLocal ? "bg-primary/5 border-primary/20" : ""
       }`}
       onClick={onClick}

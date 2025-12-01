@@ -44,13 +44,22 @@ const formatBytes = (bytes: number, decimals = 2) => {
 export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
   // Sort data by date ascending for charts
   const chartData = [...data].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
   );
+
+  const tooltipStyle = {
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    borderRadius: "12px",
+    border: "1px solid rgba(255, 255, 255, 0.3)",
+    boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.15)",
+    backdropFilter: "blur(8px)",
+    color: "#333",
+  };
 
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       {/* Tasks Added Chart */}
-      <Card className="col-span-1 md:col-span-2 lg:col-span-1">
+      <Card className="col-span-1 md:col-span-2 lg:col-span-1 transition-all duration-300 hover:shadow-lg">
         <CardHeader>
           <CardTitle>Tasks Added Per Day</CardTitle>
         </CardHeader>
@@ -58,28 +67,44 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <defs>
+                  <linearGradient id="colorTasks" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.6} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  opacity={0.2}
+                  vertical={false}
+                />
                 <XAxis
                   dataKey="date"
                   tickFormatter={(date) => format(new Date(date), "MMM d")}
                   fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  dy={10}
                 />
-                <YAxis allowDecimals={false} fontSize={12} />
+                <YAxis
+                  allowDecimals={false}
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  dx={-10}
+                />
                 <Tooltip
                   labelFormatter={(date) => format(new Date(date), "PPP")}
-                  contentStyle={{
-                    backgroundColor: "rgba(255, 255, 255, 0.9)",
-                    borderRadius: "8px",
-                    border: "none",
-                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                  }}
+                  contentStyle={tooltipStyle}
+                  cursor={{ fill: "rgba(0,0,0,0.05)" }}
                 />
-                <Legend />
+                <Legend iconType="circle" />
                 <Bar
                   dataKey="tasks_added"
                   name="Tasks Added"
-                  fill="#3b82f6"
-                  radius={[4, 4, 0, 0]}
+                  fill="url(#colorTasks)"
+                  radius={[6, 6, 0, 0]}
+                  animationDuration={1500}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -88,7 +113,7 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
       </Card>
 
       {/* Storage Used Chart */}
-      <Card className="col-span-1 md:col-span-2 lg:col-span-1">
+      <Card className="col-span-1 md:col-span-2 lg:col-span-1 transition-all duration-300 hover:shadow-lg">
         <CardHeader>
           <CardTitle>Storage Utilization</CardTitle>
         </CardHeader>
@@ -102,16 +127,26 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
                     <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  opacity={0.2}
+                  vertical={false}
+                />
                 <XAxis
                   dataKey="date"
                   tickFormatter={(date) => format(new Date(date), "MMM d")}
                   fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  dy={10}
                 />
                 <YAxis
                   tickFormatter={(value) => formatBytes(value, 0)}
                   fontSize={12}
                   width={80}
+                  tickLine={false}
+                  axisLine={false}
+                  dx={-10}
                 />
                 <Tooltip
                   labelFormatter={(date) => format(new Date(date), "PPP")}
@@ -119,21 +154,18 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
                     formatBytes(value),
                     "Storage Used",
                   ]}
-                  contentStyle={{
-                    backgroundColor: "rgba(255, 255, 255, 0.9)",
-                    borderRadius: "8px",
-                    border: "none",
-                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                  }}
+                  contentStyle={tooltipStyle}
                 />
-                <Legend />
+                <Legend iconType="circle" />
                 <Area
                   type="monotone"
                   dataKey="storage_used"
                   name="Storage Used"
                   stroke="#8b5cf6"
+                  strokeWidth={3}
                   fillOpacity={1}
                   fill="url(#colorStorage)"
+                  animationDuration={1500}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -142,7 +174,7 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
       </Card>
 
       {/* Cloud Download (Transfer) Chart */}
-      <Card className="col-span-1 md:col-span-2 lg:col-span-1">
+      <Card className="col-span-1 md:col-span-2 lg:col-span-1 transition-all duration-300 hover:shadow-lg">
         <CardHeader>
           <CardTitle>Cloud Download Usage</CardTitle>
         </CardHeader>
@@ -150,16 +182,38 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <defs>
+                  <linearGradient
+                    id="colorTransfer"
+                    x1="0"
+                    y1="0"
+                    x2="1"
+                    y2="0"
+                  >
+                    <stop offset="0%" stopColor="#10b981" />
+                    <stop offset="100%" stopColor="#34d399" />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  opacity={0.2}
+                  vertical={false}
+                />
                 <XAxis
                   dataKey="date"
                   tickFormatter={(date) => format(new Date(date), "MMM d")}
                   fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  dy={10}
                 />
                 <YAxis
                   tickFormatter={(value) => formatBytes(value, 0)}
                   fontSize={12}
                   width={80}
+                  tickLine={false}
+                  axisLine={false}
+                  dx={-10}
                 />
                 <Tooltip
                   labelFormatter={(date) => format(new Date(date), "PPP")}
@@ -167,22 +221,18 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
                     formatBytes(value),
                     "Transfer Used",
                   ]}
-                  contentStyle={{
-                    backgroundColor: "rgba(255, 255, 255, 0.9)",
-                    borderRadius: "8px",
-                    border: "none",
-                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                  }}
+                  contentStyle={tooltipStyle}
                 />
-                <Legend />
+                <Legend iconType="circle" />
                 <Line
                   type="monotone"
                   dataKey="transfer_used"
                   name="Transfer Used"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 8 }}
+                  stroke="url(#colorTransfer)"
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: "#10b981", strokeWidth: 0 }}
+                  activeDot={{ r: 8, fill: "#10b981", strokeWidth: 0 }}
+                  animationDuration={1500}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -191,7 +241,7 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
       </Card>
 
       {/* Downstream Traffic Chart */}
-      <Card className="col-span-1 md:col-span-2 lg:col-span-1">
+      <Card className="col-span-1 md:col-span-2 lg:col-span-1 transition-all duration-300 hover:shadow-lg">
         <CardHeader>
           <CardTitle>Downstream Traffic</CardTitle>
         </CardHeader>
@@ -199,16 +249,38 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <defs>
+                  <linearGradient
+                    id="colorDownstream"
+                    x1="0"
+                    y1="0"
+                    x2="1"
+                    y2="0"
+                  >
+                    <stop offset="0%" stopColor="#f59e0b" />
+                    <stop offset="100%" stopColor="#fbbf24" />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  opacity={0.2}
+                  vertical={false}
+                />
                 <XAxis
                   dataKey="date"
                   tickFormatter={(date) => format(new Date(date), "MMM d")}
                   fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  dy={10}
                 />
                 <YAxis
                   tickFormatter={(value) => formatBytes(value, 0)}
                   fontSize={12}
                   width={80}
+                  tickLine={false}
+                  axisLine={false}
+                  dx={-10}
                 />
                 <Tooltip
                   labelFormatter={(date) => format(new Date(date), "PPP")}
@@ -216,22 +288,18 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
                     formatBytes(value),
                     "Downstream Traffic",
                   ]}
-                  contentStyle={{
-                    backgroundColor: "rgba(255, 255, 255, 0.9)",
-                    borderRadius: "8px",
-                    border: "none",
-                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                  }}
+                  contentStyle={tooltipStyle}
                 />
-                <Legend />
+                <Legend iconType="circle" />
                 <Line
                   type="monotone"
                   dataKey="downstream_traffic"
                   name="Downstream Traffic"
-                  stroke="#f59e0b"
-                  strokeWidth={2}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 8 }}
+                  stroke="url(#colorDownstream)"
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: "#f59e0b", strokeWidth: 0 }}
+                  activeDot={{ r: 8, fill: "#f59e0b", strokeWidth: 0 }}
+                  animationDuration={1500}
                 />
               </LineChart>
             </ResponsiveContainer>
