@@ -30,7 +30,7 @@ export function ShareSection({
   const [shareError, setShareError] = useState<string | null>(null);
   const [shares, setShares] = useLocalStorage<LocalShare[]>(
     [],
-    LOCAL_SHARES_STORAGE_KEY
+    LOCAL_SHARES_STORAGE_KEY,
   );
 
   const taskData = task.data.task?.task;
@@ -76,7 +76,7 @@ export function ShareSection({
       }
     } catch (error: any) {
       setShareError(
-        error.response?.data?.error || "Failed to create share link"
+        error.response?.data?.error || "Failed to create share link",
       );
     } finally {
       setShareLoading(false);

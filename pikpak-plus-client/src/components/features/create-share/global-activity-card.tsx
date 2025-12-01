@@ -44,7 +44,7 @@ export function GlobalActivityCard({
             <div className="mt-1 flex items-center gap-1 text-muted-foreground">
               <Clock className="h-3 w-3" />
               <span>
-                Refreshes in:{" "}
+                Progress Refreshes in:{" "}
                 <span className="font-mono">
                   {calculateTimeRemaining(nextTaskStatusUpdate)}
                 </span>
