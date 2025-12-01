@@ -40,6 +40,7 @@ create table if not exists daily_statistics (
     tasks_added integer default 0,
     storage_used bigint default 0,
     transfer_used bigint default 0,
+    downstream_traffic bigint default 0,
     premium_expiration timestamp with time zone
 );
 

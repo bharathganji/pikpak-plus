@@ -23,6 +23,7 @@ interface DailyStat {
   tasks_added: number;
   storage_used: number;
   transfer_used: number;
+  downstream_traffic: number;
 }
 
 interface StatisticsChartsProps {
@@ -43,11 +44,11 @@ const formatBytes = (bytes: number, decimals = 2) => {
 export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
   // Sort data by date ascending for charts
   const chartData = [...data].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       {/* Tasks Added Chart */}
       <Card className="col-span-1 md:col-span-2 lg:col-span-1">
         <CardHeader>
@@ -141,9 +142,9 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
       </Card>
 
       {/* Cloud Download (Transfer) Chart */}
-      <Card className="col-span-1 md:col-span-2">
+      <Card className="col-span-1 md:col-span-2 lg:col-span-1">
         <CardHeader>
-          <CardTitle>Cloud Download (Transfer) Usage</CardTitle>
+          <CardTitle>Cloud Download Usage</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-[300px] w-full">
@@ -179,6 +180,55 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
                   dataKey="transfer_used"
                   name="Transfer Used"
                   stroke="#10b981"
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 8 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Downstream Traffic Chart */}
+      <Card className="col-span-1 md:col-span-2 lg:col-span-1">
+        <CardHeader>
+          <CardTitle>Downstream Traffic</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={(date) => format(new Date(date), "MMM d")}
+                  fontSize={12}
+                />
+                <YAxis
+                  tickFormatter={(value) => formatBytes(value, 0)}
+                  fontSize={12}
+                  width={80}
+                />
+                <Tooltip
+                  labelFormatter={(date) => format(new Date(date), "PPP")}
+                  formatter={(value: number) => [
+                    formatBytes(value),
+                    "Downstream Traffic",
+                  ]}
+                  contentStyle={{
+                    backgroundColor: "rgba(255, 255, 255, 0.9)",
+                    borderRadius: "8px",
+                    border: "none",
+                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                  }}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="downstream_traffic"
+                  name="Downstream Traffic"
+                  stroke="#f59e0b"
                   strokeWidth={2}
                   dot={{ r: 4 }}
                   activeDot={{ r: 8 }}
