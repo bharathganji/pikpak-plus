@@ -66,7 +66,7 @@ services:
       - WEBDAV_GENERATION_INTERVAL_HOURS=${WEBDAV_GENERATION_INTERVAL_HOURS:-24}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health/ready"]
-      interval: 30s
+      interval: 2m
       timeout: 10s
       retries: 3
       start_period: 40s
