@@ -27,12 +27,13 @@ class ScheduledJobThread:
             interval_seconds: How often to run the job (in seconds)
             job_name: Human-readable name for the job (for logging)
             redis_client: Redis client for lock checking
+            worker_id: Optional worker ID to use (defaults to generated ID)
         """
         self.job_func = job_func
         self.interval_seconds = interval_seconds
         self.job_name = job_name
         self.redis_client = redis_client
-        self.worker_id = f"{os.getpid()}-{int(time.time())}"
+        self.worker_id = worker_id if worker_id else f"{os.getpid()}-{int(time.time())}"
         self.thread = None
         self._running = False
 
