@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.core.config import AppConfig
 from app.services.pikpak_service import PikPakService
+from app.tasks.utils import update_redis_status
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ async def collect_daily_statistics(pikpak_service, supabase_service, redis_clien
         quota_info = await local_pikpak_service.client.get_quota_info()
         storage_quota = quota_info.get("quota", {})
         storage_used = int(storage_quota.get("usage", 0))
-        
+
         # 2. Get Downstream Traffic (Play Times Usage)
         downstream_traffic = int(storage_quota.get("play_times_usage", 0))
 
@@ -85,7 +86,7 @@ async def collect_daily_statistics(pikpak_service, supabase_service, redis_clien
         # Calculate next run time (24 hours from now)
         next_run_time = run_time + timedelta(hours=24)
 
-        _update_redis_status(
+        update_redis_status(
             redis_client,
             run_time,
             next_run_time,
@@ -97,22 +98,3 @@ async def collect_daily_statistics(pikpak_service, supabase_service, redis_clien
 
     except Exception as e:
         logger.error(f"Failed to collect daily statistics: {e}", exc_info=True)
-
-
-def _update_redis_status(redis_client, run_time, next_run_time, job_name):
-    """Helper to update Redis status (duplicated from task_status_job to avoid circular imports if shared utils not available)"""
-    try:
-        if not redis_client:
-            return
-
-        scheduler_status_data = redis_client.get("pikpak_scheduler_status")
-        if scheduler_status_data:
-            scheduler_info = json.loads(scheduler_status_data)
-            scheduler_info[f"next_{job_name}"] = next_run_time.isoformat().split(
-                '+')[0] + 'Z'
-            scheduler_info[f"last_{job_name}"] = run_time.isoformat().split(
-                '+')[0] + 'Z'
-            redis_client.set("pikpak_scheduler_status",
-                             json.dumps(scheduler_info), ex=3600)
-    except Exception as e:
-        logger.error(f"Failed to update next {job_name} time in Redis: {e}")
