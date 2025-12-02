@@ -1,8 +1,11 @@
 """Application Factory"""
+import threading
+import os
 import logging
 import redis
 from flask import Flask
 from flask_cors import CORS
+from flask_compress import Compress
 from supabase import create_client
 
 from app.core.config import AppConfig
@@ -40,9 +43,10 @@ class StructuredLogger(logging.Formatter):
         return json.dumps(log_data)
 
 
-# Configure Logging
+# Configure Logging with environment-based level
+log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, log_level, logging.INFO),
     format='%(message)s'
 )
 # Apply structured logging
@@ -52,16 +56,42 @@ for handler in root_logger.handlers:
 
 logger = logging.getLogger(__name__)
 
-# Also configure the APScheduler logger to show INFO level logs
+# Reduce verbosity of third-party loggers
+# httpx: Only log warnings and errors, not every HTTP request
+logging.getLogger('httpx').setLevel(logging.WARNING)
+
+# APScheduler: Reduce noise from scheduler
 apscheduler_logger = logging.getLogger('apscheduler')
-apscheduler_logger.setLevel(logging.INFO)
+apscheduler_logger.setLevel(logging.WARNING)
+
+# Reduce werkzeug (Flask) access logs
+logging.getLogger('werkzeug').setLevel(logging.WARNING)
+
+# Reduce WebDAV debug noise
+webdav_logger = logging.getLogger('PikPakAPI.webdav')
+webdav_logger.setLevel(logging.INFO)
+
+# Filter duplicate worker startup logs - only log from primary worker
+_worker_initialized = threading.Event()
+
+
+def _filter_duplicate_logs():
+    """Filter startup logs from non-primary workers"""
+    worker_id = os.getenv('WORKER_ID', '0')
+    if worker_id != '0':
+        # Suppress INFO logs for non-primary workers during initialization
+        logging.getLogger('app').setLevel(logging.WARNING)
 
 
 def create_app():
     """Create and configure the Flask application"""
+    # Filter duplicate logs from non-primary workers
+    _filter_duplicate_logs()
+
     app = Flask(__name__)
     app.config.from_object(AppConfig())
     CORS(app)
+    Compress(app)  # Enable gzip compression for responses
 
     # Initialize Redis client with connection pooling
     try:

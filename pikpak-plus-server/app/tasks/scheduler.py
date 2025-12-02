@@ -17,11 +17,8 @@ from app.tasks.jobs import scheduled_cleanup, scheduled_task_status_update, sche
 from app.tasks.runners import run_async_job, ScheduledJobThread
 from app.tasks.locking import RedisDistributedLock
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Use the main app logging configuration
+# Duplicate basicConfig removed to avoid conflicts with main app logging
 
 logger = logging.getLogger(__name__)
 
