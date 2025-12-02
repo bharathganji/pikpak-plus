@@ -138,19 +138,71 @@ class CacheManager:
         except Exception as e:
             logger.error(f"Redis clear error: {e}")
 
-    def invalidate_tasks(self):
-        """Invalidate all task-related cache entries"""
+    def _invalidate_redis_tasks(self) -> int:
+        """Invalidate task-related cache entries from Redis. Returns count of invalidated entries."""
+        if not self.redis_client:
+            return 0
+
         try:
-            # Delete all keys matching the pattern "tasks_*" (task pagination cache)
             task_keys = self.redis_client.keys("tasks_*")
             if task_keys:
                 self.redis_client.delete(*task_keys)
                 logger.info(
                     f"Invalidated {len(task_keys)} task cache entries from Redis")
+                return len(task_keys)
         except Exception as e:
             logger.error(f"Redis invalidate tasks error: {e}")
-            # Fallback to clearing all cache
-            self.clear()
+
+        return 0
+
+    def _invalidate_disk_tasks(self) -> int:
+        """Invalidate task-related cache entries from Disk cache. Returns count of invalidated entries."""
+        if not self.disk_cache:
+            return 0
+
+        try:
+            disk_keys = [key for key in self.disk_cache.iterkeys()
+                         if key.startswith("tasks_")]
+            for key in disk_keys:
+                self.disk_cache.delete(key)
+            if disk_keys:
+                logger.info(
+                    f"Invalidated {len(disk_keys)} task cache entries from Disk")
+                return len(disk_keys)
+        except Exception as e:
+            logger.error(f"Disk cache invalidate tasks error: {e}")
+
+        return 0
+
+    def _invalidate_memory_tasks(self) -> int:
+        """Invalidate task-related cache entries from Memory cache. Returns count of invalidated entries."""
+        try:
+            memory_keys = [key for key in list(
+                self.memory_cache.keys()) if key.startswith("tasks_")]
+            for key in memory_keys:
+                del self.memory_cache[key]
+            if memory_keys:
+                logger.info(
+                    f"Invalidated {len(memory_keys)} task cache entries from Memory")
+                return len(memory_keys)
+        except Exception as e:
+            logger.error(f"Memory cache invalidate tasks error: {e}")
+
+        return 0
+
+    def invalidate_tasks(self):
+        """Invalidate all task-related cache entries from all cache tiers"""
+        redis_count = self._invalidate_redis_tasks()
+        disk_count = self._invalidate_disk_tasks()
+        memory_count = self._invalidate_memory_tasks()
+
+        invalidated_count = redis_count + disk_count + memory_count
+
+        if invalidated_count > 0:
+            logger.info(
+                f"Total invalidated: {invalidated_count} task cache entries across all tiers")
+        else:
+            logger.debug("No task cache entries found to invalidate")
 
 
 def analyze_link(url: str) -> dict:
