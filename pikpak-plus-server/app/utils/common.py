@@ -3,7 +3,9 @@ import logging
 import requests
 import json
 import redis
+import diskcache
 from typing import Optional, Any
+from collections import OrderedDict
 
 logger = logging.getLogger(__name__)
 
@@ -14,8 +16,11 @@ class CacheManager:
     def __init__(self, cache_dir: str, ttl: int, redis_url: Optional[str] = None):
         self.ttl = ttl
         self.redis_client = None
+        self.disk_cache = None
+        self.memory_cache = OrderedDict()  # Simple in-memory LRU cache
+        self.memory_cache_max_size = 100  # Limit memory cache size
 
-        # Initialize Redis cache (cache_dir is kept for compatibility but not used)
+        # Initialize Redis cache (primary)
         if redis_url:
             try:
                 self.redis_client = redis.from_url(
@@ -24,24 +29,61 @@ class CacheManager:
                 self.redis_client.ping()
                 logger.info("Redis cache initialized successfully")
             except Exception as e:
-                logger.error(f"Failed to connect to Redis: {e}")
-                raise
-        else:
-            raise ValueError("Redis URL is required for CacheManager")
+                logger.warning(
+                    f"Failed to connect to Redis: {e}. Using fallback caching.")
+                self.redis_client = None
+
+        # Initialize disk cache (fallback)
+        try:
+            self.disk_cache = diskcache.Cache(cache_dir)
+            logger.info(f"Disk cache initialized at {cache_dir}")
+        except Exception as e:
+            logger.warning(f"Failed to initialize disk cache: {e}")
+            self.disk_cache = None
 
     def get(self, key: str):
-        """Get value from Redis cache"""
-        try:
-            value = self.redis_client.get(key)
-            if value is not None:
-                logger.debug(f"Cache hit (Redis) for key: {key}")
-                return json.loads(value)
-            else:
-                logger.debug(f"Cache miss (Redis) for key: {key}")
-        except Exception as e:
-            logger.error(f"Redis get error: {e}")
-            return None
+        """Get value from cache with multi-tier fallback (Redis → Disk → Memory)"""
+        # Try Redis first (L1)
+        if self.redis_client:
+            try:
+                value = self.redis_client.get(key)
+                if value is not None:
+                    logger.debug(f"Cache hit (Redis) for key: {key}")
+                    result = json.loads(value)
+                    # Promote to memory cache
+                    self._set_memory_cache(key, result)
+                    return result
+            except Exception as e:
+                logger.warning(
+                    f"Redis get error: {e}. Trying fallback caches.")
 
+        # Try disk cache (L2)
+        if self.disk_cache:
+            try:
+                value = self.disk_cache.get(key)
+                if value is not None:
+                    logger.debug(f"Cache hit (Disk) for key: {key}")
+                    # Promote to memory and Redis
+                    self._set_memory_cache(key, value)
+                    if self.redis_client:
+                        try:
+                            self.redis_client.setex(
+                                key, self.ttl, json.dumps(value, default=str))
+                        except Exception:
+                            pass  # Silent fail on promotion
+                    return value
+            except Exception as e:
+                logger.warning(
+                    f"Disk cache get error: {e}. Trying memory cache.")
+
+        # Try memory cache (L3)
+        if key in self.memory_cache:
+            logger.debug(f"Cache hit (Memory) for key: {key}")
+            # Move to end (LRU)
+            self.memory_cache.move_to_end(key)
+            return self.memory_cache[key]
+
+        logger.debug(f"Cache miss for key: {key}")
         return None
 
     def get_ttl(self, key: str) -> int:
@@ -54,16 +96,39 @@ class CacheManager:
             return 0
 
     def set(self, key: str, value: Any, ttl: int = None):
-        """Set value in Redis cache with TTL"""
+        """Set value in all available caches with TTL"""
         expire_time = ttl if ttl is not None else self.ttl
 
-        try:
-            self.redis_client.setex(
-                key, expire_time, json.dumps(value, default=str))
-            logger.debug(
-                f"Value set in Redis cache: {key}, TTL: {expire_time}")
-        except Exception as e:
-            logger.error(f"Redis set error: {e}")
+        # Try Redis (L1)
+        if self.redis_client:
+            try:
+                self.redis_client.setex(
+                    key, expire_time, json.dumps(value, default=str))
+                logger.debug(
+                    f"Value set in Redis cache: {key}, TTL: {expire_time}")
+            except Exception as e:
+                logger.warning(f"Redis set error: {e}. Using fallback caches.")
+
+        # Set in disk cache (L2)
+        if self.disk_cache:
+            try:
+                self.disk_cache.set(key, value, expire=expire_time)
+                logger.debug(f"Value set in disk cache: {key}")
+            except Exception as e:
+                logger.warning(f"Disk cache set error: {e}")
+
+        # Set in memory cache (L3)
+        self._set_memory_cache(key, value)
+
+    def _set_memory_cache(self, key: str, value: Any):
+        """Internal method to set value in memory cache with LRU eviction"""
+        if key in self.memory_cache:
+            self.memory_cache.move_to_end(key)
+        self.memory_cache[key] = value
+
+        # Evict oldest if over limit
+        if len(self.memory_cache) > self.memory_cache_max_size:
+            self.memory_cache.popitem(last=False)
 
     def clear(self):
         """Clear all cache entries"""

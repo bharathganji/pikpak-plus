@@ -19,8 +19,10 @@ from .utils import (
 from .settings import PIKPAK_USER_HOST
 
 TOKEN_FILE = "pikpak_tokens.json"
+LOGIN_STATE_FILE = "pikpak_login_state.json"
 LOGIN_COOLDOWN = 900  # 15 minutes
 ERROR_COOLDOWN = 86400  # 24 hours
+
 
 class AuthMixin:
     def __init__(self):
@@ -39,7 +41,7 @@ class AuthMixin:
         """Decodes the encoded token to update access and refresh tokens."""
         try:
             decoded_data = json.loads(b64decode(self.encoded_token).decode())
-        except (Exception, json.JSONDecodeError):
+        except Exception:
             raise PikpakException("Invalid encoded token")
         if not decoded_data.get("access_token") or not decoded_data.get("refresh_token"):
             raise PikpakException("Invalid encoded token")
@@ -52,7 +54,8 @@ class AuthMixin:
             "access_token": self.access_token,
             "refresh_token": self.refresh_token,
         }
-        self.encoded_token = b64encode(json.dumps(token_data).encode()).decode()
+        self.encoded_token = b64encode(
+            json.dumps(token_data).encode()).decode()
 
     async def captcha_init(self, action: str, meta: dict = None) -> Dict[str, Any]:
         url = f"https://{PIKPAK_USER_HOST}/v1/shield/captcha/init"
@@ -78,20 +81,23 @@ class AuthMixin:
         Login to PikPak
         """
         # Check for persistence first
-        if await self._load_persisted_tokens():
-            logging.info("Loaded persisted tokens, skipping login")
+        if self._load_persisted_tokens():
+            logging.debug("Loaded persisted tokens, skipping login")
             return
 
-        if await self._check_error_cooldown():
-             raise PikpakException("Login aborted due to recent frequent operation error (24h cooldown)")
+        if self._check_error_cooldown():
+            raise PikpakException(
+                "Login aborted due to recent frequent operation error (24h cooldown)")
 
-        if await self._check_login_cooldown():
-             logging.info("Login skipped due to 15min cooldown, using existing state if available")
-             # If we have no tokens and are in cooldown, we might fail, but better than 400
-             if self.access_token:
-                 return
-             # If no token, we must try login but warn
-             logging.warning("No token available but in cooldown. Attempting login anyway as fallback.")
+        if self._check_login_cooldown():
+            logging.info(
+                "Login skipped due to 15min cooldown, using existing state if available")
+            # If we have no tokens and are in cooldown, we might fail, but better than 400
+            if self.access_token:
+                return
+            # If no token, we must try login but warn
+            logging.warning(
+                "No token available but in cooldown. Attempting login anyway as fallback.")
 
         login_url = f"https://{PIKPAK_USER_HOST}/v1/auth/signin"
         metas = {}
@@ -103,7 +109,7 @@ class AuthMixin:
             metas["phone_number"] = self.username
         else:
             metas["username"] = self.username
-        
+
         try:
             result = await self.captcha_init(
                 action=f"POST:{login_url}",
@@ -130,13 +136,13 @@ class AuthMixin:
             self.refresh_token = user_info["refresh_token"]
             self.user_id = user_info["sub"]
             self.encode_token()
-            
-            await self._persist_tokens()
-            await self._update_login_timestamp()
+
+            self._persist_tokens()
+            self._update_login_timestamp()
 
         except Exception as e:
             if "too frequent" in str(e).lower():
-                await self._set_error_cooldown()
+                self._set_error_cooldown()
             raise e
 
     async def refresh_access_token(self) -> None:
@@ -155,17 +161,17 @@ class AuthMixin:
             self.refresh_token = user_info["refresh_token"]
             self.user_id = user_info["sub"]
             self.encode_token()
-            
-            await self._persist_tokens()
+
+            self._persist_tokens()
 
             if self.token_refresh_callback:
                 await self.token_refresh_callback(
                     self, **self.token_refresh_callback_kwargs
                 )
         except Exception as e:
-             if "too frequent" in str(e).lower():
-                await self._set_error_cooldown()
-             raise e
+            if "too frequent" in str(e).lower():
+                self._set_error_cooldown()
+            raise e
 
     def get_user_info(self) -> Dict[str, Optional[str]]:
         """
@@ -179,7 +185,7 @@ class AuthMixin:
             "encoded_token": self.encoded_token,
         }
 
-    async def _persist_tokens(self):
+    def _persist_tokens(self):
         data = {
             "access_token": self.access_token,
             "refresh_token": self.refresh_token,
@@ -193,7 +199,7 @@ class AuthMixin:
         except Exception as e:
             logging.error(f"Failed to persist tokens: {e}")
 
-    async def _load_persisted_tokens(self) -> bool:
+    def _load_persisted_tokens(self) -> bool:
         if not os.path.exists(TOKEN_FILE):
             return False
         try:
@@ -210,23 +216,23 @@ class AuthMixin:
             logging.error(f"Failed to load persisted tokens: {e}")
             return False
 
-    async def _update_login_timestamp(self):
+    def _update_login_timestamp(self):
         try:
             data = {}
-            if os.path.exists("pikpak_login_state.json"):
-                 with open("pikpak_login_state.json", "r") as f:
+            if os.path.exists(LOGIN_STATE_FILE):
+                with open(LOGIN_STATE_FILE, "r") as f:
                     data = json.load(f)
             data["last_login"] = time.time()
-            with open("pikpak_login_state.json", "w") as f:
+            with open(LOGIN_STATE_FILE, "w") as f:
                 json.dump(data, f)
         except Exception as e:
-             logging.error(f"Failed to update login timestamp: {e}")
+            logging.error(f"Failed to update login timestamp: {e}")
 
-    async def _check_login_cooldown(self) -> bool:
-        if not os.path.exists("pikpak_login_state.json"):
+    def _check_login_cooldown(self) -> bool:
+        if not os.path.exists(LOGIN_STATE_FILE):
             return False
         try:
-            with open("pikpak_login_state.json", "r") as f:
+            with open(LOGIN_STATE_FILE, "r") as f:
                 data = json.load(f)
             last_login = data.get("last_login", 0)
             if time.time() - last_login < LOGIN_COOLDOWN:
@@ -235,23 +241,23 @@ class AuthMixin:
             pass
         return False
 
-    async def _set_error_cooldown(self):
+    def _set_error_cooldown(self):
         try:
             data = {}
-            if os.path.exists("pikpak_login_state.json"):
-                 with open("pikpak_login_state.json", "r") as f:
+            if os.path.exists(LOGIN_STATE_FILE):
+                with open(LOGIN_STATE_FILE, "r") as f:
                     data = json.load(f)
             data["error_timestamp"] = time.time()
-            with open("pikpak_login_state.json", "w") as f:
+            with open(LOGIN_STATE_FILE, "w") as f:
                 json.dump(data, f)
         except Exception as e:
-             logging.error(f"Failed to set error cooldown: {e}")
+            logging.error(f"Failed to set error cooldown: {e}")
 
-    async def _check_error_cooldown(self) -> bool:
-        if not os.path.exists("pikpak_login_state.json"):
+    def _check_error_cooldown(self) -> bool:
+        if not os.path.exists(LOGIN_STATE_FILE):
             return False
         try:
-            with open("pikpak_login_state.json", "r") as f:
+            with open(LOGIN_STATE_FILE, "r") as f:
                 data = json.load(f)
             error_timestamp = data.get("error_timestamp", 0)
             if time.time() - error_timestamp < ERROR_COOLDOWN:

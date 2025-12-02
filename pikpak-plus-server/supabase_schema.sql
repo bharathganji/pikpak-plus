@@ -62,3 +62,11 @@ create policy "Enable update access for anon" on daily_statistics
     for update
     to anon
     using (true);
+
+-- Indexes for performance optimization
+CREATE INDEX IF NOT EXISTS idx_daily_statistics_date ON daily_statistics(date DESC);
+CREATE INDEX IF NOT EXISTS idx_public_actions_created_at ON public_actions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_public_actions_action_created ON public_actions(action, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_public_actions_magnet_hash ON public_actions((data->>'info_hash')) WHERE action = 'add';
+CREATE INDEX IF NOT EXISTS idx_public_actions_file_id ON public_actions((data->>'file_id')) WHERE action = 'share';
+

@@ -36,6 +36,7 @@ services:
 
   server:
     build: ./pikpak-plus-server
+    restart: unless-stopped
     depends_on:
       - redis
     # ports:
@@ -63,6 +64,12 @@ services:
       - VIP_INFO_CACHE_TTL_SECONDS=${VIP_INFO_CACHE_TTL_SECONDS:-604800}
       - DEFAULT_PAGE_SIZE=${DEFAULT_PAGE_SIZE:-25}
       - WEBDAV_GENERATION_INTERVAL_HOURS=${WEBDAV_GENERATION_INTERVAL_HOURS:-24}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health/ready"]
+      interval: 2m
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   redis:
     image: redis:7-alpine

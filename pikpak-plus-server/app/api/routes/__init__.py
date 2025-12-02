@@ -1,7 +1,7 @@
 """API Routes Package"""
 import logging
 from flask import Blueprint
-from app.api.routes import tasks, quota, webdav, shares, system, statistics
+from app.api.routes import tasks, quota, webdav, shares, system, statistics, health
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +15,7 @@ api_bp.register_blueprint(webdav.bp, url_prefix='/')
 api_bp.register_blueprint(shares.bp, url_prefix='/')
 api_bp.register_blueprint(system.bp, url_prefix='/')
 api_bp.register_blueprint(statistics.bp, url_prefix='/')
+api_bp.register_blueprint(health.bp, url_prefix='/')
 
 
 def init_routes(pikpak_service, supabase_service, cache_manager, scheduler, webdav_manager, redis_client=None):

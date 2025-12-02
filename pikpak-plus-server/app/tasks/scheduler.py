@@ -17,11 +17,8 @@ from app.tasks.jobs import scheduled_cleanup, scheduled_task_status_update, sche
 from app.tasks.runners import run_async_job, ScheduledJobThread
 from app.tasks.locking import RedisDistributedLock
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Use the main app logging configuration
+# Duplicate basicConfig removed to avoid conflicts with main app logging
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +34,7 @@ _task_status_thread = None
 _cleanup_thread = None
 _webdav_thread = None
 _statistics_thread = None
+_status_refresher_thread = None
 
 # Distributed lock
 _distributed_lock = None
@@ -94,7 +92,7 @@ def _create_statistics_job_wrapper():
 
 def _start_background_tasks():
     """Start all background task threads."""
-    global _task_status_thread, _cleanup_thread, _webdav_thread, _statistics_thread
+    global _task_status_thread, _cleanup_thread, _webdav_thread, _statistics_thread, _status_refresher_thread
 
     logger.info(
         f"Starting background tasks at {datetime.now(timezone.utc).isoformat()}...")
@@ -109,7 +107,8 @@ def _start_background_tasks():
         job_func=task_status_job,
         interval_seconds=AppConfig.TASK_STATUS_UPDATE_INTERVAL_MINUTES * 60,
         job_name="task_status_update",
-        redis_client=redis_client
+        redis_client=redis_client,
+        worker_id=_distributed_lock.worker_id
     )
     _task_status_thread.start()
     logger.info(
@@ -120,7 +119,8 @@ def _start_background_tasks():
         job_func=cleanup_job,
         interval_seconds=AppConfig.CLEANUP_INTERVAL_HOURS * 3600,
         job_name="cleanup",
-        redis_client=redis_client
+        redis_client=redis_client,
+        worker_id=_distributed_lock.worker_id
     )
     _cleanup_thread.start()
     logger.info(
@@ -131,7 +131,8 @@ def _start_background_tasks():
         job_func=webdav_job,
         interval_seconds=AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS * 3600,
         job_name="webdav_generation",
-        redis_client=redis_client
+        redis_client=redis_client,
+        worker_id=_distributed_lock.worker_id
     )
     _webdav_thread.start()
     logger.info(
@@ -143,10 +144,22 @@ def _start_background_tasks():
         job_func=statistics_job,
         interval_seconds=24 * 3600,
         job_name="statistics_collection",
-        redis_client=redis_client
+        redis_client=redis_client,
+        worker_id=_distributed_lock.worker_id
     )
     _statistics_thread.start()
     logger.info("Started statistics collection thread (every 24 hours)")
+
+    # Start status refresher thread (every 5 minutes)
+    _status_refresher_thread = ScheduledJobThread(
+        job_func=_refresh_scheduler_status,
+        interval_seconds=300,  # 5 minutes
+        job_name="status_refresher",
+        redis_client=redis_client,
+        worker_id=_distributed_lock.worker_id
+    )
+    _status_refresher_thread.start()
+    logger.info("Started status refresher thread (every 5 minutes)")
 
     # Run WebDAV generation immediately on startup
     logger.info("Running initial WebDAV generation on startup...")
@@ -156,42 +169,101 @@ def _start_background_tasks():
         logger.error(f"Initial WebDAV generation failed: {e}")
 
     # Update Redis with initial scheduler status
-    _update_scheduler_status()
+    _update_scheduler_status(initial=True)
 
 
-def _update_scheduler_status():
-    """Update Redis with the current scheduler status and next run times."""
+def _refresh_scheduler_status():
+    """Refresh the scheduler status in Redis to prevent expiration."""
+    _update_scheduler_status(initial=False)
+
+
+def _calculate_next_run_times():
+    """Calculate expected next run times based on current time."""
+    now = datetime.now(timezone.utc)
+    return {
+        "cleanup": now + timedelta(hours=AppConfig.CLEANUP_INTERVAL_HOURS),
+        "webdav": now + timedelta(hours=AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS),
+        "task_status": now + timedelta(minutes=AppConfig.TASK_STATUS_UPDATE_INTERVAL_MINUTES),
+        "statistics": now + timedelta(hours=24),
+        "current_time": now
+    }
+
+
+def _load_existing_scheduler_info():
+    """Load existing scheduler info from Redis if available."""
+    if not redis_client:
+        return {}
+
     try:
-        # Calculate expected next run times based on current time
-        now = datetime.now(timezone.utc)
-        next_cleanup_time = now + \
-            timedelta(hours=AppConfig.CLEANUP_INTERVAL_HOURS)
-        next_webdav_time = now + \
-            timedelta(hours=AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS)
-        next_task_status_time = now + \
-            timedelta(minutes=AppConfig.TASK_STATUS_UPDATE_INTERVAL_MINUTES)
-        next_statistics_time = now + timedelta(hours=24)
+        existing_data = redis_client.get("pikpak_scheduler_status")
+        if existing_data:
+            return json.loads(existing_data)
+    except Exception:
+        pass
+    return {}
 
-        scheduler_info = {
-            "status": "running",
-            "next_cleanup": next_cleanup_time.isoformat().split('+')[0] + 'Z',
-            "next_webdav_generation": next_webdav_time.isoformat().split('+')[0] + 'Z',
-            "next_task_status_update": next_task_status_time.isoformat().split('+')[0] + 'Z',
-            "next_statistics_collection": next_statistics_time.isoformat().split('+')[0] + 'Z',
-            "worker_id": _distributed_lock.worker_id if _distributed_lock else "unknown",
-            "started_at": now.isoformat().split('+')[0] + 'Z',
-            "task_status_interval_minutes": AppConfig.TASK_STATUS_UPDATE_INTERVAL_MINUTES
-        }
 
-        if redis_client:
-            redis_client.set("pikpak_scheduler_status",
-                             json.dumps(scheduler_info), ex=3600)
-            logger.info(
-                f"Updated scheduler status in Redis. "
-                f"Next cleanup: {next_cleanup_time.isoformat()}Z, "
-                f"Next WebDAV: {next_webdav_time.isoformat()}Z, "
-                f"Next task status update: {next_task_status_time.isoformat()}Z"
-            )
+def _update_scheduler_fields(scheduler_info, next_run_times, initial=False):
+    """Update scheduler info fields with current status and next run times."""
+    # Update core status fields
+    scheduler_info.update({
+        "status": "running",
+        "worker_id": _distributed_lock.worker_id if _distributed_lock else "unknown",
+        "task_status_interval_minutes": AppConfig.TASK_STATUS_UPDATE_INTERVAL_MINUTES
+    })
+
+    # Only set next run times if initial or they are missing
+    time_fields = [
+        ("next_cleanup", "cleanup"),
+        ("next_webdav_generation", "webdav"),
+        ("next_task_status_update", "task_status"),
+        ("next_statistics_collection", "statistics")
+    ]
+
+    for field_name, time_key in time_fields:
+        if initial or field_name not in scheduler_info:
+            next_time = next_run_times[time_key]
+            scheduler_info[field_name] = next_time.isoformat().split(
+                '+')[0] + 'Z'
+
+    # Set started_at if initial or missing
+    if initial or "started_at" not in scheduler_info:
+        scheduler_info["started_at"] = next_run_times["current_time"].isoformat().split(
+            '+')[0] + 'Z'
+
+
+def _save_scheduler_info_to_redis(scheduler_info, next_run_times):
+    """Save scheduler info to Redis and log the update."""
+    if not redis_client:
+        return
+
+    redis_client.set("pikpak_scheduler_status",
+                     json.dumps(scheduler_info), ex=3600)
+    logger.info(
+        f"Updated scheduler status in Redis. "
+        f"Next cleanup: {next_run_times['cleanup'].isoformat()}Z, "
+        f"Next WebDAV: {next_run_times['webdav'].isoformat()}Z, "
+        f"Next task status update: {next_run_times['task_status'].isoformat()}Z"
+    )
+
+
+def _update_scheduler_status(initial=False):
+    """
+    Update Redis with the current scheduler status.
+
+    Args:
+        initial (bool): If True, calculate new next run times.
+                       If False, try to preserve existing times from Redis.
+    """
+    try:
+        next_run_times = _calculate_next_run_times()
+
+        # If not initial, try to read existing status to preserve next run times
+        scheduler_info = {} if initial else _load_existing_scheduler_info()
+
+        _update_scheduler_fields(scheduler_info, next_run_times, initial)
+        _save_scheduler_info_to_redis(scheduler_info, next_run_times)
+
     except Exception as e:
         logger.error(f"Failed to update scheduler status in Redis: {e}")
 

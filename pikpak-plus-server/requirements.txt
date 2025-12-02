@@ -12,3 +12,6 @@ httpx>=0.27.0,<0.28.0
 websockets>=13.0
 redis>=5.0.0
 nest-asyncio>=1.5.8
+flask-limiter>=3.5.0
+flask-compress>=1.14
+pybreaker>=1.0.0

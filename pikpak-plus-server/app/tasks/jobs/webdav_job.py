@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from app.core.config import AppConfig
 from app.services.pikpak_service import PikPakService
 from app.services.webdav import WebDAVManager
+from app.tasks.utils import update_redis_status
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +75,7 @@ async def scheduled_webdav_generation(pikpak_service, webdav_manager, cache_mana
         )
 
         # Update scheduler status in Redis
-        _update_redis_status(
+        update_redis_status(
             redis_client,
             run_time,
             next_webdav_time,
@@ -83,35 +84,3 @@ async def scheduled_webdav_generation(pikpak_service, webdav_manager, cache_mana
 
     except Exception as e:
         logger.error(f"Scheduled WebDAV generation failed: {e}", exc_info=True)
-
-
-def _update_redis_status(redis_client, run_time, next_run_time, job_name):
-    """
-    Update Redis with the next scheduled run time for a job.
-
-    Args:
-        redis_client: Redis client instance
-        run_time: When the job actually ran
-        next_run_time: When the job should run next
-        job_name: Name of the job (cleanup, task_status_update, webdav_generation)
-    """
-    try:
-        if not redis_client:
-            return
-
-        scheduler_status_data = redis_client.get("pikpak_scheduler_status")
-        if scheduler_status_data:
-            scheduler_info = json.loads(scheduler_status_data)
-            scheduler_info[f"next_{job_name}"] = next_run_time.isoformat().split(
-                '+')[0] + 'Z'
-            scheduler_info[f"last_{job_name}"] = run_time.isoformat().split(
-                '+')[0] + 'Z'
-            redis_client.set("pikpak_scheduler_status",
-                             json.dumps(scheduler_info), ex=3600)
-
-            logger.info(
-                f"Updated next {job_name} time in Redis: {next_run_time.isoformat()}Z "
-                f"(based on run time {run_time.isoformat()}Z)"
-            )
-    except Exception as e:
-        logger.error(f"Failed to update next {job_name} time in Redis: {e}")

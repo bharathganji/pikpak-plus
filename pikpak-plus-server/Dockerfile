@@ -1,5 +1,5 @@
 # Use an official Python runtime as a parent image
-FROM python:3.11-slim-buster
+FROM python:3.11-slim-bookworm
 
 # Set the working directory to /app
 WORKDIR /app
@@ -7,8 +7,18 @@ WORKDIR /app
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install system dependencies and Python packages in a single layer
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        g++ \
+        gcc \
+        libffi-dev \
+        libssl-dev \
+        make && \
+    pip install --no-cache-dir -r requirements.txt && \
+    apt-get purge -y --auto-remove gcc g++ make && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy the application code
 COPY *.py .

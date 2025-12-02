@@ -24,6 +24,9 @@ class AppConfig:
     QUOTA_CACHE_TTL = int(
         os.getenv("QUOTA_CACHE_TTL_SECONDS", "10800"))  # Default: 3 hours
 
+    # Request Timeout
+    REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "60"))
+
     # PikPak Login
     PIKPAK_LOGIN_INTERVAL = 720  # 12 minutes in seconds (re-login interval)
 
