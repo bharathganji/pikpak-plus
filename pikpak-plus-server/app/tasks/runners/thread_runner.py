@@ -18,7 +18,7 @@ class ScheduledJobThread:
     - Error recovery and logging
     """
 
-    def __init__(self, job_func, interval_seconds, job_name, redis_client):
+    def __init__(self, job_func, interval_seconds, job_name, redis_client, worker_id=None):
         """
         Initialize a scheduled job thread.
 

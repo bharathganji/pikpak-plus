@@ -4,13 +4,22 @@ import time
 import os
 import json
 import asyncio
+from random import uniform
 from typing import Optional, Dict, Any, Callable
 from PikPakAPI import PikPakApi
 from app.core.config import AppConfig
+from pybreaker import CircuitBreaker
 
 logger = logging.getLogger(__name__)
 
 PIKPAK_CLIENT_NOT_INITIALIZED = "PikPak client not initialized"
+
+# Circuit breaker for PikPak API calls
+pikpak_breaker = CircuitBreaker(
+    fail_max=5,  # Open circuit after 5 consecutive failures
+    reset_timeout=60,  # Keep circuit open for 60 seconds
+    name="PikPakAPI"
+)
 
 
 class PikPakService:
@@ -63,25 +72,66 @@ class PikPakService:
             logger.error(f"PikPak login failed: {e}")
             raise
 
-    async def _execute_with_retry(self, operation: Callable, *args, **kwargs) -> Any:
+    async def _execute_with_retry(self, operation: Callable, *args, max_retries: int = 3, **kwargs) -> Any:
         """
-        Execute an operation with retry logic for 401 errors
+        Execute an operation with exponential backoff retry logic and circuit breaker protection
+
+        Args:
+            operation: The async operation to execute
+            max_retries: Maximum number of retry attempts (default: 3)
+            *args, **kwargs: Arguments to pass to the operation
         """
-        try:
-            await self.ensure_logged_in()
-            return await asyncio.wait_for(operation(*args, **kwargs), timeout=AppConfig.REQUEST_TIMEOUT)
-        except Exception as e:
-            error_str = str(e)
-            if "401" in error_str or "Unauthorized" in error_str:
-                logger.warning(
-                    f"Encountered 401 error: {e}. Retrying with forced login...")
-                try:
-                    await self.ensure_logged_in(force_refresh=True)
+        base_delay = 1.0
+        max_delay = 60.0
+
+        for attempt in range(max_retries):
+            try:
+                await self.ensure_logged_in()
+
+                # Wrap operation with circuit breaker
+                @pikpak_breaker
+                async def protected_operation():
                     return await asyncio.wait_for(operation(*args, **kwargs), timeout=AppConfig.REQUEST_TIMEOUT)
-                except Exception as retry_e:
-                    logger.error(f"Retry failed after forced login: {retry_e}")
-                    raise retry_e
-            raise e
+
+                return await protected_operation()
+
+            except Exception as e:
+                error_str = str(e)
+                is_last_attempt = (attempt == max_retries - 1)
+
+                # Handle 401 errors with forced login
+                if "401" in error_str or "Unauthorized" in error_str:
+                    logger.warning(
+                        f"Encountered 401 error: {e}. Retrying with forced login...")
+                    try:
+                        await self.ensure_logged_in(force_refresh=True)
+
+                        @pikpak_breaker
+                        async def protected_operation():
+                            return await asyncio.wait_for(operation(*args, **kwargs), timeout=AppConfig.REQUEST_TIMEOUT)
+
+                        return await protected_operation()
+                    except Exception as retry_e:
+                        if is_last_attempt:
+                            logger.error(
+                                f"Retry failed after forced login: {retry_e}")
+                            raise retry_e
+                        error_str = str(retry_e)
+
+                # If last attempt, raise the error
+                if is_last_attempt:
+                    raise
+
+                # Calculate exponential backoff with jitter
+                delay = min(base_delay * (2 ** attempt), max_delay)
+                jitter = uniform(0, delay * 0.1)
+                total_delay = delay + jitter
+
+                logger.warning(
+                    f"Attempt {attempt + 1}/{max_retries} failed: {error_str}. "
+                    f"Retrying in {total_delay:.2f}s..."
+                )
+                await asyncio.sleep(total_delay)
 
     async def add_download(self, url: str) -> dict:
         """Add a download to PikPak with retry logic"""
