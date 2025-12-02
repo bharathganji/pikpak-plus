@@ -3,8 +3,10 @@ import logging
 import time
 import os
 import json
+import asyncio
 from typing import Optional, Dict, Any, Callable
 from PikPakAPI import PikPakApi
+from app.core.config import AppConfig
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +69,7 @@ class PikPakService:
         """
         try:
             await self.ensure_logged_in()
-            return await operation(*args, **kwargs)
+            return await asyncio.wait_for(operation(*args, **kwargs), timeout=AppConfig.REQUEST_TIMEOUT)
         except Exception as e:
             error_str = str(e)
             if "401" in error_str or "Unauthorized" in error_str:
@@ -75,7 +77,7 @@ class PikPakService:
                     f"Encountered 401 error: {e}. Retrying with forced login...")
                 try:
                     await self.ensure_logged_in(force_refresh=True)
-                    return await operation(*args, **kwargs)
+                    return await asyncio.wait_for(operation(*args, **kwargs), timeout=AppConfig.REQUEST_TIMEOUT)
                 except Exception as retry_e:
                     logger.error(f"Retry failed after forced login: {retry_e}")
                     raise retry_e

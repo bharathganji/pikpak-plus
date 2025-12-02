@@ -10,12 +10,46 @@ from app.services import PikPakService, SupabaseService, WebDAVManager
 from app.utils.common import CacheManager
 from app.api.routes import init_routes, api_bp
 from app.tasks.scheduler import init_scheduler
+import json
+import uuid
+from contextvars import ContextVar
+from flask import request, g
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+# Context variable for correlation ID
+correlation_id: ContextVar[str] = ContextVar('correlation_id', default='')
+
+
+class StructuredLogger(logging.Formatter):
+    def format(self, record):
+        log_data = {
+            'timestamp': self.formatTime(record),
+            'level': record.levelname,
+            'logger': record.name,
+            'message': record.getMessage(),
+            'correlation_id': correlation_id.get(),
+            'module': record.module,
+            'function': record.funcName,
+            'line': record.lineno
+        }
+
+        if record.exc_info:
+            log_data['exception'] = self.formatException(record.exc_info)
+
+        return json.dumps(log_data)
+
 
 # Configure Logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(message)s'
 )
+# Apply structured logging
+root_logger = logging.getLogger()
+for handler in root_logger.handlers:
+    handler.setFormatter(StructuredLogger())
+
 logger = logging.getLogger(__name__)
 
 # Also configure the APScheduler logger to show INFO level logs
@@ -29,11 +63,15 @@ def create_app():
     app.config.from_object(AppConfig())
     CORS(app)
 
-    # Initialize Redis client
+    # Initialize Redis client with connection pooling
     try:
-        redis_client = redis.from_url(
-            AppConfig.REDIS_URL, decode_responses=True)
-        logger.info("Redis client initialized")
+        redis_pool = redis.ConnectionPool.from_url(
+            AppConfig.REDIS_URL,
+            decode_responses=True,
+            max_connections=50
+        )
+        redis_client = redis.Redis(connection_pool=redis_pool)
+        logger.info("Redis client initialized with connection pool")
     except Exception as e:
         logger.error(f"Failed to initialize Redis: {e}")
         redis_client = None
@@ -75,5 +113,20 @@ def create_app():
     # We pass services to the scheduler module so it can use them in jobs
     init_scheduler(pikpak_service, supabase_service,
                    webdav_manager, redis_client, cache_manager)
+
+    # Initialize Rate Limiter
+    Limiter(
+        app=app,
+        key_func=get_remote_address,
+        storage_uri=AppConfig.REDIS_URL,
+        default_limits=["2000 per day", "500 per hour"]
+    )
+
+    # Middleware to set correlation ID
+    @app.before_request
+    def set_correlation_id():
+        cid = request.headers.get('X-Correlation-ID', str(uuid.uuid4()))
+        correlation_id.set(cid)
+        g.correlation_id = cid
 
     return app
