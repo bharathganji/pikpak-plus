@@ -17,7 +17,7 @@ def _check_supabase_health():
     """Check Supabase service health"""
     try:
         supabase = get_supabase_service()
-        return supabase and supabase.client
+        return bool(supabase and supabase.client)
     except Exception:
         return False
 
@@ -26,7 +26,7 @@ def _check_pikpak_health():
     """Check PikPak service health"""
     try:
         pikpak = get_pikpak_service()
-        return pikpak and pikpak.client
+        return bool(pikpak and pikpak.client)
     except Exception:
         return False
 
