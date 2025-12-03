@@ -176,7 +176,7 @@ This project is designed to run in a containerized environment using Docker Comp
    TASK_RETENTION_HOURS=24
 
    # Optional: Cache Configuration
-   CACHE_TTL_SECONDS=300
+   TASK_CACHE_TTL_SECONDS=300
    QUOTA_CACHE_TTL_SECONDS=10800
 
    # Optional: WebDAV Configuration

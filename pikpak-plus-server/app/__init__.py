@@ -108,7 +108,7 @@ def create_app():
 
     # Initialize cache manager
     cache_manager = CacheManager(
-        './cache_dir', AppConfig.CACHE_TTL, AppConfig.REDIS_URL)
+        './cache_dir', AppConfig.TASK_CACHE_TTL, AppConfig.REDIS_URL)
 
     # Initialize Supabase client
     supabase_client = create_client(

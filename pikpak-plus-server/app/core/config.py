@@ -20,7 +20,7 @@ class AppConfig:
     # Redis Cache Configuration
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     # Default: 5 minutes
-    CACHE_TTL = int(os.getenv("CACHE_TTL_SECONDS", "300"))
+    TASK_CACHE_TTL = int(os.getenv("TASK_CACHE_TTL_SECONDS", "300"))
     QUOTA_CACHE_TTL = int(
         os.getenv("QUOTA_CACHE_TTL_SECONDS", "10800"))  # Default: 3 hours
 

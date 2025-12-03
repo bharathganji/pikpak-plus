@@ -105,11 +105,11 @@ class ClientManager:
                     "clients": created_clients
                 }
                 # Cache for the duration specified in WEBDAV_GENERATION_INTERVAL_HOURS (24 hours)
-                cache_ttl_seconds = AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS * 3600
+                webdav_cache_ttl_seconds = AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS * 3600
                 self.cache_manager.set(
-                    cache_key, webdav_result, ttl=cache_ttl_seconds)
+                    cache_key, webdav_result, ttl=webdav_cache_ttl_seconds)
                 logger.info(
-                    f"Caching WebDAV clients for {AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS} hours ({cache_ttl_seconds} seconds) matching WEBDAV_GENERATION_INTERVAL_HOURS")
+                    f"Caching WebDAV clients for {AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS} hours ({webdav_cache_ttl_seconds} seconds) matching WEBDAV_GENERATION_INTERVAL_HOURS")
 
             logger.info(
                 f"Successfully created {len(created_clients)} WebDAV clients")
@@ -209,11 +209,11 @@ class ClientManager:
                 }
                 # Cache it for future requests
                 if self.cache_manager:
-                    cache_ttl_seconds = AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS * 3600
+                    webdav_cache_ttl_seconds = AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS * 3600
                     self.cache_manager.set(
-                        cache_key, cached_result, ttl=cache_ttl_seconds)
+                        cache_key, cached_result, ttl=webdav_cache_ttl_seconds)
                     logger.info(
-                        f"Cached clients from memory for {AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS} hours ({cache_ttl_seconds} seconds)")
+                        f"Cached clients from memory for {AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS} hours ({webdav_cache_ttl_seconds} seconds)")
 
             # Now check if downstream traffic is available
             logger.info("Checking downstream traffic availability...")
