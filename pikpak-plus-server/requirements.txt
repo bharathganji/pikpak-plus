@@ -15,3 +15,4 @@ nest-asyncio>=1.5.8
 flask-limiter>=3.5.0
 flask-compress>=1.14
 pybreaker>=1.0.0
+celery[redis]>=5.3.6

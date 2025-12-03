@@ -24,6 +24,11 @@ class AppConfig:
     QUOTA_CACHE_TTL = int(
         os.getenv("QUOTA_CACHE_TTL_SECONDS", "10800"))  # Default: 3 hours
 
+    # Celery Configuration
+    CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", REDIS_URL)
+    CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", REDIS_URL)
+
+
     # Request Timeout
     REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "60"))
 

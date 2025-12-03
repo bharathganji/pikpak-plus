@@ -12,8 +12,10 @@ from app.core.config import AppConfig
 from app.services import PikPakService, SupabaseService, WebDAVManager
 from app.utils.common import CacheManager
 from app.api.routes import init_routes, api_bp
-from app.tasks.scheduler import init_scheduler
+from app.api.routes import init_routes, api_bp
+# Scheduler initialized via Celery
 import json
+
 import uuid
 from contextvars import ContextVar
 from flask import request, g
@@ -141,8 +143,14 @@ def create_app():
 
     # Initialize scheduler and background tasks
     # We pass services to the scheduler module so it can use them in jobs
-    init_scheduler(pikpak_service, supabase_service,
-                   webdav_manager, redis_client, cache_manager)
+    # Scheduler is now handled by Celery Beat
+
+    # Attach services to app for Celery tasks
+    app.pikpak_service = pikpak_service
+    app.supabase_service = supabase_service
+    app.webdav_manager = webdav_manager
+    app.cache_manager = cache_manager
+    app.redis_client = redis_client
 
     # Initialize Rate Limiter
     Limiter(
