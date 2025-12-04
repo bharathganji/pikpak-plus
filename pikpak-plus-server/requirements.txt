@@ -4,7 +4,6 @@ supabase>=2.9.0
 python-dotenv==1.0.0
 python-dateutil>=2.9.0
 requests==2.31.0
-diskcache>=5.6.3
 gunicorn>=21.2.0
 gevent>=23.9.0
 Flask-APScheduler==1.13.1
@@ -15,3 +14,4 @@ nest-asyncio>=1.5.8
 flask-limiter>=3.5.0
 flask-compress>=1.14
 pybreaker>=1.0.0
+pyjwt[crypto]>=2.10.1

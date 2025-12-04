@@ -1,5 +1,5 @@
 """
-PikPak Client with diskcache-based token management
+PikPak Client with Redis-based token management
 Simplified for single-server setup with automatic token refresh
 """
 from PikPakAPI import PikPakApi
@@ -7,98 +7,53 @@ from app.core.token_manager import get_token_manager
 from typing import Optional
 import os
 
+
 def get_or_create_client(username: str, password: str, proxy: Optional[str] = None) -> PikPakApi:
     """
-    Get or create a PikPak client with automatic token management
-    
-    This function handles token refresh automatically:
-    1. Checks for cached tokens
-    2. Uses cached tokens if valid
-    3. Automatically refreshes if expired (no /ping needed!)
-    4. Falls back to login if tokens are invalid
-    5. Caches new tokens with TTL
-    
+    Get or create a PikPak client with token management
+
+    This function loads cached tokens from Supabase and sets them on the client.
+    The actual login/refresh is handled by ensure_logged_in() when needed.
+
     Args:
         username: PikPak username/email
         password: PikPak password
         proxy: Optional proxy URL
-        
+
     Returns:
-        Authenticated PikPakApi client instance
+        PikPakApi client instance with tokens loaded (if available)
     """
     token_mgr = get_token_manager()
-    
+
     # Create client instance
     client = PikPakApi(username=username, password=password)
-    
-    # Try to use cached tokens (diskcache handles TTL automatically)
+
+    # Try to load cached tokens from Supabase
     tokens = token_mgr.get_all_tokens()
     access_token = tokens.get('access_token')
     refresh_token = tokens.get('refresh_token')
-    
-    # If we have an access token, try to use it
+
+    # If we have tokens, set them on the client
+    # The actual validation and refresh will be done by ensure_logged_in()
     if access_token:
         client.access_token = access_token
         client.refresh_token = refresh_token
-        
-        try:
-            # Test if access token is valid
-            # If this succeeds, we're good to go
-            print("✓ Using cached access token")
-            return client
-        except Exception as e:
-            print(f"✗ Cached access token invalid: {e}")
-            # Access token is invalid, try refresh token
-    
-    # If we have a refresh token, try to refresh
-    if refresh_token:
-        client.refresh_token = refresh_token
-        try:
-            print("⟳ Refreshing access token...")
-            client.refresh_access_token()
-            
-            # Cache the new tokens with TTL
-            # Access token: 1 hour, Refresh token: 7 days
-            token_mgr.set_tokens(
-                access_token=client.access_token,
-                refresh_token=client.refresh_token
-            )
-            print("✓ Access token refreshed successfully")
-            return client
-        except Exception as e:
-            print(f"✗ Token refresh failed: {e}")
-            # Refresh failed, need to login
-    
-    # No valid tokens, perform fresh login
-    print("⟳ Logging in with credentials...")
-    try:
-        client.login()
-        
-        # Cache the new tokens
-        token_mgr.set_tokens(
-            access_token=client.access_token,
-            refresh_token=client.refresh_token
-        )
-        
-        # Also cache credentials for future use
-        token_mgr.set_credentials(username, password)
-        
-        print("✓ Login successful")
-        return client
-    except Exception as e:
-        print(f"✗ Login failed: {e}")
-        raise e
+        print("✓ Loaded tokens from Supabase")
+    else:
+        print("ℹ No cached tokens found, will login when needed")
+
+    return client
 
 
 def create_client_from_env() -> PikPakApi:
     """
     Create client using environment variables
-    
+
     Requires:
         - PIKPAK_USERNAME or user
         - PIKPAK_PASSWORD or passwd
         - PIKPAK_PROXY (optional)
-        
+
     Returns:
         Authenticated PikPakApi client instance
     """
@@ -110,7 +65,7 @@ def create_client_from_env() -> PikPakApi:
     print(f"proxy: {proxy}")
     if not username or not password:
         raise ValueError("Missing user or passwd environment variables")
-    
+
     return get_or_create_client(username, password, proxy)
 
 
@@ -137,7 +92,7 @@ def client_from_credit(credfile, proxy=None):
     """
     DEPRECATED: Use get_or_create_client() instead
     Kept for backward compatibility
-    
+
     Note: credfile and proxy parameters are ignored
     """
     print("⚠ Warning: client_from_credit() is deprecated. Use get_or_create_client() instead")
@@ -149,7 +104,7 @@ def client_from_password(username, password, credfile='', proxy=None):
     """
     DEPRECATED: Use get_or_create_client() instead
     Kept for backward compatibility
-    
+
     Note: credfile parameter is ignored
     """
     print("⚠ Warning: client_from_password() is deprecated. Use get_or_create_client() instead")
@@ -162,7 +117,7 @@ def create_client(credfile, username, password, proxy=None):
     """
     DEPRECATED: Use get_or_create_client() instead
     Kept for backward compatibility
-    
+
     Note: credfile parameter is ignored
     """
     print("⚠ Warning: create_client() is deprecated. Use get_or_create_client() instead")

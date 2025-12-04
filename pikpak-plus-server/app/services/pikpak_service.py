@@ -8,6 +8,7 @@ from random import uniform
 from typing import Optional, Dict, Any, Callable
 from PikPakAPI import PikPakApi
 from app.core.config import AppConfig
+from app.core.client import get_or_create_client
 from pybreaker import CircuitBreaker
 
 logger = logging.getLogger(__name__)
@@ -29,7 +30,9 @@ class PikPakService:
         self.client: Optional[PikPakApi] = None
         self._last_login_time: float = 0
         try:
-            self.client = PikPakApi(username=username, password=password)
+            # Use get_or_create_client which handles token management via Supabase
+            self.client = get_or_create_client(
+                username=username, password=password)
             logger.info("PikPak client initialized successfully")
         except Exception as e:
             logger.error(f"PikPak client init failed: {e}")
@@ -44,11 +47,45 @@ class PikPakService:
         if not self.client:
             raise RuntimeError(PIKPAK_CLIENT_NOT_INITIALIZED)
 
+        # Check if client has a valid (non-expired) access token
+        if self.client.access_token and not force_refresh:
+            from app.utils.jwt_utils import is_token_expired
+
+            # Check if access token (JWT) is expired or expiring soon (within 5 minutes)
+            if not is_token_expired(self.client.access_token, buffer_seconds=300):
+                logger.debug("Client has valid access token, skipping login")
+                return self.client
+            else:
+                logger.info(
+                    "Access token expired or expiring soon, checking refresh token...")
+
+                # Refresh token is opaque (not JWT), so we can't check expiration
+                # Just try to use it if it exists
+                if self.client.refresh_token:
+                    logger.info(
+                        "Refresh token exists, attempting proactive refresh")
+                    try:
+                        await self.refresh_token_if_needed()
+                        return self.client
+                    except Exception as e:
+                        logger.warning(
+                            f"Proactive refresh failed: {e}, will attempt login")
+                        # Fall through to login logic below
+                else:
+                    logger.info(
+                        "No refresh token available, will attempt login")
+                    # Fall through to login logic below
+
         if force_refresh:
             logger.warning(
                 "Forcing PikPak login refresh - clearing persistence")
             try:
-                # Clear persistence files
+                # Clear TokenManager
+                from app.core.token_manager import get_token_manager
+                token_mgr = get_token_manager()
+                token_mgr.clear_tokens()
+
+                # Clear persistence files (if any exist)
                 for file in ["pikpak_tokens.json", "pikpak_login_state.json"]:
                     if os.path.exists(file):
                         os.remove(file)
@@ -62,15 +99,50 @@ class PikPakService:
             except Exception as e:
                 logger.error(f"Failed to clear persistence: {e}")
 
-        # The PikPakApi.login() method now handles persistence and rate limiting internally.
-        # We can simply call it. It will skip actual login if token is valid and persisted,
-        # or if we are in a cooldown period.
+        # Try to login (will use refresh token if available)
         try:
             await self.client.login()
+
+            # Save new tokens to Supabase
+            from app.core.token_manager import get_token_manager
+            token_mgr = get_token_manager()
+            token_mgr.set_tokens(
+                access_token=self.client.access_token,
+                refresh_token=self.client.refresh_token
+            )
+            logger.info("Updated tokens in Supabase after login")
+
             return self.client
         except Exception as e:
             logger.error(f"PikPak login failed: {e}")
             raise
+
+    async def refresh_token_if_needed(self):
+        """
+        Refresh the access token if it's expired
+        Called when API operations fail with auth errors
+        """
+        if not self.client:
+            raise RuntimeError(PIKPAK_CLIENT_NOT_INITIALIZED)
+
+        try:
+            logger.info("Attempting to refresh access token...")
+            await self.client.refresh_access_token()
+
+            # Save refreshed tokens to Supabase
+            from app.core.token_manager import get_token_manager
+            token_mgr = get_token_manager()
+            token_mgr.set_tokens(
+                access_token=self.client.access_token,
+                refresh_token=self.client.refresh_token
+            )
+            logger.info("Successfully refreshed and saved tokens to Supabase")
+
+        except Exception as e:
+            logger.warning(
+                f"Token refresh failed: {e}, attempting full login...")
+            # If refresh fails, try full login
+            await self.ensure_logged_in(force_refresh=True)
 
     async def _execute_with_retry(self, operation: Callable, *args, max_retries: int = 3, **kwargs) -> Any:
         """
@@ -99,8 +171,27 @@ class PikPakService:
                 error_str = str(e)
                 is_last_attempt = (attempt == max_retries - 1)
 
+                # Handle expired token errors (try refresh first, then full login)
+                if "Verification code is invalid" in error_str or "invalid" in error_str.lower():
+                    logger.warning(
+                        f"Token appears to be expired: {e}. Attempting token refresh...")
+                    try:
+                        await self.refresh_token_if_needed()
+
+                        @pikpak_breaker
+                        async def protected_operation():
+                            return await asyncio.wait_for(operation(*args, **kwargs), timeout=AppConfig.REQUEST_TIMEOUT)
+
+                        return await protected_operation()
+                    except Exception as retry_e:
+                        if is_last_attempt:
+                            logger.error(
+                                f"Retry failed after token refresh: {retry_e}")
+                            raise retry_e
+                        error_str = str(retry_e)
+
                 # Handle 401 errors with forced login
-                if "401" in error_str or "Unauthorized" in error_str:
+                elif "401" in error_str or "Unauthorized" in error_str:
                     logger.warning(
                         f"Encountered 401 error: {e}. Retrying with forced login...")
                     try:
