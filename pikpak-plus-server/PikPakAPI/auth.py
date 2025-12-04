@@ -34,6 +34,7 @@ class AuthMixin:
         self.user_id = None
         self.device_id = None
         self.captcha_token = None
+        self.captcha_expires_at = None  # Track when captcha expires
         self.token_refresh_callback = None
         self.token_refresh_callback_kwargs = {}
 
@@ -76,29 +77,46 @@ class AuthMixin:
         }
         return await self._request_post(url, data=params)
 
+    async def _get_valid_captcha_token(self, action: str, meta: dict = None) -> str:
+        """
+        Get a valid captcha token, regenerating if expired or missing
+
+        Args:
+            action: The action for which captcha is needed
+            meta: Optional metadata for captcha generation
+
+        Returns:
+            Valid captcha token
+        """
+        import time
+
+        # Check if we have a captcha token and it's not expired
+        if self.captcha_token and self.captcha_expires_at:
+            # Add 10 second buffer to avoid edge cases
+            if time.time() < (self.captcha_expires_at - 10):
+                return self.captcha_token
+
+        # Generate new captcha token
+        result = await self.captcha_init(action=action, meta=meta)
+        captcha_token = result.get("captcha_token", "")
+        expires_in = result.get("expires_in", 300)  # Default 5 minutes
+
+        if not captcha_token:
+            raise PikpakException("captcha_token get failed")
+
+        # Store token and expiry time
+        self.captcha_token = captcha_token
+        self.captcha_expires_at = time.time() + expires_in
+
+        return captcha_token
+
     async def login(self) -> None:
         """
         Login to PikPak
+
+        Note: Token persistence is now handled by app/core/client.py and TokenManager.
+        This method only performs the actual login API call.
         """
-        # Check for persistence first
-        if self._load_persisted_tokens():
-            logging.debug("Loaded persisted tokens, skipping login")
-            return
-
-        if self._check_error_cooldown():
-            raise PikpakException(
-                "Login aborted due to recent frequent operation error (24h cooldown)")
-
-        if self._check_login_cooldown():
-            logging.info(
-                "Login skipped due to 15min cooldown, using existing state if available")
-            # If we have no tokens and are in cooldown, we might fail, but better than 400
-            if self.access_token:
-                return
-            # If no token, we must try login but warn
-            logging.warning(
-                "No token available but in cooldown. Attempting login anyway as fallback.")
-
         login_url = f"https://{PIKPAK_USER_HOST}/v1/auth/signin"
         metas = {}
         if not self.username or not self.password:
@@ -111,13 +129,11 @@ class AuthMixin:
             metas["username"] = self.username
 
         try:
-            result = await self.captcha_init(
+            # Get valid captcha token (will regenerate if expired)
+            captcha_token = await self._get_valid_captcha_token(
                 action=f"POST:{login_url}",
                 meta=metas,
             )
-            captcha_token = result.get("captcha_token", "")
-            if not captcha_token:
-                raise PikpakException("captcha_token get failed")
             login_data = {
                 "client_id": CLIENT_ID,
                 "client_secret": CLIENT_SECRET,
@@ -141,7 +157,14 @@ class AuthMixin:
             self._update_login_timestamp()
 
         except Exception as e:
-            if "too frequent" in str(e).lower():
+            error_msg = str(e).lower()
+
+            # If rate limited or captcha invalid, clear captcha to force regeneration
+            if "too frequent" in error_msg or "captcha" in error_msg:
+                self.captcha_token = None
+                self.captcha_expires_at = None
+
+            if "too frequent" in error_msg:
                 self._set_error_cooldown()
             raise e
 
@@ -186,82 +209,27 @@ class AuthMixin:
         }
 
     def _persist_tokens(self):
-        data = {
-            "access_token": self.access_token,
-            "refresh_token": self.refresh_token,
-            "user_id": self.user_id,
-            "encoded_token": self.encoded_token,
-            "timestamp": time.time()
-        }
-        try:
-            with open(TOKEN_FILE, "w") as f:
-                json.dump(data, f)
-        except Exception as e:
-            logging.error(f"Failed to persist tokens: {e}")
+        # Token persistence is now handled by app/core/token_manager.py (Supabase)
+        # This method is kept as a no-op for compatibility
+        pass
 
     def _load_persisted_tokens(self) -> bool:
-        if not os.path.exists(TOKEN_FILE):
-            return False
-        try:
-            with open(TOKEN_FILE, "r") as f:
-                data = json.load(f)
-            # Optional: Check if token is expired or close to expiry if we had expiry time
-            # For now just load it
-            self.access_token = data.get("access_token")
-            self.refresh_token = data.get("refresh_token")
-            self.user_id = data.get("user_id")
-            self.encoded_token = data.get("encoded_token")
-            return True
-        except Exception as e:
-            logging.error(f"Failed to load persisted tokens: {e}")
-            return False
+        # Token loading is now handled by app/core/token_manager.py (Supabase)
+        # This method is kept as a no-op for compatibility
+        return False
 
     def _update_login_timestamp(self):
-        try:
-            data = {}
-            if os.path.exists(LOGIN_STATE_FILE):
-                with open(LOGIN_STATE_FILE, "r") as f:
-                    data = json.load(f)
-            data["last_login"] = time.time()
-            with open(LOGIN_STATE_FILE, "w") as f:
-                json.dump(data, f)
-        except Exception as e:
-            logging.error(f"Failed to update login timestamp: {e}")
+        # Login timestamp tracking disabled - handled at app layer if needed
+        pass
 
     def _check_login_cooldown(self) -> bool:
-        if not os.path.exists(LOGIN_STATE_FILE):
-            return False
-        try:
-            with open(LOGIN_STATE_FILE, "r") as f:
-                data = json.load(f)
-            last_login = data.get("last_login", 0)
-            if time.time() - last_login < LOGIN_COOLDOWN:
-                return True
-        except Exception:
-            pass
+        # Login cooldown disabled - handled at app layer if needed
         return False
 
     def _set_error_cooldown(self):
-        try:
-            data = {}
-            if os.path.exists(LOGIN_STATE_FILE):
-                with open(LOGIN_STATE_FILE, "r") as f:
-                    data = json.load(f)
-            data["error_timestamp"] = time.time()
-            with open(LOGIN_STATE_FILE, "w") as f:
-                json.dump(data, f)
-        except Exception as e:
-            logging.error(f"Failed to set error cooldown: {e}")
+        # Error cooldown disabled - handled at app layer if needed
+        pass
 
     def _check_error_cooldown(self) -> bool:
-        if not os.path.exists(LOGIN_STATE_FILE):
-            return False
-        try:
-            with open(LOGIN_STATE_FILE, "r") as f:
-                data = json.load(f)
-            error_timestamp = data.get("error_timestamp", 0)
-            if time.time() - error_timestamp < ERROR_COOLDOWN:
-                return True
-        except Exception:
-            pass
+        # Error cooldown disabled - handled at app layer if needed
         return False

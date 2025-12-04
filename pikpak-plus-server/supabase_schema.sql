@@ -70,3 +70,23 @@ CREATE INDEX IF NOT EXISTS idx_public_actions_action_created ON public_actions(a
 CREATE INDEX IF NOT EXISTS idx_public_actions_magnet_hash ON public_actions((data->>'info_hash')) WHERE action = 'add';
 CREATE INDEX IF NOT EXISTS idx_public_actions_file_id ON public_actions((data->>'file_id')) WHERE action = 'share';
 
+
+-- Table for storing PikPak tokens (Singleton row)
+CREATE TABLE IF NOT EXISTS pikpak_tokens (
+    id INTEGER PRIMARY KEY DEFAULT 1,
+    username TEXT,
+    password TEXT,
+    access_token TEXT,
+    refresh_token TEXT,
+    access_token_expires_at TIMESTAMP WITH TIME ZONE,
+    refresh_token_expires_at TIMESTAMP WITH TIME ZONE,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT single_row CHECK (id = 1)
+);
+
+-- Enable RLS (Row Level Security) - Optional but good practice
+ALTER TABLE pikpak_tokens ENABLE ROW LEVEL SECURITY;
+
+-- Allow all access for now (since we use service key)
+CREATE POLICY "Allow all access" ON pikpak_tokens FOR ALL USING (true) WITH CHECK (true);
+

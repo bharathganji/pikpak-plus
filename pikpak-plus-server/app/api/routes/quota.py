@@ -46,11 +46,14 @@ def _get_redis_scheduler_status():
     try:
         redis_client = redis.from_url(
             AppConfig.REDIS_URL, decode_responses=True)
-        scheduler_status_data = redis_client.get("pikpak_scheduler_status")
-        if scheduler_status_data:
-            return _parse_scheduler_data(scheduler_status_data)
-        else:
-            return {"message": "No scheduler status found in Redis"}
+        try:
+            scheduler_status_data = redis_client.get("pikpak_scheduler_status")
+            if scheduler_status_data:
+                return _parse_scheduler_data(scheduler_status_data)
+            else:
+                return {"message": "No scheduler status found in Redis"}
+        finally:
+            redis_client.close()
     except Exception as redis_error:
         logger.error(
             f"Error accessing Redis for scheduler status: {redis_error}")
@@ -87,83 +90,129 @@ def _get_local_scheduler_status():
     return {}
 
 
+def _calculate_next_refresh_time(cached_at_str, remaining_ttl):
+    """Calculate the next refresh time based on cached_at or remaining TTL"""
+    next_refresh_utc = None
+
+    if cached_at_str:
+        try:
+            cached_at = datetime.fromisoformat(cached_at_str)
+            if cached_at.tzinfo is None:
+                cached_at = cached_at.replace(tzinfo=timezone.utc)
+
+            next_refresh_dt = cached_at + \
+                timedelta(seconds=AppConfig.QUOTA_CACHE_TTL)
+            next_refresh_utc = next_refresh_dt.isoformat()
+            if next_refresh_utc.endswith('+00:00'):
+                next_refresh_utc = next_refresh_utc.replace('+00:00', 'Z')
+        except ValueError:
+            pass
+
+    if not next_refresh_utc:
+        next_refresh_utc = (
+            datetime.now(timezone.utc) +
+            timedelta(seconds=remaining_ttl)
+        ).isoformat() + 'Z'
+
+    return next_refresh_utc
+
+
+def _add_refresh_info(quota_data, remaining_ttl):
+    """Add refresh information to quota data"""
+    next_refresh_utc = _calculate_next_refresh_time(
+        quota_data.get("cached_at"), remaining_ttl)
+
+    quota_data["refresh_info"] = {
+        "quota_refresh_interval_seconds": AppConfig.QUOTA_CACHE_TTL,
+        "quota_next_refresh": next_refresh_utc,
+        "webdav_generation_interval_hours": AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS,
+        "webdav_next_refresh": None
+    }
+    return quota_data
+
+
+def _get_webdav_refresh_info(quota_data):
+    """Get WebDAV refresh information from Redis"""
+    try:
+        redis_client = redis.from_url(
+            AppConfig.REDIS_URL, decode_responses=True)
+        try:
+            scheduler_status_data = redis_client.get("pikpak_scheduler_status")
+            if scheduler_status_data:
+                try:
+                    scheduler_info = json.loads(scheduler_status_data)
+                    quota_data["refresh_info"]["webdav_next_refresh"] = scheduler_info.get(
+                        "next_webdav_generation")
+                except json.JSONDecodeError:
+                    pass  # Ignore if JSON parsing fails
+        finally:
+            redis_client.close()
+    except Exception as redis_error:
+        logger.error(
+            f"Error accessing Redis for WebDAV refresh info: {redis_error}")
+
+
+async def _get_quota_data():
+    """Main function to get quota data with proper separation of concerns"""
+    cache_key = "quota_info"
+    cache_manager = get_cache_manager()
+    cached_quota = cache_manager.get(cache_key)
+
+    if cached_quota is not None:
+        return _handle_cached_quota(cached_quota, cache_manager, cache_key)
+
+    return await _handle_cache_miss(cache_key, cache_manager)
+
+
+def _handle_cached_quota(cached_quota, cache_manager, cache_key):
+    """Handle the case when quota data is found in cache"""
+    logger.info("Returning cached quota information")
+    remaining_ttl = cache_manager.get_ttl(cache_key)
+    logger.info(f"Remaining TTL for quota cache: {remaining_ttl} seconds")
+
+    quota_with_refresh = _add_refresh_info(cached_quota.copy(), remaining_ttl)
+    logger.info(
+        f"Calculated next refresh time: {quota_with_refresh['refresh_info']['quota_next_refresh']}")
+
+    _get_webdav_refresh_info(quota_with_refresh)
+
+    return jsonify(quota_with_refresh)
+
+
+async def _handle_cache_miss(cache_key, cache_manager):
+    """Handle the case when quota data is not found in cache"""
+    logger.info("Cache miss - fetching quota from PikPak")
+
+    # Get both quota types
+    pikpak_service = get_pikpak_service()
+    storage_quota = await pikpak_service.get_quota_info()
+    transfer_quota = await pikpak_service.get_transfer_quota()
+
+    # Combine the results (cache only the actual quota data, not refresh_info)
+    quota_data_to_cache = {
+        "storage": storage_quota,
+        "transfer": transfer_quota,
+        "cached_at": datetime.now(timezone.utc).isoformat()
+    }
+
+    # Cache the result for 3 hours (without refresh_info)
+    cache_manager.set(cache_key, quota_data_to_cache,
+                      ttl=AppConfig.QUOTA_CACHE_TTL)
+    logger.info("Successfully retrieved and cached quota information (3 hours)")
+
+    quota_data = _add_refresh_info(
+        quota_data_to_cache, AppConfig.QUOTA_CACHE_TTL)
+    _get_webdav_refresh_info(quota_data)
+
+    return jsonify(quota_data)
+
+
 @bp.route('/quota', methods=['GET'])
 def get_quota():
     """Get storage and transfer quota information with caching (3 hours)"""
     async def _async_get_quota():
-        def _add_refresh_info(quota_data, remaining_ttl):
-            next_refresh_utc = (
-                datetime.now(timezone.utc) + timedelta(seconds=remaining_ttl)
-            ).isoformat() + 'Z'
-            quota_data["refresh_info"] = {
-                "quota_refresh_interval_seconds": AppConfig.QUOTA_CACHE_TTL,
-                "quota_next_refresh": next_refresh_utc,
-                "webdav_generation_interval_hours": AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS,
-                "webdav_next_refresh": None
-            }
-            return quota_data
-
-        def _get_webdav_refresh_info(quota_data):
-            try:
-                redis_client = redis.from_url(
-                    AppConfig.REDIS_URL, decode_responses=True)
-                scheduler_status_data = redis_client.get(
-                    "pikpak_scheduler_status")
-                if scheduler_status_data:
-                    try:
-                        scheduler_info = json.loads(scheduler_status_data)
-                        quota_data["refresh_info"]["webdav_next_refresh"] = scheduler_info.get(
-                            "next_webdav_generation")
-                    except json.JSONDecodeError:
-                        pass  # Ignore if JSON parsing fails
-            except Exception as redis_error:
-                logger.error(
-                    f"Error accessing Redis for WebDAV refresh info: {redis_error}")
-
         try:
-            # Check cache first (cache for 3 hours)
-            cache_key = "quota_info"
-            cache_manager = get_cache_manager()
-            cached_quota = cache_manager.get(cache_key)
-
-            if cached_quota is not None:
-                logger.info("Returning cached quota information")
-                remaining_ttl = cache_manager.get_ttl(cache_key)
-                logger.info(
-                    f"Remaining TTL for quota cache: {remaining_ttl} seconds")
-
-                quota_with_refresh = _add_refresh_info(cached_quota.copy(), remaining_ttl)
-                logger.info(
-                    f"Calculated next refresh time: {quota_with_refresh['refresh_info']['quota_next_refresh']}")
-
-                _get_webdav_refresh_info(quota_with_refresh)
-
-                return jsonify(quota_with_refresh)
-
-            # Cache miss - fetch from PikPak
-            logger.info("Cache miss - fetching quota from PikPak")
-
-            # Get both quota types
-            pikpak_service = get_pikpak_service()
-            storage_quota = await pikpak_service.get_quota_info()
-            transfer_quota = await pikpak_service.get_transfer_quota()
-
-            # Combine the results (cache only the actual quota data, not refresh_info)
-            quota_data_to_cache = {
-                "storage": storage_quota,
-                "transfer": transfer_quota
-            }
-
-            # Cache the result for 3 hours (without refresh_info)
-            cache_manager.set(cache_key, quota_data_to_cache,
-                              ttl=AppConfig.QUOTA_CACHE_TTL)
-            logger.info(
-                "Successfully retrieved and cached quota information (3 hours)")
-
-            quota_data = _add_refresh_info(quota_data_to_cache, AppConfig.QUOTA_CACHE_TTL)
-            _get_webdav_refresh_info(quota_data)
-
-            return jsonify(quota_data)
+            return await _get_quota_data()
         except Exception as e:
             logger.error(f"Failed to get quota: {e}")
             return jsonify({"error": str(e)}), 500

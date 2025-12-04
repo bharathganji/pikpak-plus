@@ -1,133 +1,197 @@
 """
-Token Manager using diskcache for PikPak authentication
-Replaces file-based token storage with efficient disk cache
+Token Manager using Supabase Database for PikPak authentication
+Replaces Redis-based token storage with Supabase
 """
-from diskcache import Cache
-import os
+from supabase import create_client
+import json
+import logging
+from datetime import datetime, timezone
 from typing import Optional, Dict
+from app.core.config import AppConfig
+
+logger = logging.getLogger(__name__)
+
 
 class TokenManager:
-    """Manages PikPak authentication tokens using diskcache"""
-    
-    def __init__(self, cache_dir: str = ".cache/pikpak"):
-        """
-        Initialize token manager with disk cache
-        
-        Args:
-            cache_dir: Directory to store cache files (default: .cache/pikpak)
-        """
-        self.cache = Cache(cache_dir)
-        # Default TTL for access tokens (1 hour)
-        self.access_token_ttl = 3600
-        # Refresh tokens typically last longer (7 days)
-        self.refresh_token_ttl = 604800
-    
+    """Manages PikPak authentication tokens using Supabase Database"""
+
+    def __init__(self):
+        """Initialize token manager with Supabase client"""
+        self.supabase = None
+        try:
+            self.supabase = create_client(
+                AppConfig.SUPABASE_URL, AppConfig.SUPABASE_KEY)
+            logger.info("TokenManager initialized with Supabase")
+        except Exception as e:
+            logger.error(
+                f"Failed to connect to Supabase for TokenManager: {e}")
+            self.supabase = None
+
+    def _get_tokens_row(self) -> Optional[Dict]:
+        """Helper to get the single token row"""
+        if not self.supabase:
+            logger.warning(
+                "Supabase client not initialized, cannot get tokens")
+            return None
+        try:
+            logger.debug("Fetching tokens from Supabase...")
+            response = self.supabase.table('pikpak_tokens').select(
+                '*').eq('id', 1).single().execute()
+            if response.data:
+                logger.info("Successfully retrieved tokens from Supabase")
+            else:
+                logger.warning("No tokens found in Supabase")
+            return response.data
+        except Exception as e:
+            logger.error(f"Failed to get tokens from Supabase: {e}")
+            return None
+
+    def _update_tokens_row(self, data: Dict):
+        """Helper to update the single token row"""
+        if not self.supabase:
+            logger.warning(
+                "Supabase client not initialized, cannot update tokens")
+            return
+        try:
+            data['id'] = 1  # Enforce singleton
+            data['updated_at'] = datetime.now(timezone.utc).isoformat()
+            self.supabase.table('pikpak_tokens').upsert(data).execute()
+            logger.info("Successfully updated tokens in Supabase")
+        except Exception as e:
+            logger.error(f"Failed to update tokens in Supabase: {e}")
+
     def get_credentials(self) -> Optional[Dict[str, str]]:
         """
         Get stored credentials (username, password)
-        
+
         Returns:
             Dict with 'username' and 'password' or None if not found
         """
-        return self.cache.get('credentials')
-    
+        row = self._get_tokens_row()
+        if row and row.get('username') and row.get('password'):
+            return {
+                'username': row['username'],
+                'password': row['password']
+            }
+        return None
+
     def set_credentials(self, username: str, password: str):
         """
         Store credentials (username, password)
-        
+
         Args:
             username: PikPak username/email
             password: PikPak password
         """
-        self.cache.set('credentials', {
+        self._update_tokens_row({
             'username': username,
             'password': password
-        }, expire=None)  # Never expire
-    
+        })
+
     def get_access_token(self) -> Optional[str]:
         """
         Get stored access token
-        
+
         Returns:
             Access token string or None if expired/not found
         """
-        return self.cache.get('access_token')
-    
-    def set_access_token(self, token: str, ttl: Optional[int] = None):
+        row = self._get_tokens_row()
+        if row and row.get('access_token'):
+            # Optional: Check expiration if stored
+            # expires_at = row.get('access_token_expires_at')
+            return row['access_token']
+        return None
+
+    def set_access_token(self, token: str):
         """
-        Store access token with TTL
-        
+        Store access token
+
         Args:
             token: Access token string
-            ttl: Time to live in seconds (default: 3600)
         """
-        expire_time = ttl or self.access_token_ttl
-        self.cache.set('access_token', token, expire=expire_time)
-    
+        self._update_tokens_row({
+            'access_token': token
+        })
+
     def get_refresh_token(self) -> Optional[str]:
         """
         Get stored refresh token
-        
+
         Returns:
             Refresh token string or None if expired/not found
         """
-        return self.cache.get('refresh_token')
-    
-    def set_refresh_token(self, token: str, ttl: Optional[int] = None):
+        row = self._get_tokens_row()
+        if row and row.get('refresh_token'):
+            return row['refresh_token']
+        return None
+
+    def set_refresh_token(self, token: str):
         """
-        Store refresh token with TTL
-        
+        Store refresh token
+
         Args:
             token: Refresh token string
-            ttl: Time to live in seconds (default: 604800 - 7 days)
         """
-        expire_time = ttl or self.refresh_token_ttl
-        self.cache.set('refresh_token', token, expire=expire_time)
-    
+        self._update_tokens_row({
+            'refresh_token': token
+        })
+
     def get_all_tokens(self) -> Dict[str, Optional[str]]:
         """
         Get both access and refresh tokens
-        
+
         Returns:
             Dict with 'access_token' and 'refresh_token'
         """
+        row = self._get_tokens_row()
+        if row:
+            return {
+                'access_token': row.get('access_token'),
+                'refresh_token': row.get('refresh_token')
+            }
         return {
-            'access_token': self.get_access_token(),
-            'refresh_token': self.get_refresh_token()
+            'access_token': None,
+            'refresh_token': None
         }
-    
-    def set_tokens(self, access_token: str, refresh_token: str, 
-                   access_ttl: Optional[int] = None, 
-                   refresh_ttl: Optional[int] = None):
+
+    def set_tokens(self, access_token: str, refresh_token: str):
         """
         Store both tokens at once
-        
+
         Args:
             access_token: Access token string
             refresh_token: Refresh token string
-            access_ttl: Access token TTL in seconds
-            refresh_ttl: Refresh token TTL in seconds
         """
-        self.set_access_token(access_token, access_ttl)
-        self.set_refresh_token(refresh_token, refresh_ttl)
-    
+        self._update_tokens_row({
+            'access_token': access_token,
+            'refresh_token': refresh_token
+        })
+
     def clear_tokens(self):
         """Clear all stored tokens (useful for logout)"""
-        self.cache.delete('access_token')
-        self.cache.delete('refresh_token')
-    
+        self._update_tokens_row({
+            'access_token': None,
+            'refresh_token': None
+        })
+
     def clear_all(self):
         """Clear everything including credentials"""
-        self.cache.clear()
-    
+        if not self.supabase:
+            return
+        try:
+            self.supabase.table('pikpak_tokens').delete().eq('id', 1).execute()
+        except Exception as e:
+            print(f"Failed to clear tokens in Supabase: {e}")
+
     def close(self):
         """Close the cache (call on app shutdown)"""
-        self.cache.close()
-    
+        # Supabase client doesn't need explicit closing usually
+        pass
+
     def __enter__(self):
         """Context manager support"""
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager cleanup"""
         self.close()
@@ -136,17 +200,15 @@ class TokenManager:
 # Global singleton instance
 _token_manager = None
 
-def get_token_manager(cache_dir: str = ".cache/pikpak") -> TokenManager:
+
+def get_token_manager() -> TokenManager:
     """
     Get or create the global TokenManager instance
-    
-    Args:
-        cache_dir: Directory for cache storage
-        
+
     Returns:
         TokenManager instance
     """
     global _token_manager
     if _token_manager is None:
-        _token_manager = TokenManager(cache_dir)
+        _token_manager = TokenManager()
     return _token_manager

@@ -54,16 +54,16 @@ async def collect_daily_statistics(pikpak_service, supabase_service, redis_clien
         storage_quota = quota_info.get("quota", {})
         storage_used = int(storage_quota.get("usage", 0))
 
-        # 2. Get Downstream Traffic (Play Times Usage)
-        downstream_traffic = int(storage_quota.get("play_times_usage", 0))
+        # 2. Get Cloud Download Traffic (Offline Downloads)
+        # UI shows: "Cloud Download 74.34 GB" = transfer.base.offline.assets
+        transfer_base = transfer_info.get("base", {})
+        offline_info = transfer_base.get("offline", {})
+        transfer_used = int(offline_info.get("assets", 0))
 
-        # 3. Get Transfer (Cloud Download) Usage
-        transfer_used = 0
-        if "quotas" in transfer_info:
-            for q in transfer_info["quotas"]:
-                if q.get("type") == "transfer":
-                    transfer_used = int(q.get("usage", 0))
-                    break
+        # 3. Get Downstream Traffic (Streaming & Direct Downloads)
+        # UI shows: "Downstream 955.26 MB" = transfer.base.download.assets
+        download_info = transfer_base.get("download", {})
+        downstream_traffic = int(download_info.get("assets", 0))
 
         # 4. Count Tasks Added (Last 24 hours)
         yesterday = run_time - timedelta(days=1)
