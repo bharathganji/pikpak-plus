@@ -16,7 +16,7 @@ interface CachedStars {
 }
 
 const CACHE_KEY_PREFIX = "github_stars_";
-const CACHE_DURATION = 1000 * 60 * 60; // 1 hour in milliseconds
+const CACHE_DURATION = 1000 * 60 * 60 * 24; // 24 hours in milliseconds
 
 export function GitHubButton({
   repo,
@@ -25,7 +25,7 @@ export function GitHubButton({
   const cacheKey = `${CACHE_KEY_PREFIX}${repo}`;
   const [cachedData, setCachedData] = useLocalStorage<CachedStars | null>(
     null,
-    cacheKey,
+    cacheKey
   );
   const [stars, setStars] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
