@@ -83,3 +83,28 @@ export const addMagnetLink = async (url: string) => {
     throw error;
   }
 };
+
+export const fetchMyTasks = async (urls: string[]) => {
+  try {
+    const apiUrl = getApiUrl();
+    const res = await axios.post(`${apiUrl}/tasks/my-tasks`, { urls });
+    return {
+      data: res.data.data || [],
+      count: res.data.count || 0,
+    };
+  } catch (error: any) {
+    console.error("Failed to fetch my tasks", error);
+
+    let msg = "Failed to load your tasks";
+
+    if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
+      msg = "Cannot connect to server. Please ensure the backend is running.";
+    } else if (error.response?.data?.error) {
+      msg = error.response.data.error;
+    } else if (error.message) {
+      msg = error.message;
+    }
+
+    throw new Error(msg);
+  }
+};

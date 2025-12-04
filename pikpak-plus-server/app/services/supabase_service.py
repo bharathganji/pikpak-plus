@@ -50,6 +50,37 @@ class SupabaseService:
             "count": response.count
         }
 
+    def get_tasks_by_urls(self, urls: list) -> list:
+        """
+        Get tasks matching specific URLs (for user's tasks from localStorage)
+
+        Args:
+            urls: List of magnet/torrent URLs to match
+
+        Returns:
+            List of matching task records
+        """
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        if not urls:
+            return []
+
+        try:
+            # Use PostgreSQL's JSONB operators to filter by URL
+            # The URL is stored in data->url field
+            response = self.client.table("public_actions") \
+                .select("*") \
+                .eq("action", "add") \
+                .in_("data->>url", urls) \
+                .order("created_at", desc=True) \
+                .execute()
+
+            return response.data
+        except Exception as e:
+            logger.error(f"Failed to get tasks by URLs: {e}")
+            raise
+
     def get_task_by_id(self, task_id: int):
         """Get a specific task by ID"""
         if not self.client:

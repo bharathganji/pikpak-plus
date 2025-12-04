@@ -68,6 +68,7 @@ CREATE INDEX IF NOT EXISTS idx_daily_statistics_date ON daily_statistics(date DE
 CREATE INDEX IF NOT EXISTS idx_public_actions_created_at ON public_actions(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_public_actions_action_created ON public_actions(action, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_public_actions_magnet_hash ON public_actions((data->>'info_hash')) WHERE action = 'add';
+CREATE INDEX IF NOT EXISTS idx_public_actions_url ON public_actions((data->>'url')) WHERE action = 'add';
 CREATE INDEX IF NOT EXISTS idx_public_actions_file_id ON public_actions((data->>'file_id')) WHERE action = 'share';
 
 
