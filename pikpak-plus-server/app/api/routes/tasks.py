@@ -154,6 +154,29 @@ def get_tasks():
         return jsonify({"error": str(e)}), 500
 
 
+@bp.route('/tasks/my-tasks', methods=['POST'])
+def get_my_tasks():
+    """Get tasks matching specific URLs (user's tasks from localStorage)"""
+    try:
+        data = request.json
+        urls = data.get('urls', [])
+
+        if not urls or not isinstance(urls, list):
+            return jsonify({"error": "URLs array required"}), 400
+
+        # No caching for user-specific queries
+        supabase_service = get_supabase_service()
+        tasks = supabase_service.get_tasks_by_urls(urls)
+
+        return jsonify({
+            "data": tasks,
+            "count": len(tasks)
+        })
+    except Exception as e:
+        logger.error(f"Failed to fetch my tasks: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @bp.route('/task/<int:task_id>', methods=['GET'])
 def get_task_by_id(task_id: int):
     """Get a specific task by ID for preview"""

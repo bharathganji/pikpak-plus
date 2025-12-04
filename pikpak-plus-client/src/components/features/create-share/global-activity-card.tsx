@@ -20,6 +20,8 @@ interface GlobalActivityCardProps {
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
   nextTaskStatusUpdate?: string | null;
+  showMyTasksOnly: boolean;
+  onFilterChange: (show: boolean) => void;
 }
 
 export function GlobalActivityCard({
@@ -33,6 +35,8 @@ export function GlobalActivityCard({
   onPageChange,
   onPageSizeChange,
   nextTaskStatusUpdate,
+  showMyTasksOnly,
+  onFilterChange,
 }: Readonly<GlobalActivityCardProps>) {
   return (
     <Card className="w-full">
@@ -64,6 +68,8 @@ export function GlobalActivityCard({
           pageSize={pageSize}
           onPageChange={onPageChange}
           onPageSizeChange={onPageSizeChange}
+          showMyTasksOnly={showMyTasksOnly}
+          onFilterChange={onFilterChange}
         />
       </CardContent>
     </Card>

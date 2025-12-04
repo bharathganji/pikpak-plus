@@ -20,6 +20,8 @@ interface TaskListProps {
   pageSize: number;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
+  showMyTasksOnly: boolean;
+  onFilterChange: (show: boolean) => void;
 }
 
 export function TaskList({
@@ -32,15 +34,13 @@ export function TaskList({
   pageSize,
   onPageChange,
   onPageSizeChange,
+  showMyTasksOnly,
+  onFilterChange,
 }: Readonly<TaskListProps>) {
   const [previewTask, setPreviewTask] = useState<SupabaseTaskRecord | null>(
     null,
   );
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [showMyTasksOnly, setShowMyTasksOnly] = useLocalStorage(
-    false,
-    "showMyTasksOnly",
-  );
   const [nsfwFilterEnabled, setNsfwFilterEnabled] = useLocalStorage(
     false,
     "nsfwFilterEnabled",
@@ -52,11 +52,8 @@ export function TaskList({
   };
 
   let filteredTasks = tasks;
-  if (showMyTasksOnly) {
-    filteredTasks = filteredTasks.filter((task) =>
-      localTaskUrls?.includes(task.data.url),
-    );
-  }
+  // Client-side filtering for My Tasks is removed as it's now handled by API
+
   if (nsfwFilterEnabled) {
     const filter = new BadWordsFilter({});
     filteredTasks = filteredTasks.filter(
@@ -67,6 +64,9 @@ export function TaskList({
   // Helper to determine the empty state message
   const getEmptyStateMessage = () => {
     if (tasks.length === 0) {
+      if (showMyTasksOnly) {
+        return "You haven't added any tasks yet.";
+      }
       if (page > 1) {
         return "No tasks on this page.";
       }
@@ -74,9 +74,6 @@ export function TaskList({
     }
 
     if (filteredTasks.length === 0) {
-      if (showMyTasksOnly) {
-        return "No tasks from you on this page.";
-      }
       if (nsfwFilterEnabled) {
         return "No tasks match your filters.";
       }
@@ -141,7 +138,7 @@ export function TaskList({
         <Button
           variant={showMyTasksOnly ? "default" : "outline"}
           size="sm"
-          onClick={() => setShowMyTasksOnly(!showMyTasksOnly)}
+          onClick={() => onFilterChange(!showMyTasksOnly)}
           className="gap-2 h-8"
         >
           <Filter className="h-3 w-3" />
@@ -161,8 +158,8 @@ export function TaskList({
       {/* Content */}
       {content}
 
-      {/* Pagination - Always visible unless loading or error */}
-      {!loading && !error && (
+      {/* Pagination - Always visible unless loading or error OR showing my tasks */}
+      {!loading && !error && !showMyTasksOnly && (
         <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
           <div className="flex items-center gap-2">
             <span>

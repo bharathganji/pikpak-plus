@@ -5,7 +5,12 @@ import { useLocalStorage } from "primereact/hooks";
 import { MagnetInputCard } from "./magnet-input-card";
 import { GlobalActivityCard } from "./global-activity-card";
 import { LocalTask, LOCAL_TASKS_STORAGE_KEY } from "../my-activity/types";
-import { fetchConfig, fetchCleanupStatus, fetchGlobalTasks } from "./api-utils";
+import {
+  fetchConfig,
+  fetchCleanupStatus,
+  fetchGlobalTasks,
+  fetchMyTasks,
+} from "./api-utils";
 
 export function CreateShareTab() {
   // Global tasks state
@@ -15,6 +20,10 @@ export function CreateShareTab() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [showMyTasksOnly, setShowMyTasksOnly] = useLocalStorage(
+    false,
+    "showMyTasksOnly",
+  );
 
   // Cleanup status state
   const [cleanupStatus, setCleanupStatus] = useState<{
@@ -90,16 +99,24 @@ export function CreateShareTab() {
     return () => clearInterval(interval);
   }, [cleanupStatus]);
 
+  // Mount check to prevent hydration mismatches
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // Fetch global tasks
   useEffect(() => {
+    if (!isMounted || showMyTasksOnly) return;
+
     const fetchTasks = async () => {
       setGlobalTasksLoading(true);
       setGlobalTasksError("");
       try {
         const result = await fetchGlobalTasks(page, pageSize);
         setGlobalTasks(result.data);
-        const count = result.count;
-        setTotalPages(Math.ceil(count / pageSize));
+        setTotalPages(Math.ceil(result.count / pageSize));
       } catch (error: any) {
         setGlobalTasksError(error.message);
       } finally {
@@ -108,7 +125,54 @@ export function CreateShareTab() {
     };
 
     fetchTasks();
-  }, [page, pageSize]);
+  }, [
+    page,
+    pageSize,
+    showMyTasksOnly,
+    isMounted,
+    setGlobalTasks,
+    setGlobalTasksLoading,
+    setGlobalTasksError,
+    setTotalPages,
+  ]);
+
+  // Fetch my tasks
+  useEffect(() => {
+    if (!isMounted || !showMyTasksOnly) return;
+
+    const fetchTasks = async () => {
+      setGlobalTasksLoading(true);
+      setGlobalTasksError("");
+
+      // Early return if no local tasks
+      if (localTaskUrls.length === 0) {
+        setGlobalTasks([]);
+        setTotalPages(1);
+        setGlobalTasksLoading(false);
+        return;
+      }
+
+      try {
+        const result = await fetchMyTasks(localTaskUrls);
+        setGlobalTasks(result.data);
+        setTotalPages(1); // No pagination for my tasks
+      } catch (error: any) {
+        setGlobalTasksError(error.message);
+      } finally {
+        setGlobalTasksLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, [
+    showMyTasksOnly,
+    localTaskUrls,
+    isMounted,
+    setGlobalTasks,
+    setGlobalTasksLoading,
+    setGlobalTasksError,
+    setTotalPages,
+  ]);
 
   const handleAddSuccess = (taskData: any, fileInfoData: any) => {
     // Create new task object
@@ -141,11 +205,8 @@ export function CreateShareTab() {
     const updatedTasks = [newTask, ...existing];
     setLocalTasks(updatedTasks);
 
-    // Refresh global tasks and reset to first page
-    fetchGlobalTasks(1, pageSize).then((result) => {
-      setGlobalTasks(result.data);
-      setTotalPages(Math.ceil(result.count / pageSize));
-    });
+    // Refresh global tasks by resetting to first page
+    // The useEffect will handle the actual API call
     setPage(1);
   };
 
@@ -172,6 +233,8 @@ export function CreateShareTab() {
           setPage(1); // Reset to first page when changing page size
         }}
         nextTaskStatusUpdate={nextTaskStatusUpdate}
+        showMyTasksOnly={showMyTasksOnly}
+        onFilterChange={setShowMyTasksOnly}
       />
     </div>
   );
