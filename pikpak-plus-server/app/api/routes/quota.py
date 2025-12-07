@@ -8,86 +8,52 @@ from app.core.config import AppConfig
 from app.api.utils.async_helpers import run_async
 from app.api.utils.dependencies import (
     get_pikpak_service,
-    get_cache_manager,
-    get_scheduler
+    get_cache_manager
 )
 
 logger = logging.getLogger(__name__)
+
+# Timezone format constants
+UTC_TIMEZONE_OFFSET = '+00:00'
+UTC_ZULU_FORMAT = 'Z'
 
 # Create blueprint
 bp = Blueprint('quota', __name__)
 
 
-def _parse_scheduler_data(data):
-    try:
-        scheduler_info = json.loads(data)
-        if scheduler_info.get("status") == "running":
-            return {
-                "scheduler_running": True,
-                "next_cleanup": scheduler_info.get("next_cleanup"),
-                "message": (
-                    f"Distributed scheduler is running on worker {scheduler_info.get('worker_id')}. "
-                    f"Next cleanup: {scheduler_info.get('next_cleanup')}"
-                )
-            }
-        else:
-            return {"message": "Distributed scheduler is not currently running on any worker"}
-    except json.JSONDecodeError:
-        if data == "running":
-            return {
-                "scheduler_running": True,
-                "message": "Distributed scheduler is running on one of the workers"
-            }
-        else:
-            return {"message": "Distributed scheduler is not currently running on any worker"}
-
-
-def _get_redis_scheduler_status():
+def _get_scheduler_status():
+    """Get scheduler status from Redis"""
     try:
         redis_client = redis.from_url(
             AppConfig.REDIS_URL, decode_responses=True)
         try:
-            scheduler_status_data = redis_client.get("pikpak_scheduler_status")
-            if scheduler_status_data:
-                return _parse_scheduler_data(scheduler_status_data)
-            else:
-                return {"message": "No scheduler status found in Redis"}
+            status_data = redis_client.get("pikpak_scheduler_status")
+            if status_data:
+                return json.loads(status_data)
         finally:
             redis_client.close()
-    except Exception as redis_error:
-        logger.error(
-            f"Error accessing Redis for scheduler status: {redis_error}")
-        return {"message": f"Could not access Redis for scheduler status: {str(redis_error)}"}
-
-
-def _handle_cleanup_job(job):
-    next_run = getattr(job, 'next_run_time', None)
-    if next_run:
-        return {
-            "next_cleanup": next_run.isoformat(),
-            "message": (
-                f"Local scheduler running on this worker. Next cleanup: {next_run.isoformat()}"
-            )
-        }
-    else:
-        return {"message": "Job exists but next run time not yet calculated"}
-
-
-def _get_local_scheduler_status():
-    try:
-        app_scheduler = get_scheduler()
-        if app_scheduler and app_scheduler.running:
-            job = app_scheduler.get_job('cleanup_job')
-            if job:
-                updates = _handle_cleanup_job(job)
-                updates["scheduler_running"] = app_scheduler.running
-                return updates
-            else:
-                return {"scheduler_running": app_scheduler.running}
-    except Exception as scheduler_error:
-        logger.error(
-            f"Error accessing local scheduler status: {scheduler_error}")
+    except Exception as e:
+        logger.error(f"Error fetching scheduler status: {e}")
     return {}
+
+
+def _is_scheduler_running(scheduler_info):
+    """Check if scheduler is running based on heartbeat"""
+    if not scheduler_info:
+        return False
+
+    last_heartbeat = scheduler_info.get("last_heartbeat")
+    if not last_heartbeat:
+        return False
+
+    try:
+        # Check if heartbeat is recent (within last 3 minutes)
+        heartbeat_time = datetime.fromisoformat(
+            last_heartbeat.replace(UTC_ZULU_FORMAT, UTC_TIMEZONE_OFFSET))
+        now = datetime.now(timezone.utc)
+        return (now - heartbeat_time).total_seconds() < 180
+    except Exception:
+        return False
 
 
 def _calculate_next_refresh_time(cached_at_str, remaining_ttl):
@@ -103,8 +69,9 @@ def _calculate_next_refresh_time(cached_at_str, remaining_ttl):
             next_refresh_dt = cached_at + \
                 timedelta(seconds=AppConfig.QUOTA_CACHE_TTL)
             next_refresh_utc = next_refresh_dt.isoformat()
-            if next_refresh_utc.endswith('+00:00'):
-                next_refresh_utc = next_refresh_utc.replace('+00:00', 'Z')
+            if next_refresh_utc.endswith(UTC_TIMEZONE_OFFSET):
+                next_refresh_utc = next_refresh_utc.replace(
+                    UTC_TIMEZONE_OFFSET, UTC_ZULU_FORMAT)
         except ValueError:
             pass
 
@@ -112,7 +79,7 @@ def _calculate_next_refresh_time(cached_at_str, remaining_ttl):
         next_refresh_utc = (
             datetime.now(timezone.utc) +
             timedelta(seconds=remaining_ttl)
-        ).isoformat() + 'Z'
+        ).isoformat() + UTC_ZULU_FORMAT
 
     return next_refresh_utc
 
@@ -122,34 +89,39 @@ def _add_refresh_info(quota_data, remaining_ttl):
     next_refresh_utc = _calculate_next_refresh_time(
         quota_data.get("cached_at"), remaining_ttl)
 
+    # Get WebDAV refresh info from Redis
+    scheduler_info = _get_scheduler_status()
+    webdav_next = scheduler_info.get("next_webdav_generation")
+    next_cleanup = scheduler_info.get("next_cleanup")
+
+    # Fallback calculation if missing (startup scenario)
+    now = datetime.now(timezone.utc)
+
+    if not webdav_next:
+        if scheduler_info.get("status") == "running":
+            webdav_next = "Pending (Starting...)"
+        else:
+            webdav_next = "Scheduler Not Running"
+
+    if not next_cleanup:
+        # Cleanup runs every CLEANUP_INTERVAL_HOURS hours at minute 0
+        interval = AppConfig.CLEANUP_INTERVAL_HOURS
+        current_hour = now.hour
+        hours_until_next = interval - (current_hour % interval)
+        next_run = now.replace(
+            minute=0, second=0, microsecond=0) + timedelta(hours=hours_until_next)
+        if next_run <= now:
+            next_run += timedelta(hours=interval)
+        next_cleanup = next_run.isoformat() + UTC_ZULU_FORMAT
+
     quota_data["refresh_info"] = {
         "quota_refresh_interval_seconds": AppConfig.QUOTA_CACHE_TTL,
         "quota_next_refresh": next_refresh_utc,
         "webdav_generation_interval_hours": AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS,
-        "webdav_next_refresh": None
+        "webdav_next_refresh": webdav_next,
+        "next_cleanup": next_cleanup
     }
     return quota_data
-
-
-def _get_webdav_refresh_info(quota_data):
-    """Get WebDAV refresh information from Redis"""
-    try:
-        redis_client = redis.from_url(
-            AppConfig.REDIS_URL, decode_responses=True)
-        try:
-            scheduler_status_data = redis_client.get("pikpak_scheduler_status")
-            if scheduler_status_data:
-                try:
-                    scheduler_info = json.loads(scheduler_status_data)
-                    quota_data["refresh_info"]["webdav_next_refresh"] = scheduler_info.get(
-                        "next_webdav_generation")
-                except json.JSONDecodeError:
-                    pass  # Ignore if JSON parsing fails
-        finally:
-            redis_client.close()
-    except Exception as redis_error:
-        logger.error(
-            f"Error accessing Redis for WebDAV refresh info: {redis_error}")
 
 
 async def _get_quota_data():
@@ -173,8 +145,6 @@ def _handle_cached_quota(cached_quota, cache_manager, cache_key):
     quota_with_refresh = _add_refresh_info(cached_quota.copy(), remaining_ttl)
     logger.info(
         f"Calculated next refresh time: {quota_with_refresh['refresh_info']['quota_next_refresh']}")
-
-    _get_webdav_refresh_info(quota_with_refresh)
 
     return jsonify(quota_with_refresh)
 
@@ -202,7 +172,6 @@ async def _handle_cache_miss(cache_key, cache_manager):
 
     quota_data = _add_refresh_info(
         quota_data_to_cache, AppConfig.QUOTA_CACHE_TTL)
-    _get_webdav_refresh_info(quota_data)
 
     return jsonify(quota_data)
 
@@ -224,29 +193,22 @@ def get_quota():
 def cleanup_status():
     """Get cleanup schedule status"""
     try:
+        scheduler_info = _get_scheduler_status()
+        is_running = _is_scheduler_running(scheduler_info)
+        next_cleanup = scheduler_info.get("next_cleanup")
+
+        message = "Scheduler is running" if is_running else "Scheduler is not running or heartbeat is stale"
+        if is_running and next_cleanup:
+            message += f". Next cleanup: {next_cleanup}"
+
         result = {
+            "scheduler_running": is_running,
+            "next_cleanup": next_cleanup,
+            "message": message,
             "cleanup_interval_hours": AppConfig.CLEANUP_INTERVAL_HOURS,
-            "task_retention_hours": AppConfig.TASK_RETENTION_HOURS,
-            "scheduler_running": False,
-            "next_cleanup": None,
-            "message": "Checking distributed scheduler status..."
+            "task_retention_hours": AppConfig.TASK_RETENTION_HOURS
         }
-
-        redis_updates = _get_redis_scheduler_status()
-        result.update(redis_updates)
-
-        local_updates = _get_local_scheduler_status()
-        result.update(local_updates)
-
-        # Simplified response
-        simple_result = {
-            "scheduler_running": result["scheduler_running"],
-            "next_cleanup": result["next_cleanup"],
-            "message": result["message"],
-            "cleanup_interval_hours": result["cleanup_interval_hours"],
-            "task_retention_hours": result["task_retention_hours"]
-        }
-        return jsonify(simple_result)
+        return jsonify(result)
 
     except Exception as e:
         logger.error(f"Failed to fetch cleanup status: {e}")

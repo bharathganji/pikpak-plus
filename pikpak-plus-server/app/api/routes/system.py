@@ -27,16 +27,34 @@ def get_config():
 
     # Get next task status update time from Redis
     try:
-        redis_client = redis.from_url(AppConfig.REDIS_URL, decode_responses=True)
-        scheduler_status_data = redis_client.get("pikpak_scheduler_status")
-        if scheduler_status_data:
-            try:
-                scheduler_info = json.loads(scheduler_status_data)
-                result["next_task_status_update"] = scheduler_info.get("next_task_status_update")
-            except json.JSONDecodeError:
-                pass  # Ignore if JSON parsing fails
+        redis_client = redis.from_url(
+            AppConfig.REDIS_URL, decode_responses=True)
+        try:
+            scheduler_status_data = redis_client.get("pikpak_scheduler_status")
+            if scheduler_status_data:
+                try:
+                    scheduler_info = json.loads(scheduler_status_data)
+                    next_update = scheduler_info.get("next_task_status_update")
+
+                    if next_update:
+                        result["next_task_status_update"] = next_update
+                    elif scheduler_info.get("status") == "running":
+                        # Scheduler is running but job hasn't reported yet
+                        result["next_task_status_update"] = "Pending (Starting...)"
+                    else:
+                        result["next_task_status_update"] = "Scheduler Not Running"
+
+                except json.JSONDecodeError:
+                    pass
+            else:
+                result["next_task_status_update"] = "Waiting for Scheduler..."
+
+        finally:
+            redis_client.close()
     except Exception as redis_error:
-        logger.error(f"Error accessing Redis for task status update info: {redis_error}")
+        logger.error(
+            f"Error accessing Redis for task status update info: {redis_error}")
+        result["next_task_status_update"] = "Error checking status"
 
     return jsonify(result)
 

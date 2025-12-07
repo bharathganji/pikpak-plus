@@ -322,6 +322,30 @@ class SupabaseService:
             logger.error(f"Failed to count tasks: {e}")
             return 0
 
+    def count_tasks_added_between(self, start_time: str, end_time: str) -> int:
+        """
+        Count tasks added between two timestamps
+
+        Args:
+            start_time: ISO format timestamp string (inclusive)
+            end_time: ISO format timestamp string (exclusive)
+        """
+        if not self.client:
+            return 0
+
+        try:
+            response = self.client.table("public_actions") \
+                .select("id", count="exact") \
+                .eq("action", "add") \
+                .gte("created_at", start_time) \
+                .lt("created_at", end_time) \
+                .execute()
+
+            return response.count or 0
+        except Exception as e:
+            logger.error(f"Failed to count tasks between dates: {e}")
+            return 0
+
     def log_daily_stats(self, stats_data: dict):
         """
         Log daily statistics

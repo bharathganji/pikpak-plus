@@ -12,7 +12,7 @@ from app.core.config import AppConfig
 from app.services import PikPakService, SupabaseService, WebDAVManager
 from app.utils.common import CacheManager
 from app.api.routes import init_routes, api_bp
-from app.tasks.scheduler import init_scheduler
+
 import json
 import uuid
 from contextvars import ContextVar
@@ -138,11 +138,6 @@ def create_app():
 
     # Register blueprints
     app.register_blueprint(api_bp)
-
-    # Initialize scheduler and background tasks
-    # We pass services to the scheduler module so it can use them in jobs
-    init_scheduler(pikpak_service, supabase_service,
-                   webdav_manager, redis_client, cache_manager)
 
     # Initialize Rate Limiter
     Limiter(

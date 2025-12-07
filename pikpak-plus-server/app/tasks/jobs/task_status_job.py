@@ -5,82 +5,80 @@ from datetime import datetime, timedelta, timezone
 
 from app.core.config import AppConfig
 from app.services.pikpak_service import PikPakService
-from app.tasks.utils import update_redis_status
+from celery import shared_task
+from app.services import PikPakService, SupabaseService
+from app.utils.common import CacheManager
+from app.core.config import AppConfig
+import redis
 
 logger = logging.getLogger(__name__)
 
 
-async def scheduled_task_status_update(pikpak_service, supabase_service, cache_manager, redis_client):
+@shared_task(bind=True, name='app.tasks.jobs.task_status_job.scheduled_task_status_update')
+def scheduled_task_status_update(self, source="scheduled"):
     """
     Update task statuses from PikPak and sync to Supabase.
-
-    Args:
-        pikpak_service: Global PikPak service instance (for credentials)
-        supabase_service: Supabase service instance
-        cache_manager: Cache manager for invalidating task cache
-        redis_client: Redis client for updating scheduler status
     """
     run_time = datetime.now(timezone.utc)
     logger.info(
-        f"Running scheduled task status update at {run_time.isoformat()}Z...")
-    logger.info(
-        f"Configured interval: {AppConfig.TASK_STATUS_UPDATE_INTERVAL_MINUTES} minutes")
-
-    # Validate required services
-    if not pikpak_service or not pikpak_service.client:
-        logger.warning(
-            "Global PikPak service not initialized, skipping task status update")
-        return
-
-    if not supabase_service:
-        logger.warning(
-            "Supabase client not initialized, skipping task status update")
-        return
+        f"Running {source} task status update at {run_time.isoformat()}Z...")
 
     try:
-        # Create a local service instance for this thread to avoid event loop conflicts
-        local_pikpak_service = PikPakService(
-            username=pikpak_service.client.username,
-            password=pikpak_service.client.password
-        )
+        # Initialize services locally for the task
+        redis_client = redis.from_url(
+            AppConfig.REDIS_URL, decode_responses=True)
+        cache_manager = CacheManager(
+            AppConfig.TASK_CACHE_TTL, AppConfig.REDIS_URL)
 
-        # Ensure logged in (will use persisted tokens if available)
-        await local_pikpak_service.ensure_logged_in()
+        # Initialize Supabase
+        from supabase import create_client
+        supabase_client = create_client(
+            AppConfig.SUPABASE_URL, AppConfig.SUPABASE_KEY)
+        supabase_service = SupabaseService(supabase_client)
 
-        # Fetch tasks from PikPak
-        logger.info("Fetching offline tasks from PikPak...")
-        pikpak_tasks_result = await local_pikpak_service.get_offline_tasks()
-        pikpak_tasks = pikpak_tasks_result.get('tasks', [])
-        logger.info(f"Fetched {len(pikpak_tasks)} tasks from PikPak")
+        # Initialize PikPak
+        pikpak_service = PikPakService(
+            AppConfig.PIKPAK_USER, AppConfig.PIKPAK_PASS)
 
-        # Update Supabase with latest task statuses
-        # Note: Supabase service is synchronous, so we can use the global instance
-        logger.info("Updating task statuses in Supabase...")
-        updated_count = supabase_service.update_task_statuses(pikpak_tasks)
-        logger.info(f"Updated {updated_count} task statuses in Supabase")
+        # Ensure logged in
+        import asyncio
+        # Run async login and fetch in sync context
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
-        # Invalidate cache to force refresh on next request
-        if cache_manager:
+        try:
+            loop.run_until_complete(pikpak_service.ensure_logged_in())
+
+            logger.info("Fetching offline tasks from PikPak...")
+            pikpak_tasks_result = loop.run_until_complete(
+                pikpak_service.get_offline_tasks())
+            pikpak_tasks = pikpak_tasks_result.get('tasks', [])
+            logger.info(f"Fetched {len(pikpak_tasks)} tasks from PikPak")
+
+            # Update Supabase (sync)
+            updated_count = supabase_service.update_task_statuses(pikpak_tasks)
+            logger.info(f"Updated {updated_count} task statuses in Supabase")
+
+            # Invalidate cache
             cache_manager.invalidate_tasks()
             logger.info("Invalidated task cache")
 
-        # Calculate next run time from THIS run time to prevent schedule drift
-        next_task_status_time = run_time + timedelta(
-            minutes=AppConfig.TASK_STATUS_UPDATE_INTERVAL_MINUTES
-        )
+            # Update Redis status
+            from app.tasks.utils import update_redis_status
 
-        # Update scheduler status in Redis
-        update_redis_status(
-            redis_client,
-            run_time,
-            next_task_status_time,
-            "task_status_update"
-        )
+            next_run_time = run_time + \
+                timedelta(minutes=AppConfig.TASK_STATUS_UPDATE_INTERVAL_MINUTES)
+            update_redis_status(redis_client, run_time,
+                                next_run_time, "task_status_update")
 
-        logger.info(
-            f"Task status update completed at {datetime.now(timezone.utc).isoformat()}. "
-            f"Updated {updated_count} tasks."
-        )
+            logger.info(
+                f"Task status update completed at {datetime.now(timezone.utc).isoformat()}. "
+                f"Updated {updated_count} tasks."
+            )
+
+        finally:
+            loop.close()
+            redis_client.close()
 
     except Exception as e:
         import httpx
@@ -90,3 +88,5 @@ async def scheduled_task_status_update(pikpak_service, supabase_service, cache_m
         else:
             logger.error(
                 f"Scheduled task status update failed: {e}", exc_info=True)
+            # Retry the task if it failed (optional, can be configured in decorator)
+            raise self.retry(exc=e, countdown=60, max_retries=3)

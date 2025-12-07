@@ -77,30 +77,11 @@ def add_task():
         cache_manager = get_cache_manager()
         cache_manager.invalidate_tasks()
 
-        # Trigger immediate task status update in background
+        # Trigger immediate task status update in background via Celery
         try:
-            from app.tasks.jobs import scheduled_task_status_update
-            from app.tasks.runners import run_async_job
-            from app.api.utils.dependencies import get_redis_client
-
-            # Get required services
-            redis_cli = get_redis_client()
-
-            # Run in background thread
-            import threading
-
-            def trigger_update():
-                run_async_job(
-                    scheduled_task_status_update,
-                    pikpak_service,
-                    supabase_service,
-                    cache_manager,
-                    redis_cli
-                )
-
-            thread = threading.Thread(target=trigger_update, daemon=True)
-            thread.start()
-            logger.info("Triggered immediate task status update")
+            from app.tasks.jobs.task_status_job import scheduled_task_status_update
+            scheduled_task_status_update.delay(source="manual")
+            logger.info("Triggered immediate task status update via Celery")
         except Exception as e:
             logger.warning(
                 f"Failed to trigger immediate task status update: {e}")

@@ -5,101 +5,132 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 
 from app.core.config import AppConfig
-from app.services.pikpak_service import PikPakService
-from app.tasks.utils import update_redis_status
+from celery import shared_task
+from app.services import PikPakService, SupabaseService
+from app.core.config import AppConfig
+import redis
+import asyncio
 
 logger = logging.getLogger(__name__)
 
 
-async def collect_daily_statistics(pikpak_service, supabase_service, redis_client):
+@shared_task(bind=True, name='app.tasks.jobs.statistics_job.collect_daily_statistics')
+def collect_daily_statistics(self):
     """
     Collect daily statistics and store in Supabase.
-
-    Args:
-        pikpak_service: Global PikPak service instance
-        supabase_service: Supabase service instance
-        redis_client: Redis client for updating scheduler status
     """
     run_time = datetime.now(timezone.utc)
     logger.info(
         f"Running daily statistics collection at {run_time.isoformat()}Z...")
 
-    # Validate required services
-    if not pikpak_service or not pikpak_service.client:
-        logger.warning(
-            "Global PikPak service not initialized, skipping statistics collection")
-        return
-
-    if not supabase_service:
-        logger.warning(
-            "Supabase client not initialized, skipping statistics collection")
-        return
-
     try:
-        # Create a local service instance for this thread
-        local_pikpak_service = PikPakService(
-            username=pikpak_service.client.username,
-            password=pikpak_service.client.password
-        )
-        await local_pikpak_service.ensure_logged_in()
+        # Initialize services locally
+        redis_client = redis.from_url(
+            AppConfig.REDIS_URL, decode_responses=True)
 
-        # Parallelize independent API calls for faster collection
-        quota_info, transfer_info, vip_info = await asyncio.gather(
-            local_pikpak_service.client.get_quota_info(),
-            local_pikpak_service.client.get_transfer_quota(),
-            local_pikpak_service.client.vip_info()
-        )
+        # Initialize Supabase
+        from supabase import create_client
+        supabase_client = create_client(
+            AppConfig.SUPABASE_URL, AppConfig.SUPABASE_KEY)
+        supabase_service = SupabaseService(supabase_client)
 
-        # 1. Get Storage Usage
-        storage_quota = quota_info.get("quota", {})
-        storage_used = int(storage_quota.get("usage", 0))
+        # Initialize PikPak
+        pikpak_service = PikPakService(
+            AppConfig.PIKPAK_USER, AppConfig.PIKPAK_PASS)
 
-        # 2. Get Cloud Download Traffic (Offline Downloads)
-        # UI shows: "Cloud Download 74.34 GB" = transfer.base.offline.assets
-        transfer_base = transfer_info.get("base", {})
-        offline_info = transfer_base.get("offline", {})
-        transfer_used = int(offline_info.get("assets", 0))
+        # Run async logic in sync context
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
-        # 3. Get Downstream Traffic (Streaming & Direct Downloads)
-        # UI shows: "Downstream 955.26 MB" = transfer.base.download.assets
-        download_info = transfer_base.get("download", {})
-        downstream_traffic = int(download_info.get("assets", 0))
+        try:
+            loop.run_until_complete(pikpak_service.ensure_logged_in())
 
-        # 4. Count Tasks Added (Last 24 hours)
-        yesterday = run_time - timedelta(days=1)
-        tasks_added = supabase_service.count_tasks_added_since(
-            yesterday.isoformat())
+            # Determine target date (yesterday)
+            target_date = (run_time - timedelta(days=1)).date()
+            target_date_str = target_date.isoformat()
 
-        # 5. Premium Expiration
-        premium_expiration = vip_info.get("data", {}).get("expire")
+            # Check if stats already exist for this date
+            existing_stats = loop.run_until_complete(
+                asyncio.to_thread(supabase_service.get_daily_stats, limit=1)
+            )
 
-        # Prepare stats data
-        stats_data = {
-            "date": run_time.date().isoformat(),
-            "tasks_added": tasks_added,
-            "storage_used": storage_used,
-            "transfer_used": transfer_used,
-            "downstream_traffic": downstream_traffic,
-            "premium_expiration": premium_expiration,
-            "created_at": run_time.isoformat()
-        }
+            # Simple check: if the latest stat is for our target date, skip
+            if existing_stats and existing_stats[0].get('date') == target_date_str:
+                logger.info(
+                    f"Statistics for {target_date_str} already exist. Skipping.")
 
-        # Log to Supabase
-        supabase_service.log_daily_stats(stats_data)
+                # Update Redis status for next check (1 hour later)
+                from app.tasks.utils import update_redis_status
+                next_run_time = run_time + timedelta(hours=1)
+                update_redis_status(redis_client, run_time,
+                                    next_run_time, "statistics_collection")
+                return
 
-        # Update Redis status
-        # Calculate next run time (24 hours from now)
-        next_run_time = run_time + timedelta(hours=24)
+            logger.info(f"Collecting statistics for {target_date_str}...")
 
-        update_redis_status(
-            redis_client,
-            run_time,
-            next_run_time,
-            "statistics_collection"
-        )
+            # Parallelize independent API calls for faster collection
+            # We need to access the client directly from the service
+            quota_info, transfer_info, vip_info = loop.run_until_complete(asyncio.gather(
+                pikpak_service.client.get_quota_info(),
+                pikpak_service.client.get_transfer_quota(),
+                pikpak_service.client.vip_info()
+            ))
 
-        logger.info(
-            f"Daily statistics collected successfully for {stats_data['date']}")
+            # 1. Get Storage Usage
+            storage_quota = quota_info.get("quota", {})
+            storage_used = int(storage_quota.get("usage", 0))
+
+            # 2. Get Cloud Download Traffic (Offline Downloads)
+            transfer_base = transfer_info.get("base", {})
+            offline_info = transfer_base.get("offline", {})
+            transfer_used = int(offline_info.get("assets", 0))
+
+            # 3. Get Downstream Traffic (Streaming & Direct Downloads)
+            download_info = transfer_base.get("download", {})
+            downstream_traffic = int(download_info.get("assets", 0))
+
+            # 4. Count Tasks Added (Target Day 00:00 to 23:59:59)
+            start_of_day = datetime.combine(
+                target_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+            end_of_day = start_of_day + timedelta(days=1)
+
+            tasks_added = supabase_service.count_tasks_added_between(
+                start_of_day.isoformat(),
+                end_of_day.isoformat()
+            )
+
+            # 5. Premium Expiration
+            premium_expiration = vip_info.get("data", {}).get("expire")
+
+            # Prepare stats data
+            stats_data = {
+                "date": target_date_str,
+                "tasks_added": tasks_added,
+                "storage_used": storage_used,
+                "transfer_used": transfer_used,
+                "downstream_traffic": downstream_traffic,
+                "premium_expiration": premium_expiration,
+                "created_at": run_time.isoformat()
+            }
+
+            # Log to Supabase
+            supabase_service.log_daily_stats(stats_data)
+
+            logger.info(
+                f"Daily statistics collected successfully for {stats_data['date']}")
+
+            # Update Redis status
+            from app.tasks.utils import update_redis_status
+
+            # Check again in 1 hour
+            next_run_time = run_time + timedelta(hours=1)
+            update_redis_status(redis_client, run_time,
+                                next_run_time, "statistics_collection")
+
+        finally:
+            loop.close()
+            redis_client.close()
 
     except Exception as e:
         logger.error(f"Failed to collect daily statistics: {e}", exc_info=True)
+        raise self.retry(exc=e, countdown=300, max_retries=3)
