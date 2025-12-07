@@ -71,6 +71,60 @@ services:
       retries: 3
       start_period: 40s
 
+  worker:
+    build: ./pikpak-plus-server
+    command: celery -A app.celery_app.celery_app worker --loglevel=info
+    restart: unless-stopped
+    depends_on:
+      - redis
+      - server
+    environment:
+      - FLASK_APP=${FLASK_APP:-app.py}
+      - FLASK_DEBUG=${FLASK_DEBUG:-1}
+      - IS_DEVELOPMENT=${IS_DEVELOPMENT:-false}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - USER=${USER:-${user}}
+      - PASSWD=${PASSWD:-${passwd}}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - PROXY=${PROXY:-}
+      - MAX_FILE_SIZE_GB=${MAX_FILE_SIZE_GB:-25}
+      - TASK_STATUS_UPDATE_INTERVAL_MINUTES=${TASK_STATUS_UPDATE_INTERVAL_MINUTES:-15}
+      - CLEANUP_INTERVAL_HOURS=${CLEANUP_INTERVAL_HOURS:-24}
+      - TASK_RETENTION_HOURS=${TASK_RETENTION_HOURS:-24}
+      - TASK_CACHE_TTL_SECONDS=${TASK_CACHE_TTL_SECONDS:-300}
+      - QUOTA_CACHE_TTL_SECONDS=${QUOTA_CACHE_TTL_SECONDS:-10800}
+      - VIP_INFO_CACHE_TTL_SECONDS=${VIP_INFO_CACHE_TTL_SECONDS:-604800}
+      - DEFAULT_PAGE_SIZE=${DEFAULT_PAGE_SIZE:-25}
+      - WEBDAV_GENERATION_INTERVAL_HOURS=${WEBDAV_GENERATION_INTERVAL_HOURS:-24}
+
+  beat:
+    build: ./pikpak-plus-server
+    command: celery -A app.celery_app.celery_app beat --loglevel=info
+    restart: unless-stopped
+    depends_on:
+      - redis
+      - server
+    environment:
+      - FLASK_APP=${FLASK_APP:-app.py}
+      - FLASK_DEBUG=${FLASK_DEBUG:-1}
+      - IS_DEVELOPMENT=${IS_DEVELOPMENT:-false}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - USER=${USER:-${user}}
+      - PASSWD=${PASSWD:-${passwd}}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - PROXY=${PROXY:-}
+      - MAX_FILE_SIZE_GB=${MAX_FILE_SIZE_GB:-25}
+      - TASK_STATUS_UPDATE_INTERVAL_MINUTES=${TASK_STATUS_UPDATE_INTERVAL_MINUTES:-15}
+      - CLEANUP_INTERVAL_HOURS=${CLEANUP_INTERVAL_HOURS:-24}
+      - TASK_RETENTION_HOURS=${TASK_RETENTION_HOURS:-24}
+      - TASK_CACHE_TTL_SECONDS=${TASK_CACHE_TTL_SECONDS:-300}
+      - QUOTA_CACHE_TTL_SECONDS=${QUOTA_CACHE_TTL_SECONDS:-10800}
+      - VIP_INFO_CACHE_TTL_SECONDS=${VIP_INFO_CACHE_TTL_SECONDS:-604800}
+      - DEFAULT_PAGE_SIZE=${DEFAULT_PAGE_SIZE:-25}
+      - WEBDAV_GENERATION_INTERVAL_HOURS=${WEBDAV_GENERATION_INTERVAL_HOURS:-24}
+
   redis:
     image: redis:7-alpine
     ports:

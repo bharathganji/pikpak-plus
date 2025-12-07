@@ -5,7 +5,7 @@ import os
 import json
 import asyncio
 from random import uniform
-from typing import Optional, Dict, Any, Callable
+from typing import Optional, Dict, Any, Callable, Tuple
 from PikPakAPI import PikPakApi
 from app.core.config import AppConfig
 from app.core.client import get_or_create_client
@@ -47,59 +47,67 @@ class PikPakService:
         if not self.client:
             raise RuntimeError(PIKPAK_CLIENT_NOT_INITIALIZED)
 
-        # Check if client has a valid (non-expired) access token
-        if self.client.access_token and not force_refresh:
-            from app.utils.jwt_utils import is_token_expired
+        # Try to use existing token if not forcing refresh
+        if not force_refresh and await self._try_use_existing_token():
+            return self.client
 
-            # Check if access token (JWT) is expired or expiring soon (within 5 minutes)
-            if not is_token_expired(self.client.access_token, buffer_seconds=300):
-                logger.debug("Client has valid access token, skipping login")
-                return self.client
-            else:
-                logger.info(
-                    "Access token expired or expiring soon, checking refresh token...")
-
-                # Refresh token is opaque (not JWT), so we can't check expiration
-                # Just try to use it if it exists
-                if self.client.refresh_token:
-                    logger.info(
-                        "Refresh token exists, attempting proactive refresh")
-                    try:
-                        await self.refresh_token_if_needed()
-                        return self.client
-                    except Exception as e:
-                        logger.warning(
-                            f"Proactive refresh failed: {e}, will attempt login")
-                        # Fall through to login logic below
-                else:
-                    logger.info(
-                        "No refresh token available, will attempt login")
-                    # Fall through to login logic below
-
+        # Clear persistence if forcing refresh
         if force_refresh:
+            self._clear_persistence()
+
+        # Perform full login
+        return await self._perform_login()
+
+    async def _try_use_existing_token(self) -> bool:
+        """
+        Try to use existing access token or refresh it if needed.
+        Returns True if client is ready to use, False otherwise.
+        """
+        if not self.client.access_token:
+            return False
+
+        from app.utils.jwt_utils import is_token_expired
+
+        # Check if access token (JWT) is expired or expiring soon (within 5 minutes)
+        if not is_token_expired(self.client.access_token, buffer_seconds=300):
+            logger.debug("Client has valid access token, skipping login")
+            return True
+
+        logger.info(
+            "Access token expired or expiring soon, checking refresh token...")
+
+        if not self.client.refresh_token:
+            logger.info("No refresh token available, will attempt login")
+            return False
+
+        logger.info("Refresh token exists, attempting proactive refresh")
+        try:
+            await self.refresh_token_if_needed()
+            return True
+        except Exception as e:
             logger.warning(
-                "Forcing PikPak login refresh - clearing persistence")
-            try:
-                # Clear TokenManager
-                from app.core.token_manager import get_token_manager
-                token_mgr = get_token_manager()
-                token_mgr.clear_tokens()
+                f"Proactive refresh failed: {e}, will attempt login")
+            return False
 
-                # Clear persistence files (if any exist)
-                for file in ["pikpak_tokens.json", "pikpak_login_state.json"]:
-                    if os.path.exists(file):
-                        os.remove(file)
-                        logger.info(f"Removed {file}")
+    def _clear_persistence(self) -> None:
+        """Clear all persisted tokens and state"""
+        logger.warning("Forcing PikPak login refresh - clearing persistence")
+        try:
+            # Clear TokenManager
+            from app.core.token_manager import get_token_manager
+            token_mgr = get_token_manager()
+            token_mgr.clear_tokens()
 
-                # Reset client state
-                self.client.access_token = None
-                self.client.refresh_token = None
-                self.client.encoded_token = None
+            # Reset client state
+            self.client.access_token = None
+            self.client.refresh_token = None
+            self.client.encoded_token = None
 
-            except Exception as e:
-                logger.error(f"Failed to clear persistence: {e}")
+        except Exception as e:
+            logger.error(f"Failed to clear persistence: {e}")
 
-        # Try to login (will use refresh token if available)
+    async def _perform_login(self) -> PikPakApi:
+        """Perform full login and save tokens"""
         try:
             await self.client.login()
 
@@ -144,6 +152,54 @@ class PikPakService:
             # If refresh fails, try full login
             await self.ensure_logged_in(force_refresh=True)
 
+    async def _execute_protected(self, operation: Callable, *args, **kwargs) -> Any:
+        """Execute operation with circuit breaker and timeout protection"""
+        @pikpak_breaker
+        async def protected_operation():
+            return await asyncio.wait_for(operation(*args, **kwargs), timeout=AppConfig.REQUEST_TIMEOUT)
+        return await protected_operation()
+
+    def _is_auth_error(self, error_str: str) -> bool:
+        """Check if error is related to authentication"""
+        return (
+            "Verification code is invalid" in error_str or
+            "invalid" in error_str.lower() or
+            "401" in error_str or
+            "Unauthorized" in error_str
+        )
+
+    async def _try_recover_auth(self, operation: Callable, *args, **kwargs) -> Tuple[bool, Any, Optional[Exception]]:
+        """
+        Attempts to recover from auth error.
+        Returns: (success, result, exception_if_failed)
+        """
+        logger.warning("Auth error encountered. Force refreshing login...")
+        try:
+            await self.ensure_logged_in(force_refresh=True)
+            return True, await self._execute_protected(operation, *args, **kwargs), None
+        except Exception as e:
+            return False, None, e
+
+    async def _handle_attempt_exception(self, e: Exception, attempt: int, max_retries: int, operation, *args, **kwargs) -> Tuple[bool, Any, str]:
+        error_str = str(e)
+        is_last_attempt = (attempt == max_retries - 1)
+
+        if self._is_auth_error(error_str):
+            success, result, retry_exc = await self._try_recover_auth(operation, *args, **kwargs)
+            if success:
+                return True, result, ""
+
+            if is_last_attempt:
+                logger.error(f"Retry failed after forced login: {retry_exc}")
+                raise retry_exc
+
+            error_str = str(retry_exc)
+
+        elif is_last_attempt:
+            raise e
+
+        return False, None, error_str
+
     async def _execute_with_retry(self, operation: Callable, *args, max_retries: int = 3, **kwargs) -> Any:
         """
         Execute an operation with exponential backoff retry logic and circuit breaker protection
@@ -159,59 +215,12 @@ class PikPakService:
         for attempt in range(max_retries):
             try:
                 await self.ensure_logged_in()
-
-                # Wrap operation with circuit breaker
-                @pikpak_breaker
-                async def protected_operation():
-                    return await asyncio.wait_for(operation(*args, **kwargs), timeout=AppConfig.REQUEST_TIMEOUT)
-
-                return await protected_operation()
+                return await self._execute_protected(operation, *args, **kwargs)
 
             except Exception as e:
-                error_str = str(e)
-                is_last_attempt = (attempt == max_retries - 1)
-
-                # Handle expired token errors (try refresh first, then full login)
-                if "Verification code is invalid" in error_str or "invalid" in error_str.lower():
-                    logger.warning(
-                        f"Token appears to be expired: {e}. Attempting token refresh...")
-                    try:
-                        await self.refresh_token_if_needed()
-
-                        @pikpak_breaker
-                        async def protected_operation():
-                            return await asyncio.wait_for(operation(*args, **kwargs), timeout=AppConfig.REQUEST_TIMEOUT)
-
-                        return await protected_operation()
-                    except Exception as retry_e:
-                        if is_last_attempt:
-                            logger.error(
-                                f"Retry failed after token refresh: {retry_e}")
-                            raise retry_e
-                        error_str = str(retry_e)
-
-                # Handle 401 errors with forced login
-                elif "401" in error_str or "Unauthorized" in error_str:
-                    logger.warning(
-                        f"Encountered 401 error: {e}. Retrying with forced login...")
-                    try:
-                        await self.ensure_logged_in(force_refresh=True)
-
-                        @pikpak_breaker
-                        async def protected_operation():
-                            return await asyncio.wait_for(operation(*args, **kwargs), timeout=AppConfig.REQUEST_TIMEOUT)
-
-                        return await protected_operation()
-                    except Exception as retry_e:
-                        if is_last_attempt:
-                            logger.error(
-                                f"Retry failed after forced login: {retry_e}")
-                            raise retry_e
-                        error_str = str(retry_e)
-
-                # If last attempt, raise the error
-                if is_last_attempt:
-                    raise
+                should_return, result, error_str = await self._handle_attempt_exception(e, attempt, max_retries, operation, *args, **kwargs)
+                if should_return:
+                    return result
 
                 # Calculate exponential backoff with jitter
                 delay = min(base_delay * (2 ** attempt), max_delay)

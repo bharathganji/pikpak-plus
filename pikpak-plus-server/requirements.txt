@@ -6,7 +6,7 @@ python-dateutil>=2.9.0
 requests==2.31.0
 gunicorn>=21.2.0
 gevent>=23.9.0
-Flask-APScheduler==1.13.1
+celery>=5.3.6
 httpx>=0.27.0,<0.28.0
 websockets>=13.0
 redis>=5.0.0

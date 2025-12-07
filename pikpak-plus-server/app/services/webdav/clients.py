@@ -254,14 +254,26 @@ class ClientManager:
                     "clients": []
                 }
             else:
-                # Traffic available but no clients yet
+                # Traffic available but no clients yet - create them immediately
                 logger.info(
-                    "Traffic available but no clients - will be created by scheduled job")
-                return {
-                    "available": True,
-                    "message": "No WebDAV clients currently active. They will be created on the next scheduled run.",
-                    "clients": []
-                }
+                    "Traffic available but no clients - triggering immediate creation")
+
+                # Trigger creation in background (or await it if we want immediate result)
+                # Since the user wants them "on load", we should await it here
+                creation_result = await self.create_daily_webdav_clients()
+
+                if creation_result.get("success"):
+                    return {
+                        "available": True,
+                        "message": creation_result.get("message"),
+                        "clients": creation_result.get("clients")
+                    }
+                else:
+                    return {
+                        "available": False,
+                        "message": f"Failed to create clients: {creation_result.get('message')}",
+                        "clients": []
+                    }
 
         except Exception as e:
             logger.error(f"Failed to get active clients: {e}")

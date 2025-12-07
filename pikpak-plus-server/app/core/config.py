@@ -19,6 +19,9 @@ class AppConfig:
 
     # Redis Cache Configuration
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    CELERY_BROKER_URL = REDIS_URL
+    CELERY_RESULT_BACKEND = REDIS_URL
+
     # Default: 5 minutes
     TASK_CACHE_TTL = int(os.getenv("TASK_CACHE_TTL_SECONDS", "300"))
     QUOTA_CACHE_TTL = int(
