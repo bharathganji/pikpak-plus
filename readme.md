@@ -82,7 +82,8 @@
 
 - **API Layer**: RESTful endpoints for tasks, shares, WebDAV, and quota management
 - **Services Layer**: Dedicated services for PikPak, Supabase, and WebDAV operations
-- **Task Scheduler**: Automated jobs for task status updates, cleanup, and WebDAV generation
+- **Task Scheduler**: Celery beat for automated jobs (task status, cleanup, WebDAV)
+- **Task Queue**: Celery workers for asynchronous background processing
 - **Caching**: Redis-based caching for improved performance
 
 **Database**: Supabase (PostgreSQL) for user data and task management
@@ -113,7 +114,7 @@ The application is containerized with Docker for easy deployment. The tech stack
 
 - [Python Flask 3.0](https://flask.palletsprojects.com/) - Web framework
 - [Gunicorn](https://gunicorn.org/) - WSGI HTTP server
-- [APScheduler](https://apscheduler.readthedocs.io/) - Task scheduling
+- [Celery](https://docs.celeryq.dev/) - Distributed task queue & scheduling
 - [Redis](https://redis.io/) - In-memory caching
 - [httpx](https://www.python-httpx.org/) - Async HTTP client
 
@@ -206,9 +207,11 @@ This project is designed to run in a containerized environment using Docker Comp
    docker compose up -d --build
    ```
 
-   This will start three services:
+   This will start five services:
    - **web**: Next.js frontend (accessible at `http://localhost:3000`)
    - **server**: Flask backend (internal only, proxied through Next.js)
+   - **worker**: Celery worker for background task processing
+   - **beat**: Celery beat for task scheduling
    - **redis**: Redis cache server
 
 5. **Access the application**
@@ -235,6 +238,16 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 python run.py
+```
+
+In separate terminals, start the Celery worker and beat scheduler (ensure Redis is running):
+
+```bash
+# Worker
+celery -A app.celery_app.celery_app worker --loglevel=info
+
+# Beat
+celery -A app.celery_app.celery_app beat --loglevel=info
 ```
 
 See [DOCKER.md](DOCKER.md) for detailed Docker configuration and troubleshooting.
