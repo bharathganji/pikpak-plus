@@ -25,7 +25,7 @@ export function GitHubButton({
   const cacheKey = `${CACHE_KEY_PREFIX}${repo}`;
   const [cachedData, setCachedData] = useLocalStorage<CachedStars | null>(
     null,
-    cacheKey
+    cacheKey,
   );
   const [stars, setStars] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
