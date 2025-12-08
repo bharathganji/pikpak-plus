@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://pikpak-plus.com"),
   title: {
     default: "PikPak Plus - Web-based Clone of PikPak Service",
     template: "%s | PikPak Plus",
@@ -69,6 +70,11 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "PikPak Plus",
+  },
 };
 
 export default function RootLayout({
