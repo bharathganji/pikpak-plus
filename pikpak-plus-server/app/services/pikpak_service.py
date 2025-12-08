@@ -29,6 +29,7 @@ class PikPakService:
     def __init__(self, username: str, password: str):
         self.client: Optional[PikPakApi] = None
         self._last_login_time: float = 0
+        self._login_lock = asyncio.Lock()
         try:
             # Use get_or_create_client which handles token management via Supabase
             self.client = get_or_create_client(
@@ -51,12 +52,20 @@ class PikPakService:
         if not force_refresh and await self._try_use_existing_token():
             return self.client
 
-        # Clear persistence if forcing refresh
-        if force_refresh:
-            self._clear_persistence()
+        # Acquire lock to prevent concurrent login attempts
+        async with self._login_lock:
+            # Double-check: maybe another thread logged in while we were waiting
+            if not force_refresh and await self._try_use_existing_token():
+                logger.debug(
+                    "Token refreshed by another thread while waiting for lock")
+                return self.client
 
-        # Perform full login
-        return await self._perform_login()
+            # Clear persistence if forcing refresh
+            if force_refresh:
+                self._clear_persistence()
+
+            # Perform full login
+            return await self._perform_login()
 
     async def _try_use_existing_token(self) -> bool:
         """
@@ -222,8 +231,13 @@ class PikPakService:
                 if should_return:
                     return result
 
-                # Calculate exponential backoff with jitter
-                delay = min(base_delay * (2 ** attempt), max_delay)
+                # Calculate backoff
+                if "operation is too frequent" in str(e).lower() or "too frequent" in error_str.lower():
+                    delay = 30.0  # Force 30s delay for rate limits
+                    logger.warning("Rate limit detected, backing off for 30s")
+                else:
+                    # Exponential backoff with jitter
+                    delay = min(base_delay * (2 ** attempt), max_delay)
                 jitter = uniform(0, delay * 0.1)
                 total_delay = delay + jitter
 
