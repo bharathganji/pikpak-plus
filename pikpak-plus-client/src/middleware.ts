@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getApiUrl } from "./lib/api-utils";
+import { getServerApiUrl } from "./lib/api-utils";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -18,9 +18,7 @@ export async function middleware(request: NextRequest) {
   // 2. Determine Health Status
   let isHealthy = false;
   try {
-    // Use env var or default. NOTE: Middleware runs in Edge/Node.
-    // Ensure this URL is reachable from the container/host running Next.js.
-    const apiUrl = getApiUrl();
+    const apiUrl = getServerApiUrl();
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
 
@@ -33,7 +31,9 @@ export async function middleware(request: NextRequest) {
     clearTimeout(timeoutId);
     isHealthy = res.ok;
   } catch (error) {
-    console.error("Health Check Error:", error);
+    if (process.env.NODE_ENV === "development") {
+      console.error("Health Check Error:", error);
+    }
     isHealthy = false;
   }
 
@@ -48,10 +48,8 @@ export async function middleware(request: NextRequest) {
       // Use 307 Temporary Redirect
       return NextResponse.redirect(url);
     }
-  }
-
-  // Scenario B: Server is UP, logic to recover from Maintenance Page
-  else if (pathname === "/maintenance") {
+  } else if (pathname === "/maintenance") {
+    // Scenario B: Server is UP, logic to recover from Maintenance Page
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);
