@@ -132,5 +132,13 @@ def collect_daily_statistics(self):
             redis_client.close()
 
     except Exception as e:
+        from app.services.pikpak_service import RateLimitError
+
+        if isinstance(e, RateLimitError):
+            # Rate limited - wait 5 minutes before retry
+            logger.warning(
+                f"Rate limited by PikPak, will retry in 5 minutes: {e}")
+            raise self.retry(exc=e, countdown=300, max_retries=3)
+
         logger.error(f"Failed to collect daily statistics: {e}", exc_info=True)
         raise self.retry(exc=e, countdown=300, max_retries=3)

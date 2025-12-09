@@ -124,6 +124,25 @@ class DistributedLoginLock:
         except Exception as e:
             logger.error(f"Failed to set login timestamp: {e}")
 
+    def set_rate_limit_cooldown(self) -> None:
+        """
+        Set a longer cooldown after hitting rate limit.
+
+        This prevents all workers from hammering the API when rate limited.
+        Uses a 5-minute cooldown instead of the normal 2-minute cooldown.
+        """
+        RATE_LIMIT_COOLDOWN = 300  # 5 minutes
+        try:
+            self.redis.set(
+                self.COOLDOWN_KEY,
+                str(time.time()),
+                ex=RATE_LIMIT_COOLDOWN + 10
+            )
+            logger.warning(
+                f"Rate limit detected - setting {RATE_LIMIT_COOLDOWN}s cooldown for ALL workers")
+        except Exception as e:
+            logger.error(f"Failed to set rate limit cooldown: {e}")
+
     def set_token_valid_until(self, expires_at: float) -> None:
         """
         Record when the current token expires.
