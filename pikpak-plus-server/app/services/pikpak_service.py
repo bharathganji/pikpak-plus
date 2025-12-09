@@ -83,7 +83,7 @@ class PikPakService:
             if await self._try_use_existing_token():
                 await self._ensure_valid_captcha_token()
                 return self.client
-            # If still no valid token after cooldown reload, we need to wait or proceed
+            # If still no valid token after cooldown reload, we need to wait or abort
             logger.warning(
                 "No valid token after cooldown, waiting for lock release")
             if login_lock.is_locked():
@@ -92,6 +92,13 @@ class PikPakService:
                 if await self._try_use_existing_token():
                     await self._ensure_valid_captcha_token()
                     return self.client
+
+            # Still in cooldown with no token - DON'T try to login, abort and retry later
+            # This is critical to prevent bypassing the rate limit cooldown
+            raise RateLimitError(
+                "Login cooldown active but no valid token available. "
+                "Will retry after cooldown expires."
+            )
 
         # Step 4: Try to acquire distributed lock for login
         if not login_lock.try_acquire():
@@ -103,6 +110,9 @@ class PikPakService:
             await self._reload_tokens_from_supabase()
             if await self._try_use_existing_token():
                 logger.info("Using token from concurrent worker login")
+                # Force fresh captcha - shared captcha may have wrong action/meta
+                self.client.captcha_token = None
+                self.client.captcha_expires_at = None
                 await self._ensure_valid_captcha_token()
                 return self.client
 
