@@ -73,6 +73,8 @@ CREATE INDEX IF NOT EXISTS idx_public_actions_file_id ON public_actions((data->>
 
 
 -- Table for storing PikPak tokens (Singleton row)
+-- Note: captcha_token and captcha_expires_at columns are DEPRECATED
+-- Captcha tokens are now managed in-memory (short-lived, ~5 mins)
 CREATE TABLE IF NOT EXISTS pikpak_tokens (
     id INTEGER PRIMARY KEY DEFAULT 1,
     username TEXT,
@@ -82,8 +84,8 @@ CREATE TABLE IF NOT EXISTS pikpak_tokens (
     access_token_expires_at TIMESTAMP WITH TIME ZONE,
     refresh_token_expires_at TIMESTAMP WITH TIME ZONE,
     user_id TEXT,
-    captcha_token TEXT,
-    captcha_expires_at TIMESTAMP WITH TIME ZONE,
+    captcha_token TEXT,              -- DEPRECATED: kept for backward compatibility
+    captcha_expires_at TIMESTAMP WITH TIME ZONE,  -- DEPRECATED: kept for backward compatibility
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     CONSTRAINT single_row CHECK (id = 1)
 );
