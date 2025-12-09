@@ -10,6 +10,8 @@ from PikPakAPI import PikPakApi
 from app.core.config import AppConfig
 from app.core.client import get_or_create_client
 from pybreaker import CircuitBreaker
+from app.utils.redis_lock import get_login_lock
+from app.utils.jwt_utils import is_token_expired, decode_token
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +42,10 @@ class PikPakService:
 
     async def ensure_logged_in(self, force_refresh: bool = False) -> PikPakApi:
         """
-        Ensures the PikPak client is logged in
+        Ensures the PikPak client is logged in with distributed lock coordination.
+
+        Uses Redis-based distributed lock to prevent multiple workers from
+        attempting login simultaneously.
 
         Args:
             force_refresh: If True, clears persistence and forces a fresh login
@@ -48,24 +53,160 @@ class PikPakService:
         if not self.client:
             raise RuntimeError(PIKPAK_CLIENT_NOT_INITIALIZED)
 
-        # Try to use existing token if not forcing refresh
+        login_lock = get_login_lock()
+
+        # Step 1: Check if we already have a valid token locally
         if not force_refresh and await self._try_use_existing_token():
+            # Ensure captcha token is valid before returning
+            await self._ensure_valid_captcha_token()
             return self.client
 
-        # Acquire lock to prevent concurrent login attempts
-        async with self._login_lock:
-            # Double-check: maybe another thread logged in while we were waiting
-            if not force_refresh and await self._try_use_existing_token():
-                logger.debug(
-                    "Token refreshed by another thread while waiting for lock")
+        # Step 2: Check if another worker has a valid token (via Redis)
+        if not force_refresh and login_lock.is_token_still_valid():
+            # Reload tokens from Supabase (another worker may have updated them)
+            await self._reload_tokens_from_supabase()
+            if await self._try_use_existing_token():
+                logger.info("Using token refreshed by another worker")
+                await self._ensure_valid_captcha_token()
                 return self.client
 
-            # Clear persistence if forcing refresh
-            if force_refresh:
-                self._clear_persistence()
+        # Step 3: Check cooldown - if a login just happened, wait and reload
+        if not force_refresh and login_lock.is_in_cooldown():
+            logger.info(
+                "Login cooldown active, reloading tokens from Supabase")
+            await self._reload_tokens_from_supabase()
+            if await self._try_use_existing_token():
+                await self._ensure_valid_captcha_token()
+                return self.client
+            # If still no valid token after cooldown reload, we need to wait or proceed
+            logger.warning(
+                "No valid token after cooldown, waiting for lock release")
+            if login_lock.is_locked():
+                await login_lock.wait_for_lock_release(timeout_seconds=30)
+                await self._reload_tokens_from_supabase()
+                if await self._try_use_existing_token():
+                    await self._ensure_valid_captcha_token()
+                    return self.client
 
-            # Perform full login
-            return await self._perform_login()
+        # Step 4: Try to acquire distributed lock for login
+        if not login_lock.try_acquire():
+            # Another worker is logging in, wait for it
+            logger.info("Another worker is performing login, waiting...")
+            await login_lock.wait_for_lock_release(timeout_seconds=60)
+
+            # Reload tokens after other worker completes
+            await self._reload_tokens_from_supabase()
+            if await self._try_use_existing_token():
+                logger.info("Using token from concurrent worker login")
+                await self._ensure_valid_captcha_token()
+                return self.client
+
+            # If still no valid token, try to acquire lock again
+            if not login_lock.try_acquire():
+                raise RuntimeError(
+                    "Failed to acquire login lock after waiting")
+
+        try:
+            # Step 5: Acquire local lock to prevent concurrent async calls within this process
+            async with self._login_lock:
+                # Double-check after acquiring lock
+                if not force_refresh and await self._try_use_existing_token():
+                    logger.debug(
+                        "Token refreshed while waiting for local lock")
+                    await self._ensure_valid_captcha_token()
+                    return self.client
+
+                # Clear persistence if forcing refresh
+                if force_refresh:
+                    self._clear_persistence()
+
+                # Perform full login
+                client = await self._perform_login()
+
+                # Record successful login in Redis
+                login_lock.set_login_completed()
+
+                # Record token expiration in Redis for other workers
+                if self.client.access_token:
+                    decoded = decode_token(self.client.access_token)
+                    if decoded and decoded.get('exp'):
+                        login_lock.set_token_valid_until(float(decoded['exp']))
+
+                return client
+        finally:
+            # Always release the distributed lock
+            login_lock.release()
+
+    async def _reload_tokens_from_supabase(self) -> None:
+        """Reload tokens from Supabase into the client."""
+        try:
+            from app.core.token_manager import get_token_manager
+            token_mgr = get_token_manager()
+            tokens = token_mgr.get_all_tokens()
+
+            if tokens.get('access_token'):
+                self.client.access_token = tokens['access_token']
+                self.client.refresh_token = tokens.get('refresh_token')
+
+                # Extract user_id from JWT (required for captcha_init)
+                self._extract_user_id_from_token()
+
+                logger.debug("Reloaded tokens from Supabase")
+        except Exception as e:
+            logger.warning(f"Failed to reload tokens from Supabase: {e}")
+
+    async def _ensure_valid_captcha_token(self) -> None:
+        """
+        Ensure client has a valid captcha token before API calls.
+
+        PikPak requires x-captcha-token header for all API requests.
+        This token is generated via captcha_init and has a short expiry.
+        """
+        import time
+
+        # Check if we have a captcha token and it's not expired
+        if self.client.captcha_token and self.client.captcha_expires_at:
+            # Add 30 second buffer to avoid edge cases
+            if time.time() < (self.client.captcha_expires_at - 30):
+                logger.debug("Captcha token is valid")
+                return
+
+        logger.info("Captcha token missing or expired, generating new one...")
+        try:
+            # Ensure user_id is set before generating captcha
+            self._extract_user_id_from_token()
+
+            # Generate a new captcha token using a common action
+            await self.client._get_valid_captcha_token(
+                action="GET:/drive/v1/about"
+            )
+            logger.info("Captcha token generated successfully")
+        except Exception as e:
+            logger.error(f"Failed to generate captcha token: {e}")
+            raise
+
+    def _extract_user_id_from_token(self) -> None:
+        """
+        Extract user_id from access token JWT.
+
+        The 'sub' claim in the JWT contains the user_id, which is required
+        for captcha_init meta. Without this, captcha tokens will be invalid.
+        """
+        if not self.client.access_token:
+            return
+
+        # Skip if user_id is already set
+        if self.client.user_id:
+            return
+
+        try:
+            decoded = decode_token(self.client.access_token)
+            if decoded and decoded.get('sub'):
+                self.client.user_id = decoded['sub']
+                logger.debug(
+                    f"Extracted user_id from JWT: {self.client.user_id}")
+        except Exception as e:
+            logger.warning(f"Failed to extract user_id from token: {e}")
 
     async def _try_use_existing_token(self) -> bool:
         """
@@ -79,6 +220,8 @@ class PikPakService:
 
         # Check if access token (JWT) is expired or expiring soon (within 5 minutes)
         if not is_token_expired(self.client.access_token, buffer_seconds=300):
+            # Extract user_id if not already set (required for captcha_init)
+            self._extract_user_id_from_token()
             logger.debug("Client has valid access token, skipping login")
             return True
 
@@ -118,6 +261,7 @@ class PikPakService:
     async def _perform_login(self) -> PikPakApi:
         """Perform full login and save tokens"""
         try:
+            logger.info("Performing PikPak login...")
             await self.client.login()
 
             # Save new tokens to Supabase
