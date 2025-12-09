@@ -4,6 +4,7 @@ from .PikpakException import PikpakException
 from .enums import DownloadStatus
 from .settings import PIKPAK_API_HOST
 
+
 class OfflineDownloadMixin:
     async def offline_download(
         self, file_url: str, parent_id: Optional[str] = None, name: Optional[str] = None
@@ -14,6 +15,12 @@ class OfflineDownloadMixin:
         name: str - File name, default from URL
         Offline download
         """
+        # Initialize captcha for task creation
+        result = await self.captcha_init(
+            action="POST:/drive/v1/files",
+        )
+        self.captcha_token = result.get("captcha_token")
+
         download_url = f"https://{PIKPAK_API_HOST}/drive/v1/files"
         download_data = {
             "kind": "drive#file",
@@ -24,6 +31,8 @@ class OfflineDownloadMixin:
             "parent_id": parent_id,
         }
         result = await self._request_post(download_url, download_data)
+        # Clear captcha token after successful request
+        self.captcha_token = None
         return result
 
     async def offline_list(

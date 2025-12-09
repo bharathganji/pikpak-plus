@@ -113,6 +113,7 @@ class PikPakService:
                 # Force fresh captcha - shared captcha may have wrong action/meta
                 self.client.captcha_token = None
                 self.client.captcha_expires_at = None
+                self.client.captcha_tokens = {}  # Clear action-specific captcha tokens
                 await self._ensure_valid_captcha_token()
                 return self.client
 
@@ -176,34 +177,38 @@ class PikPakService:
         except Exception as e:
             logger.warning(f"Failed to reload tokens from Supabase: {e}")
 
-    async def _ensure_valid_captcha_token(self) -> None:
+    async def _ensure_valid_captcha_token(self, action: str = "GET:/drive/v1/about") -> None:
         """
         Ensure client has a valid captcha token before API calls.
 
         PikPak requires x-captcha-token header for all API requests.
         This token is generated via captcha_init and has a short expiry.
+
+        Args:
+            action: The specific action for which captcha is needed
         """
         import time
 
-        # Check if we have a captcha token and it's not expired
-        if self.client.captcha_token and self.client.captcha_expires_at:
-            # Add 30 second buffer to avoid edge cases
-            if time.time() < (self.client.captcha_expires_at - 30):
-                logger.debug("Captcha token is valid")
+        # Check if we have a valid captcha token for this specific action
+        if action in self.client.captcha_tokens:
+            captcha_info = self.client.captcha_tokens[action]
+            if captcha_info['expires_at'] and time.time() < (captcha_info['expires_at'] - 30):
+                logger.debug(f"Captcha token is valid for action: {action}")
                 return
 
-        logger.info("Captcha token missing or expired, generating new one...")
+        logger.info(
+            f"Captcha token missing or expired for action: {action}, generating new one...")
         try:
             # Ensure user_id is set before generating captcha
             self._extract_user_id_from_token()
 
-            # Generate a new captcha token using a common action
-            await self.client._get_valid_captcha_token(
-                action="GET:/drive/v1/about"
-            )
-            logger.info("Captcha token generated successfully")
+            # Generate a new captcha token for the specific action
+            await self.client._get_valid_captcha_token(action=action)
+            logger.info(
+                f"Captcha token generated successfully for action: {action}")
         except Exception as e:
-            logger.error(f"Failed to generate captcha token: {e}")
+            logger.error(
+                f"Failed to generate captcha token for action {action}: {e}")
             raise
 
     def _extract_user_id_from_token(self) -> None:
@@ -277,6 +282,7 @@ class PikPakService:
             self.client.encoded_token = None
             self.client.captcha_token = None
             self.client.captcha_expires_at = None
+            self.client.captcha_tokens = {}  # Clear action-specific captcha tokens
             self.client.user_id = None
 
         except Exception as e:
