@@ -82,9 +82,16 @@ def scheduled_task_status_update(self, source="scheduled"):
 
     except Exception as e:
         import httpx
+        from app.services.pikpak_service import RateLimitError
+
         if isinstance(e, httpx.ConnectError):
             logger.error(
                 f"Scheduled task status update failed due to connection error: {e}. Please verify SUPABASE_URL and network connectivity.")
+        elif isinstance(e, RateLimitError):
+            # Rate limited - wait 5 minutes before retry (aligns with global cooldown)
+            logger.warning(
+                f"Rate limited by PikPak, will retry in 5 minutes: {e}")
+            raise self.retry(exc=e, countdown=300, max_retries=3)
         else:
             logger.error(
                 f"Scheduled task status update failed: {e}", exc_info=True)

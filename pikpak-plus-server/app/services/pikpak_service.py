@@ -25,6 +25,11 @@ pikpak_breaker = CircuitBreaker(
 )
 
 
+class RateLimitError(Exception):
+    """Raised when PikPak rate limits the login attempt."""
+    pass
+
+
 class PikPakService:
     """Service for PikPak operations"""
 
@@ -78,7 +83,7 @@ class PikPakService:
             if await self._try_use_existing_token():
                 await self._ensure_valid_captcha_token()
                 return self.client
-            # If still no valid token after cooldown reload, we need to wait or proceed
+            # If still no valid token after cooldown reload, we need to wait or abort
             logger.warning(
                 "No valid token after cooldown, waiting for lock release")
             if login_lock.is_locked():
@@ -87,6 +92,13 @@ class PikPakService:
                 if await self._try_use_existing_token():
                     await self._ensure_valid_captcha_token()
                     return self.client
+
+            # Still in cooldown with no token - DON'T try to login, abort and retry later
+            # This is critical to prevent bypassing the rate limit cooldown
+            raise RateLimitError(
+                "Login cooldown active but no valid token available. "
+                "Will retry after cooldown expires."
+            )
 
         # Step 4: Try to acquire distributed lock for login
         if not login_lock.try_acquire():
@@ -98,6 +110,9 @@ class PikPakService:
             await self._reload_tokens_from_supabase()
             if await self._try_use_existing_token():
                 logger.info("Using token from concurrent worker login")
+                # Force fresh captcha - shared captcha may have wrong action/meta
+                self.client.captcha_token = None
+                self.client.captcha_expires_at = None
                 await self._ensure_valid_captcha_token()
                 return self.client
 
@@ -141,6 +156,7 @@ class PikPakService:
         """Reload tokens from Supabase into the client."""
         try:
             from app.core.token_manager import get_token_manager
+            from datetime import datetime
             token_mgr = get_token_manager()
             tokens = token_mgr.get_all_tokens()
 
@@ -148,8 +164,35 @@ class PikPakService:
                 self.client.access_token = tokens['access_token']
                 self.client.refresh_token = tokens.get('refresh_token')
 
-                # Extract user_id from JWT (required for captcha_init)
-                self._extract_user_id_from_token()
+                # Load user_id from Supabase (or extract from JWT)
+                if tokens.get('user_id'):
+                    self.client.user_id = tokens['user_id']
+                else:
+                    self._extract_user_id_from_token()
+
+                # Load captcha token if available and not expired
+                # IMPORTANT: Only use captcha if it's for the same user
+                stored_user_id = tokens.get('user_id')
+                if (tokens.get('captcha_token') and tokens.get('captcha_expires_at')
+                        and stored_user_id and stored_user_id == self.client.user_id):
+                    expires_at_str = tokens['captcha_expires_at']
+                    try:
+                        # Parse ISO format timestamp
+                        if isinstance(expires_at_str, str):
+                            expires_at = datetime.fromisoformat(
+                                expires_at_str.replace('Z', '+00:00'))
+                            self.client.captcha_expires_at = expires_at.timestamp()
+                        else:
+                            self.client.captcha_expires_at = float(
+                                expires_at_str)
+
+                        # Check if still valid (30 second buffer)
+                        import time
+                        if time.time() < (self.client.captcha_expires_at - 30):
+                            self.client.captcha_token = tokens['captcha_token']
+                            logger.info("Loaded captcha token from Supabase")
+                    except Exception as e:
+                        logger.warning(f"Failed to parse captcha expiry: {e}")
 
                 logger.debug("Reloaded tokens from Supabase")
         except Exception as e:
@@ -181,9 +224,33 @@ class PikPakService:
                 action="GET:/drive/v1/about"
             )
             logger.info("Captcha token generated successfully")
+
+            # Save captcha token to Supabase for other workers
+            await self._save_captcha_to_supabase()
         except Exception as e:
             logger.error(f"Failed to generate captcha token: {e}")
             raise
+
+    async def _save_captcha_to_supabase(self) -> None:
+        """Save current captcha token to Supabase for sharing across workers."""
+        try:
+            from app.core.token_manager import get_token_manager
+            from datetime import datetime, timezone
+
+            if self.client.captcha_token and self.client.captcha_expires_at:
+                token_mgr = get_token_manager()
+                expires_at = datetime.fromtimestamp(
+                    self.client.captcha_expires_at, tz=timezone.utc
+                ).isoformat()
+
+                token_mgr.set_tokens(
+                    user_id=self.client.user_id,
+                    captcha_token=self.client.captcha_token,
+                    captcha_expires_at=expires_at
+                )
+                logger.debug("Saved captcha token to Supabase")
+        except Exception as e:
+            logger.warning(f"Failed to save captcha to Supabase: {e}")
 
     def _extract_user_id_from_token(self) -> None:
         """
@@ -254,6 +321,9 @@ class PikPakService:
             self.client.access_token = None
             self.client.refresh_token = None
             self.client.encoded_token = None
+            self.client.captcha_token = None
+            self.client.captcha_expires_at = None
+            self.client.user_id = None
 
         except Exception as e:
             logger.error(f"Failed to clear persistence: {e}")
@@ -264,18 +334,41 @@ class PikPakService:
             logger.info("Performing PikPak login...")
             await self.client.login()
 
-            # Save new tokens to Supabase
+            # Save new tokens to Supabase (including user_id and captcha)
             from app.core.token_manager import get_token_manager
+            from datetime import datetime, timezone
             token_mgr = get_token_manager()
+
+            # Prepare captcha expiry timestamp
+            captcha_expires_at = None
+            if self.client.captcha_expires_at:
+                captcha_expires_at = datetime.fromtimestamp(
+                    self.client.captcha_expires_at, tz=timezone.utc
+                ).isoformat()
+
             token_mgr.set_tokens(
                 access_token=self.client.access_token,
-                refresh_token=self.client.refresh_token
+                refresh_token=self.client.refresh_token,
+                user_id=self.client.user_id,
+                captcha_token=self.client.captcha_token,
+                captcha_expires_at=captcha_expires_at
             )
             logger.info("Updated tokens in Supabase after login")
 
             return self.client
         except Exception as e:
+            error_msg = str(e).lower()
             logger.error(f"PikPak login failed: {e}")
+
+            # If rate limited, set a global cooldown to stop ALL workers
+            if "too frequent" in error_msg or "rate limit" in error_msg:
+                from app.utils.redis_lock import get_login_lock
+                login_lock = get_login_lock()
+                login_lock.set_rate_limit_cooldown()
+
+                # Raise a specific error that should NOT be retried immediately
+                raise RateLimitError(str(e)) from e
+
             raise
 
     async def refresh_token_if_needed(self):

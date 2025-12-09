@@ -138,40 +138,69 @@ class TokenManager:
 
     def get_all_tokens(self) -> Dict[str, Optional[str]]:
         """
-        Get both access and refresh tokens
+        Get all tokens including access, refresh, captcha, and user_id
 
         Returns:
-            Dict with 'access_token' and 'refresh_token'
+            Dict with all token fields
         """
         row = self._get_tokens_row()
         if row:
             return {
                 'access_token': row.get('access_token'),
-                'refresh_token': row.get('refresh_token')
+                'refresh_token': row.get('refresh_token'),
+                'user_id': row.get('user_id'),
+                'captcha_token': row.get('captcha_token'),
+                'captcha_expires_at': row.get('captcha_expires_at')
             }
         return {
             'access_token': None,
-            'refresh_token': None
+            'refresh_token': None,
+            'user_id': None,
+            'captcha_token': None,
+            'captcha_expires_at': None
         }
 
-    def set_tokens(self, access_token: str, refresh_token: str):
+    def set_tokens(
+        self,
+        access_token: str = None,
+        refresh_token: str = None,
+        user_id: str = None,
+        captcha_token: str = None,
+        captcha_expires_at: str = None
+    ):
         """
-        Store both tokens at once
+        Store tokens including optional captcha and user_id
 
         Args:
             access_token: Access token string
             refresh_token: Refresh token string
+            user_id: PikPak user ID
+            captcha_token: Captcha token string
+            captcha_expires_at: Captcha expiration timestamp (ISO format)
         """
-        self._update_tokens_row({
-            'access_token': access_token,
-            'refresh_token': refresh_token
-        })
+        data = {}
+        if access_token is not None:
+            data['access_token'] = access_token
+        if refresh_token is not None:
+            data['refresh_token'] = refresh_token
+        if user_id is not None:
+            data['user_id'] = user_id
+        if captcha_token is not None:
+            data['captcha_token'] = captcha_token
+        if captcha_expires_at is not None:
+            data['captcha_expires_at'] = captcha_expires_at
+
+        if data:
+            self._update_tokens_row(data)
 
     def clear_tokens(self):
         """Clear all stored tokens (useful for logout)"""
         self._update_tokens_row({
             'access_token': None,
-            'refresh_token': None
+            'refresh_token': None,
+            'user_id': None,
+            'captcha_token': None,
+            'captcha_expires_at': None
         })
 
     def clear_all(self):

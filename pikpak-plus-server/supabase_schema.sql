@@ -81,6 +81,9 @@ CREATE TABLE IF NOT EXISTS pikpak_tokens (
     refresh_token TEXT,
     access_token_expires_at TIMESTAMP WITH TIME ZONE,
     refresh_token_expires_at TIMESTAMP WITH TIME ZONE,
+    user_id TEXT,
+    captcha_token TEXT,
+    captcha_expires_at TIMESTAMP WITH TIME ZONE,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     CONSTRAINT single_row CHECK (id = 1)
 );
