@@ -33,8 +33,10 @@ class AuthMixin:
         self.refresh_token = None
         self.user_id = None
         self.device_id = None
-        self.captcha_token = None
-        self.captcha_expires_at = None  # Track when captcha expires
+        self.captcha_token = None  # Default captcha token for backward compatibility
+        self.captcha_expires_at = None  # Default captcha expiry for backward compatibility
+        # Action-specific captcha tokens: {action: {'token': str, 'expires_at': float}}
+        self.captcha_tokens = {}
         self.token_refresh_callback = None
         self.token_refresh_callback_kwargs = {}
 
@@ -90,11 +92,11 @@ class AuthMixin:
         """
         import time
 
-        # Check if we have a captcha token and it's not expired
-        if self.captcha_token and self.captcha_expires_at:
-            # Add 10 second buffer to avoid edge cases
-            if time.time() < (self.captcha_expires_at - 10):
-                return self.captcha_token
+        # Check if we have a valid captcha token for this specific action
+        if action in self.captcha_tokens:
+            captcha_info = self.captcha_tokens[action]
+            if captcha_info['expires_at'] and time.time() < (captcha_info['expires_at'] - 10):
+                return captcha_info['token']
 
         # Generate new captcha token
         result = await self.captcha_init(action=action, meta=meta)
@@ -104,7 +106,13 @@ class AuthMixin:
         if not captcha_token:
             raise PikpakException("captcha_token get failed")
 
-        # Store token and expiry time
+        # Store token and expiry time for this specific action
+        self.captcha_tokens[action] = {
+            'token': captcha_token,
+            'expires_at': time.time() + expires_in
+        }
+
+        # Also update the default captcha token for backward compatibility
         self.captcha_token = captcha_token
         self.captcha_expires_at = time.time() + expires_in
 
@@ -163,6 +171,7 @@ class AuthMixin:
             if "too frequent" in error_msg or "captcha" in error_msg:
                 self.captcha_token = None
                 self.captcha_expires_at = None
+                self.captcha_tokens = {}  # Clear all action-specific captcha tokens
 
             if "too frequent" in error_msg:
                 self._set_error_cooldown()
