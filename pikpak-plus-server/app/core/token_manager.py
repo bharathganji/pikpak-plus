@@ -138,45 +138,39 @@ class TokenManager:
 
     def get_all_tokens(self) -> Dict[str, Optional[str]]:
         """
-        Get all tokens including access, refresh, captcha, and user_id
+        Get all tokens including access, refresh, and user_id
+        Note: Captcha tokens are managed via Redis, not Supabase
 
         Returns:
-            Dict with all token fields
+            Dict with token fields
         """
         row = self._get_tokens_row()
         if row:
             return {
                 'access_token': row.get('access_token'),
                 'refresh_token': row.get('refresh_token'),
-                'user_id': row.get('user_id'),
-                'captcha_token': row.get('captcha_token'),
-                'captcha_expires_at': row.get('captcha_expires_at')
+                'user_id': row.get('user_id')
             }
         return {
             'access_token': None,
             'refresh_token': None,
-            'user_id': None,
-            'captcha_token': None,
-            'captcha_expires_at': None
+            'user_id': None
         }
 
     def set_tokens(
         self,
         access_token: str = None,
         refresh_token: str = None,
-        user_id: str = None,
-        captcha_token: str = None,
-        captcha_expires_at: str = None
+        user_id: str = None
     ):
         """
-        Store tokens including optional captcha and user_id
+        Store tokens in Supabase
+        Note: Captcha tokens are managed via Redis, not Supabase
 
         Args:
             access_token: Access token string
             refresh_token: Refresh token string
             user_id: PikPak user ID
-            captcha_token: Captcha token string
-            captcha_expires_at: Captcha expiration timestamp (ISO format)
         """
         data = {}
         if access_token is not None:
@@ -185,10 +179,6 @@ class TokenManager:
             data['refresh_token'] = refresh_token
         if user_id is not None:
             data['user_id'] = user_id
-        if captcha_token is not None:
-            data['captcha_token'] = captcha_token
-        if captcha_expires_at is not None:
-            data['captcha_expires_at'] = captcha_expires_at
 
         if data:
             self._update_tokens_row(data)
@@ -198,9 +188,7 @@ class TokenManager:
         self._update_tokens_row({
             'access_token': None,
             'refresh_token': None,
-            'user_id': None,
-            'captcha_token': None,
-            'captcha_expires_at': None
+            'user_id': None
         })
 
     def clear_all(self):
