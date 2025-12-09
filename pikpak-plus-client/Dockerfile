@@ -1,4 +1,4 @@
-FROM node:20-buster-slim
+FROM node:24-slim
 RUN mkdir -p /app/
 WORKDIR /app/
 RUN chmod -R 777 /app/
