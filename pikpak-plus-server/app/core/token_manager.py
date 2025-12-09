@@ -197,7 +197,10 @@ class TokenManager:
         """Clear all stored tokens (useful for logout)"""
         self._update_tokens_row({
             'access_token': None,
-            'refresh_token': None
+            'refresh_token': None,
+            'user_id': None,
+            'captcha_token': None,
+            'captcha_expires_at': None
         })
 
     def clear_all(self):

@@ -161,7 +161,10 @@ class PikPakService:
                     self._extract_user_id_from_token()
 
                 # Load captcha token if available and not expired
-                if tokens.get('captcha_token') and tokens.get('captcha_expires_at'):
+                # IMPORTANT: Only use captcha if it's for the same user
+                stored_user_id = tokens.get('user_id')
+                if (tokens.get('captcha_token') and tokens.get('captcha_expires_at')
+                        and stored_user_id and stored_user_id == self.client.user_id):
                     expires_at_str = tokens['captcha_expires_at']
                     try:
                         # Parse ISO format timestamp
@@ -308,6 +311,9 @@ class PikPakService:
             self.client.access_token = None
             self.client.refresh_token = None
             self.client.encoded_token = None
+            self.client.captcha_token = None
+            self.client.captcha_expires_at = None
+            self.client.user_id = None
 
         except Exception as e:
             logger.error(f"Failed to clear persistence: {e}")
