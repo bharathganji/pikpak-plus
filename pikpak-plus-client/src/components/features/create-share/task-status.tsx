@@ -36,6 +36,13 @@ export function TaskStatus({ task }: Readonly<TaskStatusProps>) {
           <Badge variant={getTaskStatus(task).variant}>
             {getTaskStatus(task).label}
           </Badge>
+          {/* Show PikPak message if different from status label */}
+          {taskData?.message &&
+            getTaskStatus(task).label !== taskData.message && (
+              <div className="mt-2 text-xs text-muted-foreground">
+                <span className="font-medium">PikPak:</span> {taskData.message}
+              </div>
+            )}
         </div>
       )}
     </div>

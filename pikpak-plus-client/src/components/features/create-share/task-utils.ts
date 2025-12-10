@@ -31,7 +31,7 @@ export function isTaskCompleted(task: SupabaseTaskRecord): boolean {
 }
 
 /**
- * Determines task status based on phase and progress
+ * Determines task status based on phase, progress, and PikPak message
  */
 export function getTaskStatus(task: SupabaseTaskRecord): {
   label: string;
@@ -48,18 +48,48 @@ export function getTaskStatus(task: SupabaseTaskRecord): {
   const taskData = task.data.task?.task;
   const phase = taskData?.phase;
   const progress = taskData?.progress;
+  const message = taskData?.message;
 
   if (isTaskCompleted(task)) {
-    return { label: "Completed", variant: "success" };
-  } else if (
-    phase === "PHASE_TYPE_RUNNING" ||
-    (progress !== undefined && progress >= 0)
-  ) {
+    // Use PikPak message if available for completed tasks
+    if (message && message !== "Saved") {
+      return { label: message, variant: "success" };
+    }
+    return { label: "Saved", variant: "success" };
+  } else if (phase === "PHASE_TYPE_RUNNING") {
+    // For high progress values, show more specific messages
+    if (progress === 99) {
+      return { label: "Almost done", variant: "processing" };
+    } else if (progress !== undefined && progress >= 95) {
+      return { label: "Finalizing", variant: "processing" };
+    } else if (progress !== undefined && progress >= 80) {
+      return { label: "Nearly complete", variant: "processing" };
+    }
+    // Use PikPak message if available during processing
+    if (message) {
+      return { label: message, variant: "processing" };
+    }
     return { label: `${progress || 0}%`, variant: "processing" };
   } else if (phase === "PHASE_TYPE_ERROR") {
+    // Use PikPak message for error details
+    if (message) {
+      return { label: message, variant: "destructive" };
+    }
     return { label: "Failed", variant: "destructive" };
   } else {
-    return { label: "Pending", variant: "secondary" };
+    // For pending tasks, check if it's actually pending or just no progress yet
+    if (phase === "PHASE_TYPE_PENDING" || !progress) {
+      // Use PikPak message for pending tasks if available
+      if (message) {
+        return { label: message, variant: "secondary" };
+      }
+      return { label: "Pending", variant: "secondary" };
+    }
+    // If we have progress but not in running state, use processing variant
+    if (message) {
+      return { label: message, variant: "processing" };
+    }
+    return { label: "Processing", variant: "processing" };
   }
 }
 

@@ -38,12 +38,12 @@ export function TaskList({
   onFilterChange,
 }: Readonly<TaskListProps>) {
   const [previewTask, setPreviewTask] = useState<SupabaseTaskRecord | null>(
-    null,
+    null
   );
   const [previewOpen, setPreviewOpen] = useState(false);
   const [nsfwFilterEnabled, setNsfwFilterEnabled] = useLocalStorage(
     false,
-    "nsfwFilterEnabled",
+    "nsfwFilterEnabled"
   );
 
   const handlePreview = (task: SupabaseTaskRecord) => {
@@ -57,7 +57,7 @@ export function TaskList({
   if (nsfwFilterEnabled) {
     const filter = new BadWordsFilter({});
     filteredTasks = filteredTasks.filter(
-      (task) => !filter.isProfane(getTaskName(task)),
+      (task) => !filter.isProfane(getTaskName(task))
     );
   }
 
@@ -158,12 +158,14 @@ export function TaskList({
       {/* Content */}
       {content}
 
-      {/* Pagination - Always visible unless loading or error OR showing my tasks */}
+      {/* Enhanced Pagination - Always visible unless loading or error OR showing my tasks */}
       {!loading && !error && !showMyTasksOnly && (
-        <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col items-center gap-3 text-xs text-muted-foreground pt-2 w-full">
+          {/* Page Info and Size Selector */}
+          <div className="flex items-center gap-2 flex-wrap justify-center w-full">
             <span>
-              Page {page} of {totalPages}
+              Showing {(page - 1) * pageSize + 1}-
+              {Math.min(page * pageSize, tasks.length)} of {tasks.length} tasks
             </span>
             <span>·</span>
             <select
@@ -176,24 +178,78 @@ export function TaskList({
               <option value={100}>100 / page</option>
             </select>
           </div>
-          <div className="flex items-center space-x-2">
+
+          {/* Enhanced Navigation Controls - Compact and centered */}
+          <div className="flex flex-wrap items-center gap-2 justify-center w-full">
+            {/* First Page Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(1)}
+              disabled={page <= 1}
+              className="h-8 px-2"
+              aria-label="First page"
+            >
+              <ChevronLeft className="h-3 w-3" />
+              <ChevronLeft className="h-3 w-3 -ml-1" />
+            </Button>
+
+            {/* Previous Button */}
             <Button
               variant="outline"
               size="sm"
               onClick={() => onPageChange(page - 1)}
               disabled={page <= 1}
               className="h-8"
+              aria-label="Previous page"
             >
               <ChevronLeft className="h-3 w-3" /> Prev
             </Button>
+
+            {/* Page Navigation Input */}
+            <div className="flex items-center gap-1">
+              <span>Page</span>
+              <input
+                type="number"
+                min="1"
+                max={totalPages}
+                value={page}
+                onChange={(e) => {
+                  const newPage = Math.min(
+                    Math.max(1, Number.parseInt(e.target.value) || 1),
+                    totalPages
+                  );
+                  onPageChange(newPage);
+                }}
+                className="h-8 w-12 rounded-md border border-input bg-background px-2 text-xs text-center hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                aria-label="Go to page"
+              />
+              <span>of {totalPages}</span>
+            </div>
+
+            {/* Next Button */}
             <Button
               variant="outline"
               size="sm"
               onClick={() => onPageChange(page + 1)}
               disabled={page >= totalPages}
               className="h-8"
+              aria-label="Next page"
             >
               Next <ChevronRight className="h-3 w-3" />
+            </Button>
+
+            {/* Last Page Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(totalPages)}
+              disabled={page >= totalPages}
+              className="h-8 px-2"
+              aria-label="Last page"
+            >
+              <ChevronRight className="h-3 w-3" />
+              <ChevronRight className="h-3 w-3 -ml-1" />
             </Button>
           </div>
         </div>
