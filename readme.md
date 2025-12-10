@@ -17,16 +17,6 @@
   <p align="center">
     Share your PikPak [Premium] with your friends and family!
     <br />
-    <a href="https://github.com/bharathganji/pikpak-plus"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    <a href="">Installation Demo (coming soon)</a>
-    ·
-    <a href="/pikpak-plus-client/android/app/release/">Android Apk</a>
-    ·
-    <a href="https://github.com/bharathganji/pikpak-plus/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/bharathganji/pikpak-plus/issues">Request Feature</a>
   </p>
 </p>
 
