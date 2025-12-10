@@ -496,6 +496,19 @@ class PikPakService:
 
         return await self._execute_with_retry(_do_delete)
 
+    async def modify_webdav_application(self, username: str, password: str, modify_props: Dict[str, Any]) -> dict:
+        """Modify WebDAV application properties"""
+        if not self.client:
+            raise RuntimeError(PIKPAK_CLIENT_NOT_INITIALIZED)
+
+        async def _do_modify():
+            result = await self.client.modify_webdav_application(username, password, modify_props)
+            logger.info(
+                f"Modified WebDAV application: {username} with props: {modify_props}")
+            return result
+
+        return await self._execute_with_retry(_do_modify)
+
     async def get_offline_tasks(self) -> dict:
         """Get all offline download tasks from PikPak"""
         if not self.client:
