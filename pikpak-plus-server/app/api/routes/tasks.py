@@ -11,6 +11,8 @@ from app.api.utils.dependencies import (
     get_scheduler
 )
 from app.utils.common import extract_magnet_hash
+from app.celery_app import celery_app
+from app.tasks.jobs.task_status_job import scheduled_task_status_update
 
 logger = logging.getLogger(__name__)
 
@@ -79,8 +81,9 @@ def add_task():
 
         # Trigger immediate task status update in background via Celery
         try:
-            from app.tasks.jobs.task_status_job import scheduled_task_status_update
-            scheduled_task_status_update.delay(source="manual")
+            # Ensure we're in app context when calling Celery
+            with app.app_context():
+                scheduled_task_status_update.delay(source="manual")
             logger.info("Triggered immediate task status update via Celery")
         except Exception as e:
             logger.warning(
