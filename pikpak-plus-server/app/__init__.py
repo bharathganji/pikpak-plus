@@ -12,6 +12,7 @@ from app.core.config import AppConfig
 from app.services import PikPakService, SupabaseService, WebDAVManager
 from app.utils.common import CacheManager
 from app.api.routes import init_routes, api_bp
+from app.celery_app import celery_app
 
 import json
 import uuid
@@ -139,13 +140,13 @@ def create_app():
     # Register blueprints
     app.register_blueprint(api_bp)
 
-    # Initialize Rate Limiter
-    Limiter(
-        app=app,
-        key_func=get_remote_address,
-        storage_uri=AppConfig.REDIS_URL,
-        default_limits=["2000 per day", "500 per hour"]
-    )
+    # Rate Limiter disabled
+    # Limiter(
+    #     app=app,
+    #     key_func=get_remote_address,
+    #     storage_uri=AppConfig.REDIS_URL,
+    #     default_limits=["2000 per day", "500 per hour"]
+    # )
 
     # Middleware to set correlation ID
     @app.before_request
