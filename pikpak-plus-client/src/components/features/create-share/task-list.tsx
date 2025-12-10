@@ -210,19 +210,55 @@ export function TaskList({
             <div className="flex items-center gap-1">
               <span>Page</span>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
+                pattern="\d*"
                 min="1"
                 max={totalPages}
                 value={page}
                 onChange={(e) => {
+                  const inputValue = e.target.value;
+                  // Handle empty input (allow user to clear and type new number)
+                  if (inputValue === "") {
+                    return; // Allow empty input temporarily
+                  }
+
                   const newPage = Math.min(
-                    Math.max(1, Number.parseInt(e.target.value) || 1),
+                    Math.max(1, Number.parseInt(inputValue) || 1),
                     totalPages
                   );
                   onPageChange(newPage);
                 }}
+                onBlur={(e) => {
+                  // Ensure valid page when input loses focus
+                  if (e.target.value === "") {
+                    onPageChange(page); // Revert to current page if empty
+                  }
+                }}
+                onKeyDown={(e) => {
+                  // Allow only numeric keys, backspace, and enter
+                  if (
+                    !/\d/.test(e.key) &&
+                    e.key !== "Backspace" &&
+                    e.key !== "Enter"
+                  ) {
+                    e.preventDefault();
+                  }
+                  // Handle Enter key submission
+                  if (e.key === "Enter") {
+                    const inputValue = e.currentTarget.value;
+                    if (inputValue !== "") {
+                      const newPage = Math.min(
+                        Math.max(1, Number.parseInt(inputValue) || 1),
+                        totalPages
+                      );
+                      onPageChange(newPage);
+                    }
+                  }
+                }}
                 className="h-8 w-12 rounded-md border border-input bg-background px-2 text-xs text-center hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 aria-label="Go to page"
+                placeholder="1"
               />
               <span>of {totalPages}</span>
             </div>
