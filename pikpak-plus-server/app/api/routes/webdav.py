@@ -120,6 +120,34 @@ def delete_webdav_application():
     return run_async(_async_delete_webdav_application())
 
 
+@bp.route('/webdav/application', methods=['PATCH'])
+@internal_only
+def modify_webdav_application():
+    """
+    Modify WebDAV application properties (e.g., set read_only)
+
+    INTERNAL ONLY - Not accessible from external systems
+    """
+    async def _async_modify_webdav_application():
+        try:
+            data = request.json
+            username = data.get('username')
+            password = data.get('password')
+            modify_props = data.get('modify_props')
+
+            if not username or not password or not modify_props:
+                return jsonify({"error": "Missing 'username', 'password', or 'modify_props' parameter"}), 400
+
+            pikpak_service = get_pikpak_service()
+            result = await pikpak_service.modify_webdav_application(username, password, modify_props)
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f"Failed to modify WebDAV application: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    return run_async(_async_modify_webdav_application())
+
+
 @bp.route('/webdav/active-clients', methods=['GET'])
 def get_active_webdav_clients():
     """

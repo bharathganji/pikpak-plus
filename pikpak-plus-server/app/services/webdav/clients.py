@@ -69,6 +69,17 @@ class ClientManager:
                     username = result.get('username', '')
                     password = result.get('password', '')
 
+                    # Set client as read-only by default
+                    try:
+                        read_only_result = await self.pikpak_service.modify_webdav_application(
+                            username, password, {"read_only": True}
+                        )
+                        logger.info(
+                            f"Set WebDAV client {planet_name} as read-only: {read_only_result}")
+                    except Exception as e:
+                        logger.warning(
+                            f"Failed to set read-only for {planet_name}, but client creation succeeded: {e}")
+
                     # Build client info
                     created_at = datetime.now(timezone.utc)
                     expires_at = created_at + timedelta(hours=self.ttl_hours)
@@ -81,7 +92,8 @@ class ClientManager:
                         "serverUrl": server_url,
                         "createdAt": created_at.isoformat() + "Z",
                         "expiresAt": expires_at.isoformat() + "Z",
-                        "ttlHours": self.ttl_hours
+                        "ttlHours": self.ttl_hours,
+                        "readOnly": True  # Mark as read-only in client info
                     }
 
                     created_clients.append(client_info)
