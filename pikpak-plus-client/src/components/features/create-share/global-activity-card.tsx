@@ -16,6 +16,7 @@ interface GlobalActivityCardProps {
   error: string;
   page: number;
   totalPages: number;
+  totalItems: number;
   pageSize: number;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
@@ -31,6 +32,7 @@ export function GlobalActivityCard({
   error,
   page,
   totalPages,
+  totalItems,
   pageSize,
   onPageChange,
   onPageSizeChange,
@@ -57,7 +59,7 @@ export function GlobalActivityCard({
           )}
         </CardDescription>
       </CardHeader>
-      <CardContent className="px-4 pb-4">
+      <CardContent className="px-4 pt-0.5 pb-4">
         <TaskList
           tasks={tasks}
           localTaskUrls={localTaskUrls}
@@ -65,6 +67,7 @@ export function GlobalActivityCard({
           error={error}
           page={page}
           totalPages={totalPages}
+          totalItems={totalItems}
           pageSize={pageSize}
           onPageChange={onPageChange}
           onPageSizeChange={onPageSizeChange}
