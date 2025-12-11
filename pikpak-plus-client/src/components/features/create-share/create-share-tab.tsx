@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useLocalStorage } from "primereact/hooks";
 import { MagnetInputCard } from "./magnet-input-card";
 import { GlobalActivityCard } from "./global-activity-card";
@@ -49,28 +49,48 @@ export function CreateShareTab() {
     LOCAL_TASKS_STORAGE_KEY,
   );
 
-  // Local task URLs for highlighting
-  const [localTaskUrls, setLocalTaskUrls] = useState<string[]>([]);
-
-  // Update local task URLs when localTasks changes
-  useEffect(() => {
-    setLocalTaskUrls(localTasks.map((t) => t.url));
+  // Optimized local task URLs extraction using useMemo
+  const localTaskUrls = useMemo(() => {
+    // Use array.map efficiently without creating intermediate arrays
+    return localTasks.reduce<string[]>((urls, task) => {
+      if (task.url) {
+        urls.push(task.url);
+      }
+      return urls;
+    }, []);
   }, [localTasks]);
+
+  // Mount check to prevent hydration mismatches
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Fetch config and cleanup status on mount
   useEffect(() => {
     const fetchData = async () => {
-      // Fetch config
-      const configData = await fetchConfig();
-      setMaxFileSizeGB(configData.max_file_size_gb);
-      setTaskStatusUpdateIntervalMinutes(
-        configData.task_status_update_interval_minutes,
-      );
-      setNextTaskStatusUpdate(configData.next_task_status_update);
+      try {
+        // Fetch config and cleanup status in parallel
+        const [configData, cleanupData] = await Promise.all([
+          fetchConfig(),
+          fetchCleanupStatus()
+        ]);
 
-      // Fetch cleanup status
-      const cleanupData = await fetchCleanupStatus();
-      setCleanupStatus(cleanupData);
+        setMaxFileSizeGB(configData.max_file_size_gb);
+        setTaskStatusUpdateIntervalMinutes(
+          configData.task_status_update_interval_minutes,
+        );
+        setNextTaskStatusUpdate(configData.next_task_status_update);
+
+        setCleanupStatus(cleanupData);
+      } catch (error) {
+        console.error('Failed to fetch initial data:', error);
+        // Set default values on error
+        setMaxFileSizeGB(25);
+        setTaskStatusUpdateIntervalMinutes(15);
+        setCleanupStatus(null);
+      }
     };
 
     fetchData();
@@ -100,119 +120,102 @@ export function CreateShareTab() {
     return () => clearInterval(interval);
   }, [cleanupStatus]);
 
-  // Mount check to prevent hydration mismatches
-  const [isMounted, setIsMounted] = useState(false);
+  // Memoized fetch function for global tasks
+  const fetchGlobalTasksData = useCallback(async () => {
+    if (!isMounted || showMyTasksOnly) return;
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+    setGlobalTasksLoading(true);
+    setGlobalTasksError("");
+
+    try {
+      const result = await fetchGlobalTasks(page, pageSize);
+      
+      // Batch state updates to prevent multiple re-renders
+      setGlobalTasks(result.data);
+      setTotalPages(Math.ceil(result.count / pageSize));
+      setTotalItems(result.count);
+    } catch (error: any) {
+      setGlobalTasksError(error.message);
+    } finally {
+      setGlobalTasksLoading(false);
+    }
+  }, [isMounted, showMyTasksOnly, page, pageSize]);
 
   // Fetch global tasks
   useEffect(() => {
-    if (!isMounted || showMyTasksOnly) return;
+    fetchGlobalTasksData();
+  }, [fetchGlobalTasksData]);
 
-    const fetchTasks = async () => {
-      setGlobalTasksLoading(true);
-      setGlobalTasksError("");
-      try {
-        const result = await fetchGlobalTasks(page, pageSize);
-        setGlobalTasks(result.data);
-        setTotalPages(Math.ceil(result.count / pageSize));
-        setTotalItems(result.count);
-      } catch (error: any) {
-        setGlobalTasksError(error.message);
-      } finally {
-        setGlobalTasksLoading(false);
-      }
-    };
+  // Memoized fetch function for my tasks
+  const fetchMyTasksData = useCallback(async () => {
+    if (!isMounted || !showMyTasksOnly) return;
 
-    fetchTasks();
-  }, [
-    page,
-    pageSize,
-    showMyTasksOnly,
-    isMounted,
-    setGlobalTasks,
-    setGlobalTasksLoading,
-    setGlobalTasksError,
-    setTotalPages,
-  ]);
+    setGlobalTasksLoading(true);
+    setGlobalTasksError("");
+
+    // Early return if no local tasks to avoid unnecessary API call
+    if (localTaskUrls.length === 0) {
+      setGlobalTasks([]);
+      setTotalPages(1);
+      setTotalItems(0);
+      setGlobalTasksLoading(false);
+      return;
+    }
+
+    try {
+      const result = await fetchMyTasks(localTaskUrls);
+      
+      // Batch state updates
+      setGlobalTasks(result.data);
+      setTotalPages(1); // No pagination for my tasks
+      setTotalItems(result.data.length);
+    } catch (error: any) {
+      setGlobalTasksError(error.message);
+    } finally {
+      setGlobalTasksLoading(false);
+    }
+  }, [isMounted, showMyTasksOnly, localTaskUrls]);
 
   // Fetch my tasks
   useEffect(() => {
-    if (!isMounted || !showMyTasksOnly) return;
+    fetchMyTasksData();
+  }, [fetchMyTasksData]);
 
-    const fetchTasks = async () => {
-      setGlobalTasksLoading(true);
-      setGlobalTasksError("");
-
-      // Early return if no local tasks
-      if (localTaskUrls.length === 0) {
-        setGlobalTasks([]);
-        setTotalPages(1);
-        setTotalItems(0);
-        setGlobalTasksLoading(false);
-        return;
-      }
-
-      try {
-        const result = await fetchMyTasks(localTaskUrls);
-        setGlobalTasks(result.data);
-        setTotalPages(1); // No pagination for my tasks
-        setTotalItems(result.data.length);
-      } catch (error: any) {
-        setGlobalTasksError(error.message);
-      } finally {
-        setGlobalTasksLoading(false);
-      }
-    };
-
-    fetchTasks();
-  }, [
-    showMyTasksOnly,
-    localTaskUrls,
-    isMounted,
-    setGlobalTasks,
-    setGlobalTasksLoading,
-    setGlobalTasksError,
-    setTotalPages,
-  ]);
-
-  const handleAddSuccess = (taskData: any, fileInfoData: any) => {
-    // Create new task object
-    const taskName = taskData?.name || fileInfoData?.name || "Processing...";
-    const fileSize = taskData?.file_size || fileInfoData?.size?.toString();
-    const fileType = fileInfoData?.file_type;
-
+  // Optimized task addition with batch operations
+  const handleAddSuccess = useCallback((taskData: any, fileInfoData: any) => {
+    // Create new task object with defaults
     const newTask: LocalTask = {
       id: taskData?.id || Date.now().toString(),
-      url: taskData?.url || "", // We need to preserve the URL from the input
+      url: taskData?.url || "",
       status: "Added",
       timestamp: Date.now(),
-      name: taskName,
-      file_size: fileSize,
-      file_type: fileType,
+      name: taskData?.name || fileInfoData?.name || "Processing...",
+      file_size: taskData?.file_size || fileInfoData?.size?.toString(),
+      file_type: fileInfoData?.file_type,
     };
 
-    // Update local storage with new task
-    let existing = [...localTasks];
+    // Optimized array operations using Set for O(1) lookup
+    setLocalTasks(prevTasks => {
+      const existingTasks = new Set(prevTasks.map(t => t.id));
+      
+      // Filter out existing task if it exists and add new task
+      const filteredTasks = existingTasks.has(newTask.id) 
+        ? prevTasks.filter(t => t.id !== newTask.id)
+        : prevTasks;
+      
+      // Add new task to the top with single array operation
+      return [newTask, ...filteredTasks];
+    });
 
-    // Check if task with same ID already exists
-    const existingIndex = existing.findIndex((t) => t.id === newTask.id);
-
-    if (existingIndex !== -1) {
-      // Remove existing task so we can add it to the top
-      existing.splice(existingIndex, 1);
-    }
-
-    // Add new task to the top
-    const updatedTasks = [newTask, ...existing];
-    setLocalTasks(updatedTasks);
-
-    // Refresh global tasks by resetting to first page
-    // The useEffect will handle the actual API call
+    // Reset to first page to show the new task
     setPage(1);
-  };
+  }, [setLocalTasks]);
+
+  // Optimized page size change handler
+  const handlePageSizeChange = useCallback((newSize: number) => {
+    setPageSize(newSize);
+    setPage(1); // Reset to first page when changing page size
+  }, []);
 
   return (
     <div className="flex flex-col w-full space-y-3">
@@ -233,10 +236,7 @@ export function CreateShareTab() {
         totalItems={totalItems}
         pageSize={pageSize}
         onPageChange={setPage}
-        onPageSizeChange={(newSize: number) => {
-          setPageSize(newSize);
-          setPage(1); // Reset to first page when changing page size
-        }}
+        onPageSizeChange={handlePageSizeChange}
         nextTaskStatusUpdate={nextTaskStatusUpdate}
         showMyTasksOnly={showMyTasksOnly}
         onFilterChange={setShowMyTasksOnly}

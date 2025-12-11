@@ -32,17 +32,19 @@ export function useTaskFilter(
   nsfwFilterEnabled: boolean,
   localTaskUrls?: readonly string[]
 ) {
+  // Memoize the BadWordsFilter instance to prevent recreating it on every render
+  const badWordsFilter = useMemo(() => new BadWordsFilter({}), []);
+
   const filteredTasks = useMemo(() => {
     let result = [...tasks]; // Create a copy to avoid mutating the original array
 
     // Apply NSFW filter
     if (nsfwFilterEnabled) {
-      const filter = new BadWordsFilter({});
-      result = result.filter((task) => !filter.isProfane(getTaskName(task)));
+      result = result.filter((task) => !badWordsFilter.isProfane(getTaskName(task)));
     }
 
     return result;
-  }, [tasks, nsfwFilterEnabled]);
+  }, [tasks, nsfwFilterEnabled, badWordsFilter]);
 
   const filteredTasksWithLocalFlag = useMemo(() => {
     return filteredTasks.map((task) => ({
