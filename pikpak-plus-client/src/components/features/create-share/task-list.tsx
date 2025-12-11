@@ -1,91 +1,108 @@
 "use client";
 
-import { useState } from "react";
-import { useLocalStorage } from "primereact/hooks";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Filter } from "lucide-react";
-import { Filter as BadWordsFilter } from "bad-words";
+import React, { useMemo } from "react";
 import type { SupabaseTaskRecord } from "@/types";
-import { TaskCard } from "./task-card";
 import { TaskPreviewDialog } from "./task-preview-dialog";
-import { getTaskName } from "./task-utils";
 
+// Import extracted components
+import {
+  FilterControls,
+  TaskListContent,
+  Pagination,
+  PaginationInfo,
+} from "./components";
+
+// Import custom hooks
+import {
+  useNsfwFilter,
+  useTaskFilter,
+  useTaskPreview,
+  useEmptyState,
+} from "./hooks";
+
+// Import utility functions
+import { selectPaginationVariant } from "./utils/pagination-utils";
+
+// Props interface with readonly modifiers for S6759 compliance
 interface TaskListProps {
-  tasks: SupabaseTaskRecord[];
-  localTaskUrls?: string[];
-  loading: boolean;
-  error?: string;
-  page: number;
-  totalPages: number;
-  pageSize: number;
-  onPageChange: (page: number) => void;
-  onPageSizeChange: (pageSize: number) => void;
-  showMyTasksOnly: boolean;
-  onFilterChange: (show: boolean) => void;
+  readonly tasks: readonly SupabaseTaskRecord[];
+  readonly localTaskUrls?: readonly string[];
+  readonly loading: boolean;
+  readonly error?: string;
+  readonly page: number;
+  readonly totalPages: number;
+  readonly pageSize: number;
+  readonly onPageChange: (page: number) => void;
+  readonly onPageSizeChange: (pageSize: number) => void;
+  readonly showMyTasksOnly: boolean;
+  readonly onFilterChange: (show: boolean) => void;
 }
 
-export function TaskList({
-  tasks,
-  localTaskUrls,
-  loading,
-  error,
-  page,
-  totalPages,
-  pageSize,
-  onPageChange,
-  onPageSizeChange,
-  showMyTasksOnly,
-  onFilterChange,
-}: Readonly<TaskListProps>) {
-  const [previewTask, setPreviewTask] = useState<SupabaseTaskRecord | null>(
-    null
+export const TaskList = React.memo(function TaskList(
+  props: Readonly<TaskListProps>
+) {
+  const {
+    tasks,
+    localTaskUrls,
+    loading,
+    error,
+    page,
+    totalPages,
+    pageSize,
+    onPageChange,
+    onPageSizeChange,
+    showMyTasksOnly,
+    onFilterChange,
+  } = props;
+
+  // State management hooks
+  const { nsfwFilterEnabled, toggleFilter } = useNsfwFilter();
+  const { handlePreview, previewTask, previewOpen, setPreviewOpen } =
+    useTaskPreview();
+
+  // Task filtering logic
+  const { filteredTasks } = useTaskFilter(
+    tasks,
+    nsfwFilterEnabled,
+    localTaskUrls
   );
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [nsfwFilterEnabled, setNsfwFilterEnabled] = useLocalStorage(
-    false,
-    "nsfwFilterEnabled"
+
+  // Empty state management
+  const { emptyMessage } = useEmptyState(
+    tasks,
+    filteredTasks,
+    loading,
+    error,
+    showMyTasksOnly,
+    nsfwFilterEnabled,
+    page
   );
 
-  const handlePreview = (task: SupabaseTaskRecord) => {
-    setPreviewTask(task);
-    setPreviewOpen(true);
-  };
+  // Memoized task content component
+  const taskContent = useMemo(() => {
+    if (loading || error || emptyMessage) {
+      return null;
+    }
 
-  let filteredTasks = tasks;
-  // Client-side filtering for My Tasks is removed as it's now handled by API
-
-  if (nsfwFilterEnabled) {
-    const filter = new BadWordsFilter({});
-    filteredTasks = filteredTasks.filter(
-      (task) => !filter.isProfane(getTaskName(task))
+    return (
+      <TaskListContent
+        tasks={filteredTasks}
+        localTaskUrls={localTaskUrls}
+        onTaskPreview={handlePreview}
+      />
     );
-  }
+  }, [
+    loading,
+    error,
+    emptyMessage,
+    filteredTasks,
+    localTaskUrls,
+    handlePreview,
+  ]);
 
-  // Helper to determine the empty state message
-  const getEmptyStateMessage = () => {
-    if (tasks.length === 0) {
-      if (showMyTasksOnly) {
-        return "You haven't added any tasks yet.";
-      }
-      if (page > 1) {
-        return "No tasks on this page.";
-      }
-      return "No tasks found.";
-    }
+  // Content based on loading/error/empty states
+  let content: React.ReactNode;
 
-    if (filteredTasks.length === 0) {
-      if (nsfwFilterEnabled) {
-        return "No tasks match your filters.";
-      }
-      return "No tasks match your criteria.";
-    }
-
-    return null;
-  };
-
-  const emptyMessage = getEmptyStateMessage();
-
-  let content;
   if (loading) {
     content = (
       <div className="text-center py-6 text-muted-foreground text-sm">
@@ -106,188 +123,51 @@ export function TaskList({
       </div>
     );
   } else {
-    content = (
-      <div className="space-y-1.5 overflow-hidden">
-        {filteredTasks.map((task, index) => {
-          const isLocal = localTaskUrls?.includes(task.data.url) || false;
-          return (
-            <div
-              key={task.id}
-              className="animate-slide-up"
-              style={{
-                animationDelay: `${index * 0.05}s`,
-                animationFillMode: "both",
-              }}
-            >
-              <TaskCard
-                task={task}
-                isLocal={isLocal}
-                onClick={() => handlePreview(task)}
-              />
-            </div>
-          );
-        })}
-      </div>
-    );
+    content = taskContent;
   }
+
+  // Pagination configuration
+  const paginationVariant = useMemo(() => {
+    return selectPaginationVariant(totalPages);
+  }, [totalPages]);
+
+  // Should show pagination (not when loading, error, or showing my tasks only)
+  const shouldShowPagination =
+    !loading && !error && !showMyTasksOnly && totalPages > 1;
 
   return (
     <div className="space-y-3">
-      {/* Filter Toggle */}
-      <div className="flex items-center justify-end gap-2">
-        <Button
-          variant={showMyTasksOnly ? "default" : "outline"}
-          size="sm"
-          onClick={() => onFilterChange(!showMyTasksOnly)}
-          className="gap-2 h-8"
-        >
-          <Filter className="h-3 w-3" />
-          {showMyTasksOnly ? "Show All Tasks" : "My Tasks Only"}
-        </Button>
-        <Button
-          variant={nsfwFilterEnabled ? "default" : "outline"}
-          size="sm"
-          onClick={() => setNsfwFilterEnabled(!nsfwFilterEnabled)}
-          className="gap-2 h-8"
-        >
-          <Filter className="h-3 w-3" />
-          NSFW Filter
-        </Button>
-      </div>
+      {/* Filter Toggle Controls */}
+      <FilterControls
+        showMyTasksOnly={showMyTasksOnly}
+        onFilterChange={onFilterChange}
+        nsfwFilterEnabled={nsfwFilterEnabled}
+        onNsfwFilterToggle={toggleFilter}
+      />
 
-      {/* Content */}
+      {/* Content Area */}
       {content}
 
-      {/* Enhanced Pagination - Always visible unless loading or error OR showing my tasks */}
-      {!loading && !error && !showMyTasksOnly && (
-        <div className="flex flex-col items-center gap-3 text-xs text-muted-foreground pt-2 w-full">
-          {/* Page Info and Size Selector */}
-          <div className="flex items-center gap-2 flex-wrap justify-center w-full">
-            <span>
-              Showing {(page - 1) * pageSize + 1}-
-              {Math.min(page * pageSize, tasks.length)} of {tasks.length} tasks
-            </span>
-            <span>·</span>
-            <select
-              value={pageSize}
-              onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="h-8 rounded-md border border-input bg-background px-2 text-xs hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            >
-              <option value={25}>25 / page</option>
-              <option value={50}>50 / page</option>
-              <option value={100}>100 / page</option>
-            </select>
-          </div>
+      {/* Enhanced Pagination Section */}
+      {shouldShowPagination && (
+        <div className="flex flex-col items-center gap-3 pt-2 w-full">
+          {/* Page Size Selector and Task Count Info */}
+          <PaginationInfo
+            page={page}
+            pageSize={pageSize}
+            totalItems={tasks.length}
+            onPageSizeChange={onPageSizeChange}
+          />
 
-          {/* Enhanced Navigation Controls - Compact and centered */}
-          <div className="flex flex-wrap items-center gap-2 justify-center w-full">
-            {/* First Page Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(1)}
-              disabled={page <= 1}
-              className="h-8 px-2"
-              aria-label="First page"
-            >
-              <ChevronLeft className="h-3 w-3" />
-              <ChevronLeft className="h-3 w-3 -ml-1" />
-            </Button>
-
-            {/* Previous Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(page - 1)}
-              disabled={page <= 1}
-              className="h-8"
-              aria-label="Previous page"
-            >
-              <ChevronLeft className="h-3 w-3" /> Prev
-            </Button>
-
-            {/* Page Navigation Input */}
-            <div className="flex items-center gap-1">
-              <span>Page</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                pattern="\d*"
-                min="1"
-                max={totalPages}
-                value={page}
-                onChange={(e) => {
-                  const inputValue = e.target.value;
-                  // Handle empty input (allow user to clear and type new number)
-                  if (inputValue === "") {
-                    return; // Allow empty input temporarily
-                  }
-
-                  const newPage = Math.min(
-                    Math.max(1, Number.parseInt(inputValue) || 1),
-                    totalPages
-                  );
-                  onPageChange(newPage);
-                }}
-                onBlur={(e) => {
-                  // Ensure valid page when input loses focus
-                  if (e.target.value === "") {
-                    onPageChange(page); // Revert to current page if empty
-                  }
-                }}
-                onKeyDown={(e) => {
-                  // Allow only numeric keys, backspace, and enter
-                  if (
-                    !/\d/.test(e.key) &&
-                    e.key !== "Backspace" &&
-                    e.key !== "Enter"
-                  ) {
-                    e.preventDefault();
-                  }
-                  // Handle Enter key submission
-                  if (e.key === "Enter") {
-                    const inputValue = e.currentTarget.value;
-                    if (inputValue !== "") {
-                      const newPage = Math.min(
-                        Math.max(1, Number.parseInt(inputValue) || 1),
-                        totalPages
-                      );
-                      onPageChange(newPage);
-                    }
-                  }
-                }}
-                className="h-8 w-12 rounded-md border border-input bg-background px-2 text-xs text-center hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                aria-label="Go to page"
-                placeholder="1"
-              />
-              <span>of {totalPages}</span>
-            </div>
-
-            {/* Next Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(page + 1)}
-              disabled={page >= totalPages}
-              className="h-8"
-              aria-label="Next page"
-            >
-              Next <ChevronRight className="h-3 w-3" />
-            </Button>
-
-            {/* Last Page Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(totalPages)}
-              disabled={page >= totalPages}
-              className="h-8 px-2"
-              aria-label="Last page"
-            >
-              <ChevronRight className="h-3 w-3" />
-              <ChevronRight className="h-3 w-3 -ml-1" />
-            </Button>
-          </div>
+          {/* Pagination Component */}
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={onPageChange}
+            variant={paginationVariant}
+            showPageInfo={true}
+            className="w-full"
+          />
         </div>
       )}
 
@@ -299,4 +179,4 @@ export function TaskList({
       />
     </div>
   );
-}
+});
