@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useLocalStorage } from "primereact/hooks";
 import { Github, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -23,10 +22,6 @@ export function GitHubButton({
   showCount = true,
 }: Readonly<GitHubButtonProps>) {
   const cacheKey = `${CACHE_KEY_PREFIX}${repo}`;
-  const [cachedData, setCachedData] = useLocalStorage<CachedStars | null>(
-    null,
-    cacheKey,
-  );
   const [stars, setStars] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -38,15 +33,23 @@ export function GitHubButton({
 
     // Check cache first
     const checkCache = () => {
-      if (cachedData) {
-        const { count, timestamp } = cachedData;
-        const now = Date.now();
-
-        // If cache is still valid, use it
-        if (now - timestamp < CACHE_DURATION) {
-          setStars(count);
-          setLoading(false);
-          return true;
+      const stored = localStorage.getItem(cacheKey);
+      if (stored) {
+        try {
+          const parsed: CachedStars = JSON.parse(stored);
+          const now = Date.now();
+          if (now - parsed.timestamp < CACHE_DURATION) {
+            setStars(parsed.count);
+            setLoading(false);
+            return true;
+          } else {
+            // Cache expired, remove it
+            localStorage.removeItem(cacheKey);
+          }
+        } catch (e) {
+          // Invalid cache, remove it
+          console.error("Failed to parse cached GitHub stars:", e);
+          localStorage.removeItem(cacheKey);
         }
       }
       return false;
@@ -67,10 +70,11 @@ export function GitHubButton({
           setStars(starCount);
 
           // Cache the result
-          setCachedData({
+          const cacheData = {
             count: starCount,
             timestamp: Date.now(),
-          });
+          };
+          localStorage.setItem(cacheKey, JSON.stringify(cacheData));
         }
       } catch (error) {
         console.error("Failed to fetch GitHub stars:", error);
@@ -80,7 +84,7 @@ export function GitHubButton({
     };
 
     fetchStars();
-  }, [repo, showCount]);
+  }, [repo, showCount, cacheKey]);
 
   const formatStars = (count: number) => {
     if (count >= 1000) {
