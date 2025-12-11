@@ -102,7 +102,7 @@ export function MagnetInputCard({
           </CardDescription>
         )}
       </CardHeader>
-      <CardContent className="space-y-2 px-4 pb-4">
+      <CardContent className="space-y-2 px-4 pt-0.5 pb-4">
         <div className="flex flex-col md:flex-row gap-2">
           <Input
             placeholder="magnet:?xt=urn:btih:..."

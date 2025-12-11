@@ -19,6 +19,7 @@ export function CreateShareTab() {
   const [globalTasksError, setGlobalTasksError] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [pageSize, setPageSize] = useState(25);
   const [showMyTasksOnly, setShowMyTasksOnly] = useLocalStorage(
     false,
@@ -117,6 +118,7 @@ export function CreateShareTab() {
         const result = await fetchGlobalTasks(page, pageSize);
         setGlobalTasks(result.data);
         setTotalPages(Math.ceil(result.count / pageSize));
+        setTotalItems(result.count);
       } catch (error: any) {
         setGlobalTasksError(error.message);
       } finally {
@@ -148,6 +150,7 @@ export function CreateShareTab() {
       if (localTaskUrls.length === 0) {
         setGlobalTasks([]);
         setTotalPages(1);
+        setTotalItems(0);
         setGlobalTasksLoading(false);
         return;
       }
@@ -156,6 +159,7 @@ export function CreateShareTab() {
         const result = await fetchMyTasks(localTaskUrls);
         setGlobalTasks(result.data);
         setTotalPages(1); // No pagination for my tasks
+        setTotalItems(result.data.length);
       } catch (error: any) {
         setGlobalTasksError(error.message);
       } finally {
@@ -226,6 +230,7 @@ export function CreateShareTab() {
         error={globalTasksError}
         page={page}
         totalPages={totalPages}
+        totalItems={totalItems}
         pageSize={pageSize}
         onPageChange={setPage}
         onPageSizeChange={(newSize: number) => {

@@ -31,6 +31,7 @@ interface TaskListProps {
   readonly error?: string;
   readonly page: number;
   readonly totalPages: number;
+  readonly totalItems: number;
   readonly pageSize: number;
   readonly onPageChange: (page: number) => void;
   readonly onPageSizeChange: (pageSize: number) => void;
@@ -48,6 +49,7 @@ export const TaskList = React.memo(function TaskList(
     error,
     page,
     totalPages,
+    totalItems,
     pageSize,
     onPageChange,
     onPageSizeChange,
@@ -66,6 +68,12 @@ export const TaskList = React.memo(function TaskList(
     nsfwFilterEnabled,
     localTaskUrls
   );
+
+  // Calculate filtered count (items removed by NSFW filter)
+  const filteredCount = useMemo(() => {
+    if (!nsfwFilterEnabled) return 0;
+    return tasks.length - filteredTasks.length;
+  }, [tasks.length, filteredTasks.length, nsfwFilterEnabled]);
 
   // Empty state management
   const { emptyMessage } = useEmptyState(
@@ -143,6 +151,7 @@ export const TaskList = React.memo(function TaskList(
         onFilterChange={onFilterChange}
         nsfwFilterEnabled={nsfwFilterEnabled}
         onNsfwFilterToggle={toggleFilter}
+        filteredCount={filteredCount}
       />
 
       {/* Content Area */}
@@ -155,7 +164,7 @@ export const TaskList = React.memo(function TaskList(
           <PaginationInfo
             page={page}
             pageSize={pageSize}
-            totalItems={tasks.length}
+            totalItems={totalItems}
             onPageSizeChange={onPageSizeChange}
           />
 
