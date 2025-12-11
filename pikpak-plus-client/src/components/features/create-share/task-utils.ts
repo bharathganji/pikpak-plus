@@ -27,82 +27,7 @@ export function isTaskCompleted(task: SupabaseTaskRecord): boolean {
   const taskData = task.data.task?.task;
   const phase = taskData?.phase;
   const progress = taskData?.progress;
-
-  // Only consider it completed if the phase is actually complete and progress is 100
-  // Don't use progress === 100 alone as it can be true for error states
-  return phase === "PHASE_TYPE_COMPLETE" && progress === 100;
-}
-
-/**
- * Determines the status label and variant for a completed task
- */
-function getCompletedTaskStatus(message?: string): {
-  label: string;
-  variant: "success";
-} {
-  // Use PikPak message if available for completed tasks
-  if (message && message !== "Saved") {
-    return { label: message, variant: "success" };
-  }
-  return { label: "Saved", variant: "success" };
-}
-
-/**
- * Determines the status label and variant for a running task
- */
-function getRunningTaskStatus(
-  message: string | undefined,
-  progress?: number
-): {
-  label: string;
-  variant: "processing";
-} {
-  // Use PikPak message if available during processing
-  if (message) {
-    return { label: message, variant: "processing" };
-  }
-  return { label: `${progress || 0}%`, variant: "processing" };
-}
-
-/**
- * Determines the status label and variant for an error task
- */
-function getErrorTaskStatus(message?: string): {
-  label: string;
-  variant: "destructive";
-} {
-  // Use PikPak message for error details
-  if (message) {
-    return { label: message, variant: "destructive" };
-  }
-  return { label: "Failed", variant: "destructive" };
-}
-
-/**
- * Determines the status label and variant for a pending or processing task
- */
-function getPendingOrProcessingTaskStatus(
-  phase: string | undefined,
-  message: string | undefined,
-  progress?: number
-): {
-  label: string;
-  variant: "secondary" | "processing";
-} {
-  // For pending tasks, check if it's actually pending or just no progress yet
-  if (phase === "PHASE_TYPE_PENDING" || !progress) {
-    // Use PikPak message for pending tasks if available
-    if (message) {
-      return { label: message, variant: "secondary" };
-    }
-    return { label: "Pending", variant: "secondary" };
-  }
-
-  // If we have progress but not in running state, use processing variant
-  if (message) {
-    return { label: message, variant: "processing" };
-  }
-  return { label: "Processing", variant: "processing" };
+  return phase === "PHASE_TYPE_COMPLETE" || progress === 100;
 }
 
 /**
@@ -125,23 +50,47 @@ export function getTaskStatus(task: SupabaseTaskRecord): {
   const progress = taskData?.progress;
   const message = taskData?.message;
 
-  // Handle completed tasks first
   if (isTaskCompleted(task)) {
-    return getCompletedTaskStatus(message);
+    // Use PikPak message if available for completed tasks
+    if (message && message !== "Saved") {
+      return { label: message, variant: "success" };
+    }
+    return { label: "Saved", variant: "success" };
+  } else if (phase === "PHASE_TYPE_RUNNING") {
+    // For high progress values, show more specific messages
+    if (progress === 99) {
+      return { label: "Almost done", variant: "processing" };
+    } else if (progress !== undefined && progress >= 95) {
+      return { label: "Finalizing", variant: "processing" };
+    } else if (progress !== undefined && progress >= 80) {
+      return { label: "Nearly complete", variant: "processing" };
+    }
+    // Use PikPak message if available during processing
+    if (message) {
+      return { label: message, variant: "processing" };
+    }
+    return { label: `${progress || 0}%`, variant: "processing" };
+  } else if (phase === "PHASE_TYPE_ERROR") {
+    // Use PikPak message for error details
+    if (message) {
+      return { label: message, variant: "destructive" };
+    }
+    return { label: "Failed", variant: "destructive" };
+  } else {
+    // For pending tasks, check if it's actually pending or just no progress yet
+    if (phase === "PHASE_TYPE_PENDING" || !progress) {
+      // Use PikPak message for pending tasks if available
+      if (message) {
+        return { label: message, variant: "secondary" };
+      }
+      return { label: "Pending", variant: "secondary" };
+    }
+    // If we have progress but not in running state, use processing variant
+    if (message) {
+      return { label: message, variant: "processing" };
+    }
+    return { label: "Processing", variant: "processing" };
   }
-
-  // Handle running tasks
-  if (phase === "PHASE_TYPE_RUNNING") {
-    return getRunningTaskStatus(message, progress);
-  }
-
-  // Handle error tasks
-  if (phase === "PHASE_TYPE_ERROR") {
-    return getErrorTaskStatus(message);
-  }
-
-  // Handle pending or other processing states
-  return getPendingOrProcessingTaskStatus(phase, message, progress);
 }
 
 /**

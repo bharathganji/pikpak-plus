@@ -40,7 +40,7 @@ export async function proxy(request: NextRequest) {
   // 3. Handle Redirection
 
   // Scenario A: Server is DOWN, logic to force Maintenance Page
-  if (isHealthy) {
+  if (!isHealthy) {
     // If not already on maintenance page, redirect to it
     if (pathname !== "/maintenance") {
       const url = request.nextUrl.clone();
