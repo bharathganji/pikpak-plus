@@ -1,6 +1,14 @@
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { FileIcon, FolderIcon } from "lucide-react";
+import {
+  FileIcon,
+  FolderIcon,
+  VideoIcon,
+  MusicIcon,
+  ArchiveIcon,
+  ImageIcon,
+  FileTextIcon,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { SupabaseTaskRecord } from "@/types";
 import {
@@ -17,12 +25,40 @@ interface TaskCardProps {
   onClick: () => void;
 }
 
+/**
+ * Get the appropriate icon component based on WhatsLink file_type or folder status
+ */
+function getFileIcon(task: SupabaseTaskRecord, isFolderType: boolean) {
+  if (isFolderType) {
+    return <FolderIcon className="h-7 w-7 text-yellow-500" />;
+  }
+
+  const fileType = task.data.whatslink?.file_type;
+
+  switch (fileType) {
+    case "video":
+      return <VideoIcon className="h-7 w-7 text-purple-500" />;
+    case "audio":
+      return <MusicIcon className="h-7 w-7 text-green-500" />;
+    case "archive":
+      return <ArchiveIcon className="h-7 w-7 text-orange-500" />;
+    case "image":
+      return <ImageIcon className="h-7 w-7 text-pink-500" />;
+    case "document":
+    case "text":
+      return <FileTextIcon className="h-7 w-7 text-blue-400" />;
+    default:
+      return <FileIcon className="h-7 w-7 text-blue-500" />;
+  }
+}
+
 export function TaskCard({ task, isLocal, onClick }: Readonly<TaskCardProps>) {
   const name = getTaskName(task);
   const taskData = task.data.task?.task;
   const fileSize = formatFileSize(taskData?.file_size);
   const status = getTaskStatus(task);
   const isFolderType = isFolder(task);
+  const fileCount = task.data.whatslink?.count;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
@@ -40,12 +76,7 @@ export function TaskCard({ task, isLocal, onClick }: Readonly<TaskCardProps>) {
       onClick={onClick}
       onKeyDown={handleKeyDown}
     >
-      <div className="shrink-0">
-        {isFolderType ? (
-          <FolderIcon className="h-7 w-7 text-yellow-500" />
-        ) : (
-          <FileIcon className="h-7 w-7 text-blue-500" />
-        )}
+      <div className="shrink-0">{getFileIcon(task, isFolderType)}
       </div>
       <div className="flex-1 min-w-0 overflow-hidden">
         <div className="w-full">
@@ -59,6 +90,14 @@ export function TaskCard({ task, isLocal, onClick }: Readonly<TaskCardProps>) {
             <span className="text-[11px] text-muted-foreground whitespace-nowrap">
               {fileSize}
             </span>
+            {fileCount && fileCount > 1 && (
+              <>
+                <span className="text-[11px] text-muted-foreground">•</span>
+                <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                  {fileCount} files
+                </span>
+              </>
+            )}
             <span className="text-[11px] text-muted-foreground">•</span>
             <Badge
               variant={status.variant}

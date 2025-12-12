@@ -47,7 +47,7 @@ export function GlobalActivityCard({
         <CardDescription className="text-xs">
           Recent tasks added by all users
           {nextTaskStatusUpdate && (
-            <div className="mt-1 flex items-center gap-1 text-muted-foreground">
+            <span className="mt-1 flex items-center gap-1 text-muted-foreground">
               <Clock className="h-3 w-3" />
               <span>
                 Progress Refreshes in:{" "}
@@ -55,7 +55,7 @@ export function GlobalActivityCard({
                   {calculateTimeRemaining(nextTaskStatusUpdate)}
                 </span>
               </span>
-            </div>
+            </span>
           )}
         </CardDescription>
       </CardHeader>

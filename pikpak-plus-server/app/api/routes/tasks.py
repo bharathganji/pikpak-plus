@@ -69,9 +69,9 @@ def add_task():
         except Exception as e:
             return jsonify({"error": f"PikPak Error: {str(e)}"}), 500
 
-        # Log to Supabase (task_result contains id, name, file_id, file_name, etc.)
+        # Log to Supabase with WhatsLink metadata
         supabase_service = get_supabase_service()
-        supabase_service.log_action(url, task_result)
+        supabase_service.log_action(url, task_result, file_info)
 
         # Invalidate cache
         cache_manager = get_cache_manager()

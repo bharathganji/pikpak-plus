@@ -362,6 +362,22 @@ export interface QuotaResponse {
 // Supabase Types
 // ============================================================================
 
+/**
+ * WhatsLink metadata for torrent/magnet content
+ */
+export interface WhatsLinkMetadata {
+  /** Content name (often cleaner than magnet hash) */
+  name?: string;
+  /** Content type: video, audio, archive, image, document, folder, text, font, unknown */
+  file_type?: string;
+  /** Total size in bytes */
+  size?: number;
+  /** Number of files in the torrent */
+  count?: number;
+  /** Preview screenshot URLs (for video content) */
+  screenshots?: string[];
+}
+
 export interface SupabaseTaskRecord {
   id: number;
   created_at: string;
@@ -378,5 +394,7 @@ export interface SupabaseTaskRecord {
       };
       task?: Task;
     };
+    /** WhatsLink metadata from torrent analysis */
+    whatslink?: WhatsLinkMetadata;
   };
 }

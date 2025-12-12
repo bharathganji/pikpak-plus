@@ -7,7 +7,10 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { XIcon } from "lucide-react";
 import type { SupabaseTaskRecord } from "@/types";
 import copy from "copy-to-clipboard";
 import { ShareSection } from "./share-section";
@@ -35,18 +38,10 @@ export function TaskPreviewDialog({
     }
   };
 
-  // Reset share state when dialog closes
-  const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen) {
-      // Share state is now managed internally by ShareSection component
-    }
-    onOpenChange(newOpen);
-  };
-
   if (!task) return null;
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Task Details</DialogTitle>
@@ -67,6 +62,16 @@ export function TaskPreviewDialog({
             copiedId={copiedId}
           />
         </div>
+        <DialogFooter>
+          <Button
+            variant="destructive"
+            onClick={() => onOpenChange(false)}
+            className="gap-2"
+          >
+            <XIcon className="h-4 w-4" />
+            Close
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
