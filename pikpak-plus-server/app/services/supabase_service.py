@@ -14,19 +14,55 @@ class SupabaseService:
     def __init__(self, client: Client):
         self.client = client
 
-    def log_action(self, url: str, task_result: dict):
-        """Log an action to Supabase"""
+    def log_action(self, url: str, task_result: dict, file_info: dict = None):
+        """Log an action to Supabase
+
+        Args:
+            url: The magnet/download URL
+            task_result: PikPak task result
+            file_info: Optional WhatsLink metadata containing:
+                - name: Content name
+                - file_type: video, audio, archive, image, document, folder, unknown
+                - size: Size in bytes
+                - count: Number of files
+                - screenshots: List of preview image URLs
+        """
         if not self.client:
             logger.warning("Supabase client not available, skipping logging")
             return
 
         try:
+            # Build data payload
+            data = {
+                "url": url,
+                "task": task_result
+            }
+
+            # Add WhatsLink metadata if available (exclude error field)
+            if file_info and not file_info.get("error"):
+                whatslink_data = {}
+                for key in ["name", "file_type", "size", "count"]:
+                    if key in file_info and file_info[key] is not None:
+                        whatslink_data[key] = file_info[key]
+
+                # Extract screenshot URLs from objects (WhatsLink returns [{screenshot: url, time: 0}, ...])
+                screenshots = file_info.get("screenshots")
+                if screenshots and isinstance(screenshots, list):
+                    screenshot_urls = []
+                    for item in screenshots:
+                        if isinstance(item, dict) and "screenshot" in item:
+                            screenshot_urls.append(item["screenshot"])
+                        elif isinstance(item, str):
+                            screenshot_urls.append(item)
+                    if screenshot_urls:
+                        whatslink_data["screenshots"] = screenshot_urls
+
+                if whatslink_data:
+                    data["whatslink"] = whatslink_data
+
             self.client.table("public_actions").insert({
                 "action": "add",
-                "data": {
-                    "url": url,
-                    "task": task_result
-                }
+                "data": data
             }).execute()
             logger.info(f"Logged action to Supabase for {url}")
         except Exception as e:

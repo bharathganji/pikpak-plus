@@ -10,6 +10,20 @@ const __dirname = dirname(__filename);
 const nextConfig = {
   // Set the correct workspace root to avoid lockfile conflicts
   outputFileTracingRoot: resolve(__dirname),
+
+  // Configure remote image patterns for next/image optimization
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "whatslink.info",
+        pathname: "/image/**",
+      },
+    ],
+    // Cache optimized images for 1 year (in seconds)
+    minimumCacheTTL: 31536000,
+  },
+
   async rewrites() {
     // Use server hostname for Docker internal communication
     // Falls back to localhost for local development

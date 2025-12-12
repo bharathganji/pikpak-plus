@@ -182,7 +182,7 @@ export function CreateShareTab() {
   }, [fetchMyTasksData]);
 
   // Optimized task addition with batch operations
-  const handleAddSuccess = useCallback((taskData: any, fileInfoData: any) => {
+  const handleAddSuccess = useCallback(async (taskData: any, fileInfoData: any) => {
     // Create new task object with defaults
     const newTask: LocalTask = {
       id: taskData?.id || Date.now().toString(),
@@ -197,19 +197,29 @@ export function CreateShareTab() {
     // Optimized array operations using Set for O(1) lookup
     setLocalTasks(prevTasks => {
       const existingTasks = new Set(prevTasks.map(t => t.id));
-      
+
       // Filter out existing task if it exists and add new task
-      const filteredTasks = existingTasks.has(newTask.id) 
+      const filteredTasks = existingTasks.has(newTask.id)
         ? prevTasks.filter(t => t.id !== newTask.id)
         : prevTasks;
-      
+
       // Add new task to the top with single array operation
       return [newTask, ...filteredTasks];
     });
 
     // Reset to first page to show the new task
     setPage(1);
-  }, [setLocalTasks]);
+
+    // Refresh the task list from server to show the newly added task
+    try {
+      const result = await fetchGlobalTasks(1, pageSize);
+      setGlobalTasks(result.data);
+      setTotalPages(Math.ceil(result.count / pageSize));
+      setTotalItems(result.count);
+    } catch (error) {
+      console.error("Failed to refresh tasks after adding:", error);
+    }
+  }, [setLocalTasks, pageSize]);
 
   // Optimized page size change handler
   const handlePageSizeChange = useCallback((newSize: number) => {
