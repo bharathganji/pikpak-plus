@@ -40,7 +40,6 @@ class AppConfig:
     TASK_STATUS_UPDATE_INTERVAL_MINUTES = int(
         os.getenv("TASK_STATUS_UPDATE_INTERVAL_MINUTES", "15"))
     CLEANUP_INTERVAL_HOURS = int(os.getenv("CLEANUP_INTERVAL_HOURS", "24"))
-    TASK_RETENTION_HOURS = int(os.getenv("TASK_RETENTION_HOURS", "24"))
 
     # Pagination Configuration
     DEFAULT_PAGE_SIZE = int(os.getenv("DEFAULT_PAGE_SIZE", "25"))
