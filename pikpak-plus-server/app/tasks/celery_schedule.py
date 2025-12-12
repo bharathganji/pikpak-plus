@@ -1,3 +1,4 @@
+from datetime import timedelta
 from celery.schedules import crontab
 from app.core.config import AppConfig
 
@@ -10,7 +11,8 @@ beat_schedule = {
     },
     'cleanup-job': {
         'task': 'app.tasks.jobs.cleanup_job.scheduled_cleanup',
-        'schedule': crontab(minute=0, hour=f'*/{AppConfig.CLEANUP_INTERVAL_HOURS}'),
+        # Using timedelta to support any hour interval (24h, 48h, 72h, etc.)
+        'schedule': timedelta(hours=AppConfig.CLEANUP_INTERVAL_HOURS),
     },
     'webdav-generation': {
         'task': 'app.tasks.jobs.webdav_job.scheduled_webdav_generation',

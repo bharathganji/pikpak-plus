@@ -205,8 +205,7 @@ def cleanup_status():
             "scheduler_running": is_running,
             "next_cleanup": next_cleanup,
             "message": message,
-            "cleanup_interval_hours": AppConfig.CLEANUP_INTERVAL_HOURS,
-            "task_retention_hours": AppConfig.TASK_RETENTION_HOURS
+            "cleanup_interval_hours": AppConfig.CLEANUP_INTERVAL_HOURS
         }
         return jsonify(result)
 

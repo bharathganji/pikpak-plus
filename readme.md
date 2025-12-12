@@ -163,8 +163,7 @@ This project is designed to run in a containerized environment using Docker Comp
 
    # Optional: Task Scheduler Configuration
    TASK_STATUS_UPDATE_INTERVAL_MINUTES=15
-   CLEANUP_INTERVAL_HOURS=24
-   TASK_RETENTION_HOURS=24
+   CLEANUP_INTERVAL_HOURS=24  # Supports any value (24, 48, 72, etc.)
 
    # Optional: Cache Configuration
    TASK_CACHE_TTL_SECONDS=300
