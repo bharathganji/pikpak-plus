@@ -31,6 +31,12 @@ create policy "Enable update access for anon" on public_actions
     to anon
     using (true);
 
+-- Policy: Allow delete access (DELETE) for anon key
+create policy "Enable delete access for anon" on public_actions
+    for delete
+    to anon
+    using (true);
+
 -- Table: daily_statistics
 -- Stores daily aggregated statistics
 create table if not exists daily_statistics (
