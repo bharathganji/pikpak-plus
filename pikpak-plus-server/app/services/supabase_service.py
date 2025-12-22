@@ -405,7 +405,7 @@ class SupabaseService:
 
     def get_daily_stats(self, limit: int = 30):
         """
-        Get daily statistics history
+        Get daily statistics history with 7-day prediction
 
         Args:
             limit: Number of days to retrieve
@@ -420,7 +420,57 @@ class SupabaseService:
                 .limit(limit) \
                 .execute()
 
-            return response.data
+            data = response.data
+            if not data:
+                return []
+
+            # Sort by date ascending for prediction calculation
+            data.sort(key=lambda x: x['date'])
+
+            # Extract series for each metric
+            tasks_added_series = [float(d.get('tasks_added', 0)) for d in data]
+            storage_used_series = [
+                float(d.get('storage_used', 0)) for d in data]
+            transfer_used_series = [
+                float(d.get('transfer_used', 0)) for d in data]
+            downstream_traffic_series = [
+                float(d.get('downstream_traffic', 0)) for d in data]
+
+            # Predict next 7 days
+            from app.utils.prediction import predict_next_values
+            from datetime import datetime, timedelta
+
+            predicted_tasks = predict_next_values(tasks_added_series, 7)
+            predicted_storage = predict_next_values(storage_used_series, 7)
+            predicted_transfer = predict_next_values(transfer_used_series, 7)
+            predicted_downstream = predict_next_values(
+                downstream_traffic_series, 7)
+
+            # Generate future dates
+            last_date_str = data[-1]['date']
+            last_date = datetime.strptime(last_date_str, '%Y-%m-%d')
+
+            predicted_data = []
+            for i in range(7):
+                next_date = last_date + timedelta(days=i+1)
+                predicted_data.append({
+                    'date': next_date.strftime('%Y-%m-%d'),
+                    'tasks_added': int(predicted_tasks[i]),
+                    'storage_used': int(predicted_storage[i]),
+                    'transfer_used': int(predicted_transfer[i]),
+                    'downstream_traffic': int(predicted_downstream[i]),
+                    'is_predicted': True
+                })
+
+            # append predicted data to the actual data
+            # Note: The frontend expects a list.
+            # We add is_predicted=False to original data for clarity
+            for item in data:
+                item['is_predicted'] = False
+
+            return data + predicted_data
+
         except Exception as e:
             logger.error(f"Failed to get daily statistics: {e}")
+            # Fallback to returning whatever raw data we have or empty list
             return []
