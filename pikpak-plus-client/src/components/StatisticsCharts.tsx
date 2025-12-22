@@ -24,6 +24,7 @@ interface DailyStat {
   storage_used: number;
   transfer_used: number;
   downstream_traffic: number;
+  is_predicted?: boolean;
 }
 
 interface StatisticsChartsProps {
@@ -43,9 +44,60 @@ const formatBytes = (bytes: number, decimals = 2) => {
 
 export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
   // Sort data by date ascending for charts
-  const chartData = [...data].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  const rawData = [...data].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
+
+  // Process data to separate actual vs predicted for continuity
+  const chartData = rawData.map((item, index) => {
+    const isPredicted = item.is_predicted;
+    const prevItem = index > 0 ? rawData[index - 1] : null;
+
+    // If this is the first predicted item, the previous item (actual) needs to start the predicted line
+    // But Recharts requires the data to be row-based.
+    // Strategy:
+    // - Actual series: value if !isPredicted. If isPredicted, null.
+    // - Predicted series: value if isPredicted.
+    // - To connect them: The LAST actual item should have BOTH actual and predicted values.
+
+    const newItem: any = { ...item };
+
+    // Default all predicted to null initially
+    newItem.tasks_added_predicted = null;
+    newItem.storage_used_predicted = null;
+    newItem.transfer_used_predicted = null;
+    newItem.downstream_traffic_predicted = null;
+
+    if (isPredicted) {
+      // Move exact values to predicted fields
+      newItem.tasks_added_predicted = newItem.tasks_added;
+      newItem.tasks_added = null; // Hide from main series
+
+      newItem.storage_used_predicted = newItem.storage_used;
+      newItem.storage_used = null;
+
+      newItem.transfer_used_predicted = newItem.transfer_used;
+      newItem.transfer_used = null;
+
+      newItem.downstream_traffic_predicted = newItem.downstream_traffic;
+      newItem.downstream_traffic = null;
+    }
+
+    return newItem;
+  });
+
+  // Second pass: Connect the lines.
+  // Find the last actual item and set its predicted values to its actual values
+  // so the predicted line starts from there.
+  for (let i = 0; i < chartData.length - 1; i++) {
+    if (!chartData[i].is_predicted && chartData[i + 1].is_predicted) {
+      chartData[i].tasks_added_predicted = chartData[i].tasks_added;
+      chartData[i].storage_used_predicted = chartData[i].storage_used;
+      chartData[i].transfer_used_predicted = chartData[i].transfer_used;
+      chartData[i].downstream_traffic_predicted =
+        chartData[i].downstream_traffic;
+    }
+  }
 
   const tooltipStyle = {
     backgroundColor: "rgba(255, 255, 255, 0.8)",
@@ -72,6 +124,18 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
                     <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
                     <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.6} />
                   </linearGradient>
+                  <pattern
+                    id="patternTasksPredicted"
+                    patternUnits="userSpaceOnUse"
+                    width="4"
+                    height="4"
+                  >
+                    <path
+                      d="M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2"
+                      stroke="#3b82f6"
+                      strokeWidth="1"
+                    />
+                  </pattern>
                 </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -103,6 +167,15 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
                   dataKey="tasks_added"
                   name="Tasks Added"
                   fill="url(#colorTasks)"
+                  radius={[6, 6, 0, 0]}
+                  animationDuration={1500}
+                />
+                <Bar
+                  dataKey="tasks_added_predicted"
+                  name="Predicted"
+                  fill="url(#patternTasksPredicted)"
+                  stroke="#3b82f6"
+                  strokeDasharray="4 4"
                   radius={[6, 6, 0, 0]}
                   animationDuration={1500}
                 />
@@ -150,9 +223,11 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
                 />
                 <Tooltip
                   labelFormatter={(date) => format(new Date(date), "PPP")}
-                  formatter={(value: number) => [
+                  formatter={(value: number, name: string) => [
                     formatBytes(value),
-                    "Storage Used",
+                    name === "storage_used_predicted"
+                      ? "Predicted Storage"
+                      : "Storage Used",
                   ]}
                   contentStyle={tooltipStyle}
                 />
@@ -164,6 +239,17 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
                   stroke="#8b5cf6"
                   strokeWidth={3}
                   fillOpacity={1}
+                  fill="url(#colorStorage)"
+                  animationDuration={1500}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="storage_used_predicted"
+                  name="Predicted"
+                  stroke="#8b5cf6"
+                  strokeWidth={3}
+                  strokeDasharray="5 5"
+                  fillOpacity={0.3}
                   fill="url(#colorStorage)"
                   animationDuration={1500}
                 />
@@ -217,9 +303,11 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
                 />
                 <Tooltip
                   labelFormatter={(date) => format(new Date(date), "PPP")}
-                  formatter={(value: number) => [
+                  formatter={(value: number, name: string) => [
                     formatBytes(value),
-                    "Transfer Used",
+                    name === "transfer_used_predicted"
+                      ? "Predicted Transfer"
+                      : "Transfer Used",
                   ]}
                   contentStyle={tooltipStyle}
                 />
@@ -232,6 +320,17 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
                   strokeWidth={3}
                   dot={{ r: 4, fill: "#10b981", strokeWidth: 0 }}
                   activeDot={{ r: 8, fill: "#10b981", strokeWidth: 0 }}
+                  animationDuration={1500}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="transfer_used_predicted"
+                  name="Predicted"
+                  stroke="#10b981"
+                  strokeWidth={3}
+                  strokeDasharray="5 5"
+                  dot={false}
+                  activeDot={{ r: 6, fill: "#10b981", strokeWidth: 0 }}
                   animationDuration={1500}
                 />
               </LineChart>
@@ -284,9 +383,11 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
                 />
                 <Tooltip
                   labelFormatter={(date) => format(new Date(date), "PPP")}
-                  formatter={(value: number) => [
+                  formatter={(value: number, name: string) => [
                     formatBytes(value),
-                    "Downstream Traffic",
+                    name === "downstream_traffic_predicted"
+                      ? "Predicted Traffic"
+                      : "Downstream Traffic",
                   ]}
                   contentStyle={tooltipStyle}
                 />
@@ -299,6 +400,17 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
                   strokeWidth={3}
                   dot={{ r: 4, fill: "#f59e0b", strokeWidth: 0 }}
                   activeDot={{ r: 8, fill: "#f59e0b", strokeWidth: 0 }}
+                  animationDuration={1500}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="downstream_traffic_predicted"
+                  name="Predicted"
+                  stroke="#f59e0b"
+                  strokeWidth={3}
+                  strokeDasharray="5 5"
+                  dot={false}
+                  activeDot={{ r: 6, fill: "#f59e0b", strokeWidth: 0 }}
                   animationDuration={1500}
                 />
               </LineChart>
