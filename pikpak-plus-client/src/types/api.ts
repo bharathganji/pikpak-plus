@@ -341,8 +341,34 @@ export interface QuotaInfo {
   };
 }
 
+export interface TransferQuotaItem {
+  info: string;
+  total_assets: number;
+  assets: number;
+  size?: number;
+}
+
+export interface PremiumProduct {
+  user_id: string;
+  product: string;
+  product_name: string;
+  type: string;
+  activate_time: string;
+  expire_time: string;
+  assets: string;
+  size: number;
+  status: "active" | "expired";
+}
+
 export interface TransferQuota {
   base?: BaseResponseObjectType;
+  transfer?: {
+    offline: TransferQuotaItem;
+    download: TransferQuotaItem;
+    upload: TransferQuotaItem;
+  };
+  data?: PremiumProduct[] | null;
+  has_more?: boolean;
 }
 
 export interface RefreshInfo {
