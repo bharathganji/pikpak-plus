@@ -97,16 +97,34 @@ export function QuotaDisplay() {
   const storagePercent = (storageUsage / storageLimit) * 100;
 
   // Cloud Download Traffic (offline)
-  const offlineUsed = quotaData.transfer.base?.offline?.size || 0;
-  const offlineTotal = quotaData.transfer.base?.offline?.total_assets || 0;
+  const baseOfflineUsed = quotaData.transfer.base?.offline?.size || 0;
+  const baseOfflineTotal = quotaData.transfer.base?.offline?.total_assets || 0;
+  const transferOfflineUsed = quotaData.transfer.transfer?.offline?.assets || 0;
+  const transferOfflineTotal =
+    quotaData.transfer.transfer?.offline?.total_assets || 0;
+
+  const offlineUsed = baseOfflineUsed + transferOfflineUsed;
+  const offlineTotal = baseOfflineTotal + transferOfflineTotal;
   const offlinePercent =
     offlineTotal > 0 ? (offlineUsed / offlineTotal) * 100 : 0;
 
   // Downstream Traffic (download)
-  const downloadUsed = quotaData.transfer.base?.download?.size || 0;
-  const downloadTotal = quotaData.transfer.base?.download?.total_assets || 0;
+  const baseDownloadUsed = quotaData.transfer.base?.download?.size || 0;
+  const baseDownloadTotal =
+    quotaData.transfer.base?.download?.total_assets || 0;
+  const transferDownloadUsed =
+    quotaData.transfer.transfer?.download?.assets || 0;
+  const transferDownloadTotal =
+    quotaData.transfer.transfer?.download?.total_assets || 0;
+
+  const downloadUsed = baseDownloadUsed + transferDownloadUsed;
+  const downloadTotal = baseDownloadTotal + transferDownloadTotal;
   const downloadPercent =
     downloadTotal > 0 ? (downloadUsed / downloadTotal) * 100 : 0;
+
+  const activeProducts = quotaData.transfer.data?.filter(
+    (p) => p.status === "active"
+  );
 
   const getProgressColor = (percent: number) => {
     if (percent >= 90)
@@ -215,17 +233,41 @@ export function QuotaDisplay() {
           </div>
         </div>
 
+        {activeProducts && activeProducts.length > 0 && (
+          <div className="pt-4 space-y-2 border-t border-dashed">
+            <div className="text-[10px] font-semibold text-foreground/60 uppercase tracking-wider">
+              Extra Premium Packages
+            </div>
+            {activeProducts.map((product, idx) => (
+              <div
+                key={idx}
+                className="flex items-center justify-between text-xs bg-primary/5 p-2 rounded-md border border-primary/10 shadow-sm"
+              >
+                <div className="flex flex-col">
+                  <span className="font-medium text-foreground">
+                    {product.product_name}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    Expires:{" "}
+                    {new Date(product.expire_time).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Quota Refresh Information */}
         {quotaData.refresh_info && (
           <div className="pt-3 border-t border-dashed mt-2">
             <div className="bg-muted/50 rounded-lg p-2.5 flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Resets in</span>
+              <span className="text-xs text-muted-foreground">Refresh in</span>
               <Badge
                 variant="outline"
                 className="font-mono text-xs bg-background"
               >
                 {calculateTimeRemaining(
-                  quotaData.refresh_info.quota_next_refresh,
+                  quotaData.refresh_info.quota_next_refresh
                 )}
               </Badge>
             </div>
