@@ -1,5 +1,5 @@
-"""WebDAV Traffic Checker"""
 import logging
+from datetime import datetime, timezone
 from typing import Optional, Any
 from app.core.config import AppConfig
 
@@ -31,43 +31,76 @@ class TrafficChecker:
                 return cached_result
 
         try:
-            # Try to get quota from cache first via cache manager if possible
-            quota_info_cached = None
-            if self.cache_manager:
-                quota_info_cached = self.cache_manager.get("quota_info")
+            # Always fetch fresh transfer quota for traffic check to avoid 3-hour cache lag
+            # This ensures that when a user buys extra premium, the WebDAV clients update promptly.
+            transfer_quota = await self.pikpak_service.get_transfer_quota()
 
-            if quota_info_cached and "transfer" in quota_info_cached:
-                logger.debug("Using cached quota info for traffic check")
-                transfer_quota = quota_info_cached["transfer"]
-            else:
-                # If not in cache, fetch it
-                transfer_quota = await self.pikpak_service.get_transfer_quota()
+            # Update the global quota_info cache with the newly fetched transfer quota
+            # so other parts of the UI also reflect the update.
+            if self.cache_manager:
+                # Clear the traffic-specific cache immediately to ensure fresh calculation
+                self.cache_manager.set(cache_key, None, ttl=0)
+
+                quota_info_cached = self.cache_manager.get("quota_info")
+                if quota_info_cached:
+                    quota_info_cached["transfer"] = transfer_quota
+                    quota_info_cached["cached_at"] = datetime.now(
+                        timezone.utc).isoformat()
+                    self.cache_manager.set(
+                        "quota_info", quota_info_cached, ttl=AppConfig.QUOTA_CACHE_TTL)
 
             # Extract quota information from the correct structure
-            # API returns: { "base": { "download": { "size": usage, "total_assets": limit } } }
+            # API returns: {
+            #   "base": { "download": { "size": usage, "total_assets": limit } },
+            #   "transfer": { "download": { "assets": extra_usage, "total_assets": extra_limit } },
+            #   "data": [ { "status": "active", "product": "..." } ]
+            # }
+
+            # Base Download Quota
             base_info = transfer_quota.get('base', {})
-            download_info = base_info.get('download', {})
+            base_download = base_info.get('download', {})
+            base_limit = base_download.get('total_assets', 0)
+            # Use 'size' if available as it tracks actual overflow bytes better than 'assets'
+            base_usage = base_download.get(
+                'size', base_download.get('assets', 0))
 
-            limit = download_info.get('total_assets', 0)
-            usage = download_info.get('size', 0)
+            # Extra/Transfer Download Quota
+            extra_total = transfer_quota.get('transfer', {})
+            extra_download = extra_total.get('download', {})
+            extra_limit = extra_download.get('total_assets', 0)
+            # Transfer bucket usually uses 'assets', but we check 'size' too just in case
+            extra_usage = extra_download.get(
+                'size', extra_download.get('assets', 0))
 
-            if limit == 0:
+            # Sum them up (e.g., 4TB Base + 4TB Extra = 8TB Limit)
+            total_limit = base_limit + extra_limit
+            total_usage = base_usage + extra_usage
+
+            # Fallback: Check if there are active products in the 'data' array
+            # as a secondary indicator of extra premium status.
+            active_products = [p for p in transfer_quota.get(
+                'data', []) if p.get('status') == 'active']
+            has_active_premium = len(active_products) > 0
+
+            if total_limit == 0:
                 # No limit set, traffic is available
                 is_available = True
-            elif limit == -1:
+            elif total_limit == -1:
                 # Unlimited quota
                 is_available = True
             else:
                 # Check if usage is less than limit (not 100% exhausted)
-                is_available = usage < limit
+                # If we have active premium products but the buckets are barely over,
+                # we might be in an "overflow" state where PikPak hasn't shifted the counters yet.
+                is_available = total_usage < total_limit
 
             logger.info(
-                f"Downstream traffic check: {usage}/{limit} bytes used. Available: {is_available}")
+                f"Downstream traffic check: {total_usage}/{total_limit} bytes used (Base: {base_usage}/{base_limit}, Extra: {extra_usage}/{extra_limit}). Active Products: {len(active_products)}. Available: {is_available}")
 
-            # Cache the result using the same TTL as quota cache for consistency
+            # Cache the result for 5 minutes (much shorter than quota cache)
             if self.cache_manager:
                 self.cache_manager.set(
-                    cache_key, is_available, ttl=AppConfig.QUOTA_CACHE_TTL)
+                    cache_key, is_available, ttl=300)
 
             return is_available
 

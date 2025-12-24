@@ -23,7 +23,7 @@ export function CreateShareTab() {
   const [pageSize, setPageSize] = useState(25);
   const [showMyTasksOnly, setShowMyTasksOnly] = useLocalStorage(
     false,
-    "showMyTasksOnly",
+    "showMyTasksOnly"
   );
 
   // Cleanup status state
@@ -46,7 +46,7 @@ export function CreateShareTab() {
   // Local tasks storage
   const [localTasks, setLocalTasks] = useLocalStorage<LocalTask[]>(
     [],
-    LOCAL_TASKS_STORAGE_KEY,
+    LOCAL_TASKS_STORAGE_KEY
   );
 
   // Optimized local task URLs extraction using useMemo
@@ -74,18 +74,18 @@ export function CreateShareTab() {
         // Fetch config and cleanup status in parallel
         const [configData, cleanupData] = await Promise.all([
           fetchConfig(),
-          fetchCleanupStatus()
+          fetchCleanupStatus(),
         ]);
 
         setMaxFileSizeGB(configData.max_file_size_gb);
         setTaskStatusUpdateIntervalMinutes(
-          configData.task_status_update_interval_minutes,
+          configData.task_status_update_interval_minutes
         );
         setNextTaskStatusUpdate(configData.next_task_status_update);
 
         setCleanupStatus(cleanupData);
       } catch (error) {
-        console.error('Failed to fetch initial data:', error);
+        console.error("Failed to fetch initial data:", error);
         // Set default values on error
         setMaxFileSizeGB(25);
         setTaskStatusUpdateIntervalMinutes(15);
@@ -129,7 +129,7 @@ export function CreateShareTab() {
 
     try {
       const result = await fetchGlobalTasks(page, pageSize);
-      
+
       // Batch state updates to prevent multiple re-renders
       setGlobalTasks(result.data);
       setTotalPages(Math.ceil(result.count / pageSize));
@@ -164,7 +164,7 @@ export function CreateShareTab() {
 
     try {
       const result = await fetchMyTasks(localTaskUrls);
-      
+
       // Batch state updates
       setGlobalTasks(result.data);
       setTotalPages(1); // No pagination for my tasks
@@ -182,44 +182,47 @@ export function CreateShareTab() {
   }, [fetchMyTasksData]);
 
   // Optimized task addition with batch operations
-  const handleAddSuccess = useCallback(async (taskData: any, fileInfoData: any) => {
-    // Create new task object with defaults
-    const newTask: LocalTask = {
-      id: taskData?.id || Date.now().toString(),
-      url: taskData?.url || "",
-      status: "Added",
-      timestamp: Date.now(),
-      name: taskData?.name || fileInfoData?.name || "Processing...",
-      file_size: taskData?.file_size || fileInfoData?.size?.toString(),
-      file_type: fileInfoData?.file_type,
-    };
+  const handleAddSuccess = useCallback(
+    async (taskData: any, fileInfoData: any) => {
+      // Create new task object with defaults
+      const newTask: LocalTask = {
+        id: taskData?.id || Date.now().toString(),
+        url: taskData?.url || "",
+        status: "Added",
+        timestamp: Date.now(),
+        name: taskData?.name || fileInfoData?.name || "Processing...",
+        file_size: taskData?.file_size || fileInfoData?.size?.toString(),
+        file_type: fileInfoData?.file_type,
+      };
 
-    // Optimized array operations using Set for O(1) lookup
-    setLocalTasks(prevTasks => {
-      const existingTasks = new Set(prevTasks.map(t => t.id));
+      // Optimized array operations using Set for O(1) lookup
+      setLocalTasks((prevTasks) => {
+        const existingTasks = new Set(prevTasks.map((t) => t.id));
 
-      // Filter out existing task if it exists and add new task
-      const filteredTasks = existingTasks.has(newTask.id)
-        ? prevTasks.filter(t => t.id !== newTask.id)
-        : prevTasks;
+        // Filter out existing task if it exists and add new task
+        const filteredTasks = existingTasks.has(newTask.id)
+          ? prevTasks.filter((t) => t.id !== newTask.id)
+          : prevTasks;
 
-      // Add new task to the top with single array operation
-      return [newTask, ...filteredTasks];
-    });
+        // Add new task to the top with single array operation
+        return [newTask, ...filteredTasks];
+      });
 
-    // Reset to first page to show the new task
-    setPage(1);
+      // Reset to first page to show the new task
+      setPage(1);
 
-    // Refresh the task list from server to show the newly added task
-    try {
-      const result = await fetchGlobalTasks(1, pageSize);
-      setGlobalTasks(result.data);
-      setTotalPages(Math.ceil(result.count / pageSize));
-      setTotalItems(result.count);
-    } catch (error) {
-      console.error("Failed to refresh tasks after adding:", error);
-    }
-  }, [setLocalTasks, pageSize]);
+      // Refresh the task list from server to show the newly added task
+      try {
+        const result = await fetchGlobalTasks(1, pageSize);
+        setGlobalTasks(result.data);
+        setTotalPages(Math.ceil(result.count / pageSize));
+        setTotalItems(result.count);
+      } catch (error) {
+        console.error("Failed to refresh tasks after adding:", error);
+      }
+    },
+    [setLocalTasks, pageSize]
+  );
 
   // Optimized page size change handler
   const handlePageSizeChange = useCallback((newSize: number) => {
