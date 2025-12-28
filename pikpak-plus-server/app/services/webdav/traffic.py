@@ -49,35 +49,29 @@ class TrafficChecker:
                     self.cache_manager.set(
                         "quota_info", quota_info_cached, ttl=AppConfig.QUOTA_CACHE_TTL)
 
-            # Extract quota information from the updated structure (Dec 2024):
-            # API returns: {
-            #   "base": { "download": { "size": usage, "assets": usage, "total_assets": monthly_base_limit } },
-            #   "transfer": { "download": { "assets": 0, "total_assets": monthly_total_limit } },
-            #   "data": [ { "status": "active", "product": "..." } ]
-            # }
-            # NOTE: "transfer" now contains the TOTAL monthly quota (base + extra combined)
-            #       "base" contains the ACTUAL usage. So we read:
-            #       - Usage from base.download.size (or base.download.assets)
-            #       - Total limit from transfer.download.total_assets (or fallback to base.download.total_assets)
+            # API Structure (Dec 2024):
+            # - base: Common monthly quota everyone gets (usage in size/assets, limit in total_assets)
+            # - transfer: EXTRA quota from purchased premium plans
+            # - Total available = base + transfer
 
-            # Base contains actual usage
+            # Base Download Quota (common for all users)
             base_info = transfer_quota.get('base', {})
             base_download = base_info.get('download', {})
-            # Use 'size' as it tracks actual consumed bytes accurately
-            actual_usage = base_download.get('size', base_download.get('assets', 0))
+            base_limit = base_download.get('total_assets', 0)
+            base_usage = base_download.get(
+                'size', base_download.get('assets', 0))
 
-            # Transfer contains the monthly quota totals (base + extra premium combined)
-            transfer_info = transfer_quota.get('transfer', {})
-            transfer_download = transfer_info.get('download', {})
-            # total_assets in transfer bucket = combined monthly limit
-            total_limit = transfer_download.get('total_assets', 0)
-            
-            # Fallback: If transfer.download.total_assets is 0 or missing,
-            # use base.download.total_assets as the limit
-            if total_limit == 0:
-                total_limit = base_download.get('total_assets', 0)
+            # Extra Download Quota (from purchased premium plans)
+            extra_info = transfer_quota.get('transfer', {})
+            extra_download = extra_info.get('download', {})
+            extra_limit = extra_download.get('total_assets', 0)
+            extra_usage = extra_download.get('assets', 0)
 
-            # Fallback: Check if there are active products in the 'data' array
+            # Sum base + extra for total available quota
+            total_limit = base_limit + extra_limit
+            total_usage = base_usage + extra_usage
+
+            # Check active premium products
             active_products = [p for p in transfer_quota.get(
                 'data', []) if p.get('status') == 'active']
 
@@ -89,10 +83,12 @@ class TrafficChecker:
                 is_available = True
             else:
                 # Check if usage is less than limit (not 100% exhausted)
-                is_available = actual_usage < total_limit
+                is_available = total_usage < total_limit
 
             logger.info(
-                f"Downstream traffic check: {actual_usage}/{total_limit} bytes used. Active Products: {len(active_products)}. Available: {is_available}")
+                f"Downstream traffic check: {total_usage}/{total_limit} bytes used "
+                f"(Base: {base_usage}/{base_limit}, Extra: {extra_usage}/{extra_limit}). "
+                f"Active Products: {len(active_products)}. Available: {is_available}")
 
             # Cache the result for 5 minutes (much shorter than quota cache)
             if self.cache_manager:

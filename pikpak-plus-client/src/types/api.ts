@@ -364,24 +364,27 @@ export interface PremiumProduct {
  * Transfer quota response from PikPak API.
  *
  * API Structure (Dec 2024):
- * - `base`: Contains ACTUAL usage data (size/assets fields show consumed bytes)
- * - `transfer`: Contains MONTHLY QUOTA TOTALS (total_assets = combined base + extra premium limits)
+ * - `base`: Common monthly quota everyone gets (40TB cloud, 4TB downstream, 1TB upload)
+ *   - size/assets = actual usage consumed
+ *   - total_assets = monthly limit
+ * - `transfer`: EXTRA quota from purchased premium plans (e.g. dt_100_year)
+ *   - assets = usage from this extra quota
+ *   - total_assets = extra limit from premium purchase
  * - `data`: Array of premium products (extra transfer packages)
  *
- * Usage calculation:
- * - Used bytes = base.download.size (or base.download.assets)
- * - Total limit = transfer.download.total_assets (or fallback to base.download.total_assets)
+ * Total available = base.total_assets + transfer.total_assets
+ * Total used = base.size + transfer.assets
  */
 export interface TransferQuota {
-  /** Contains actual usage data (size field = consumed bytes) */
+  /** Common monthly quota everyone gets */
   base?: BaseResponseObjectType;
-  /** Contains monthly quota totals (total_assets = combined limit) */
+  /** EXTRA quota from purchased premium plans */
   transfer?: {
     offline: TransferQuotaItem;
     download: TransferQuotaItem;
     upload: TransferQuotaItem;
   };
-  /** Extra premium transfer packages */
+  /** Premium products that provide extra transfer packages */
   data?: PremiumProduct[] | null;
   has_more?: boolean;
 }
