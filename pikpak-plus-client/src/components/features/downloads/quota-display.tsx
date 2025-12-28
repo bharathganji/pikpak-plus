@@ -96,29 +96,30 @@ export function QuotaDisplay() {
   const storageLimit = Number.parseInt(quotaData.storage.quota.limit, 10);
   const storagePercent = (storageUsage / storageLimit) * 100;
 
-  // Cloud Download Traffic (offline)
-  const baseOfflineUsed = quotaData.transfer.base?.offline?.size || 0;
-  const baseOfflineTotal = quotaData.transfer.base?.offline?.total_assets || 0;
-  const transferOfflineUsed = quotaData.transfer.transfer?.offline?.assets || 0;
-  const transferOfflineTotal =
-    quotaData.transfer.transfer?.offline?.total_assets || 0;
+  // New API structure (Dec 2024):
+  // - transfer.transfer contains monthly quota totals (total_assets)
+  // - transfer.base contains actual usage (size/assets)
+  // - If transfer.transfer is undefined, fall back to base.total_assets for totals
 
-  const offlineUsed = baseOfflineUsed + transferOfflineUsed;
-  const offlineTotal = baseOfflineTotal + transferOfflineTotal;
+  // Cloud Download Traffic (offline)
+  const baseOffline = quotaData.transfer.base?.offline;
+  const transferOffline = quotaData.transfer.transfer?.offline;
+
+  // Usage comes from base (actual consumed bytes)
+  const offlineUsed = baseOffline?.size ?? baseOffline?.assets ?? 0;
+  // Total comes from transfer (monthly quota) or fall back to base.total_assets
+  const offlineTotal =
+    transferOffline?.total_assets ?? baseOffline?.total_assets ?? 0;
   const offlinePercent =
     offlineTotal > 0 ? (offlineUsed / offlineTotal) * 100 : 0;
 
   // Downstream Traffic (download)
-  const baseDownloadUsed = quotaData.transfer.base?.download?.size || 0;
-  const baseDownloadTotal =
-    quotaData.transfer.base?.download?.total_assets || 0;
-  const transferDownloadUsed =
-    quotaData.transfer.transfer?.download?.assets || 0;
-  const transferDownloadTotal =
-    quotaData.transfer.transfer?.download?.total_assets || 0;
+  const baseDownload = quotaData.transfer.base?.download;
+  const transferDownload = quotaData.transfer.transfer?.download;
 
-  const downloadUsed = baseDownloadUsed + transferDownloadUsed;
-  const downloadTotal = baseDownloadTotal + transferDownloadTotal;
+  const downloadUsed = baseDownload?.size ?? baseDownload?.assets ?? 0;
+  const downloadTotal =
+    transferDownload?.total_assets ?? baseDownload?.total_assets ?? 0;
   const downloadPercent =
     downloadTotal > 0 ? (downloadUsed / downloadTotal) * 100 : 0;
 
