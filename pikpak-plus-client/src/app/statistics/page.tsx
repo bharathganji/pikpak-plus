@@ -7,12 +7,26 @@ import { Footer } from "@/components/layout/footer";
 import { Fab } from "@/components/layout/fab";
 import { StatisticsCharts } from "@/components/StatisticsCharts";
 import { getApiUrl } from "@/lib/api-utils";
+import { calculateTimeRemaining } from "@/lib/time-utils";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import { ArrowLeft, RefreshCw, Clock } from "lucide-react";
+
+interface ScheduleInfo {
+  next_update: string | null;
+  last_update: string | null;
+  scheduler_running: boolean;
+}
+
+interface StatisticsResponse {
+  data: any[];
+  schedule: ScheduleInfo;
+}
 
 export default function StatisticsPage() {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<any[]>([]);
+  const [schedule, setSchedule] = useState<ScheduleInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -21,8 +35,11 @@ export default function StatisticsPage() {
     setError("");
     try {
       const apiUrl = getApiUrl();
-      const response = await axios.get(`${apiUrl}/statistics?limit=30`);
-      setData(response.data);
+      const response = await axios.get<StatisticsResponse>(
+        `${apiUrl}/statistics?limit=30`
+      );
+      setData(response.data.data);
+      setSchedule(response.data.schedule);
     } catch (err) {
       console.error("Failed to fetch statistics:", err);
       setError("Failed to load statistics. Please try again later.");
@@ -49,14 +66,28 @@ export default function StatisticsPage() {
             </Link>
             <h1 className="text-2xl font-bold">Statistics Dashboard</h1>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={fetchData}
-            disabled={loading}
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          </Button>
+          <div className="flex items-center gap-3">
+            {/* Next Update Indicator */}
+            {schedule?.next_update && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                <span className="hidden sm:inline">Next update:</span>
+                <Badge variant="outline" className="font-mono text-xs">
+                  {calculateTimeRemaining(schedule.next_update)}
+                </Badge>
+              </div>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={fetchData}
+              disabled={loading}
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+              />
+            </Button>
+          </div>
         </div>
 
         {error && (
