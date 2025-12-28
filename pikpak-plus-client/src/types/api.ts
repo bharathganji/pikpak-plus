@@ -360,13 +360,28 @@ export interface PremiumProduct {
   status: "active" | "expired";
 }
 
+/**
+ * Transfer quota response from PikPak API.
+ *
+ * API Structure (Dec 2024):
+ * - `base`: Contains ACTUAL usage data (size/assets fields show consumed bytes)
+ * - `transfer`: Contains MONTHLY QUOTA TOTALS (total_assets = combined base + extra premium limits)
+ * - `data`: Array of premium products (extra transfer packages)
+ *
+ * Usage calculation:
+ * - Used bytes = base.download.size (or base.download.assets)
+ * - Total limit = transfer.download.total_assets (or fallback to base.download.total_assets)
+ */
 export interface TransferQuota {
+  /** Contains actual usage data (size field = consumed bytes) */
   base?: BaseResponseObjectType;
+  /** Contains monthly quota totals (total_assets = combined limit) */
   transfer?: {
     offline: TransferQuotaItem;
     download: TransferQuotaItem;
     upload: TransferQuotaItem;
   };
+  /** Extra premium transfer packages */
   data?: PremiumProduct[] | null;
   has_more?: boolean;
 }
