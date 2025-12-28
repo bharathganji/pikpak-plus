@@ -81,13 +81,30 @@ def collect_daily_statistics(self):
             storage_used = int(storage_quota.get("usage", 0))
 
             # 2. Get Cloud Download Traffic (Offline Downloads)
+            # Base quota (common for all users)
             transfer_base = transfer_info.get("base", {})
-            offline_info = transfer_base.get("offline", {})
-            transfer_used = int(offline_info.get("assets", 0))
+            base_offline = transfer_base.get("offline", {})
+            base_offline_used = int(base_offline.get(
+                "size", base_offline.get("assets", 0)))
+
+            # Extra quota from purchased premium plans (may not exist)
+            transfer_extra = transfer_info.get("transfer", {})
+            extra_offline = transfer_extra.get("offline", {})
+            extra_offline_used = int(extra_offline.get("assets", 0))
+
+            # Total = base + extra
+            transfer_used = base_offline_used + extra_offline_used
 
             # 3. Get Downstream Traffic (Streaming & Direct Downloads)
-            download_info = transfer_base.get("download", {})
-            downstream_traffic = int(download_info.get("assets", 0))
+            base_download = transfer_base.get("download", {})
+            base_download_used = int(base_download.get(
+                "size", base_download.get("assets", 0)))
+
+            extra_download = transfer_extra.get("download", {})
+            extra_download_used = int(extra_download.get("assets", 0))
+
+            # Total = base + extra
+            downstream_traffic = base_download_used + extra_download_used
 
             # 4. Count Tasks Added (Target Day 00:00 to 23:59:59)
             start_of_day = datetime.combine(
