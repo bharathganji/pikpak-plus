@@ -76,8 +76,7 @@ export function TaskCard({ task, isLocal, onClick }: Readonly<TaskCardProps>) {
       onClick={onClick}
       onKeyDown={handleKeyDown}
     >
-      <div className="shrink-0">{getFileIcon(task, isFolderType)}
-      </div>
+      <div className="shrink-0">{getFileIcon(task, isFolderType)}</div>
       <div className="flex-1 min-w-0 overflow-hidden">
         <div className="w-full">
           <h4

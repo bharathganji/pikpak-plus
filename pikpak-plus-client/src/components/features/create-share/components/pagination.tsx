@@ -180,7 +180,7 @@ export const Pagination = React.memo(function Pagination({
               <div
                 key={generateEllipsisKey(
                   index === 0 ? "left" : "right",
-                  pageNumbers[index - 1] as number
+                  pageNumbers[index - 1] as number,
                 )}
                 className="px-2 text-xs text-muted-foreground"
               >

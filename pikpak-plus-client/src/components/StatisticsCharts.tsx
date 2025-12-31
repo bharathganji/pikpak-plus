@@ -45,7 +45,7 @@ const formatBytes = (bytes: number, decimals = 2) => {
 export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
   // Sort data by date ascending for charts
   const rawData = [...data].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
   );
 
   // Process data to separate actual vs predicted for continuity

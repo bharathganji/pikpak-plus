@@ -52,7 +52,7 @@ function getCompletedTaskStatus(message?: string): {
  */
 function getRunningTaskStatus(
   message: string | undefined,
-  progress?: number
+  progress?: number,
 ): {
   label: string;
   variant: "processing";
@@ -84,7 +84,7 @@ function getErrorTaskStatus(message?: string): {
 function getPendingOrProcessingTaskStatus(
   phase: string | undefined,
   message: string | undefined,
-  progress?: number
+  progress?: number,
 ): {
   label: string;
   variant: "secondary" | "processing";
