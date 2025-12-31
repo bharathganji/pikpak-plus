@@ -4,7 +4,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useLocalStorage } from "primereact/hooks";
-import { Filter as BadWordsFilter } from "bad-words";
+import { isProfane } from "@/lib/nsfw-filter";
 import type { SupabaseTaskRecord } from "@/types";
 import { getTaskName } from "../task-utils";
 import { calculateItemRange } from "../utils/pagination-utils";
@@ -12,8 +12,8 @@ import { calculateItemRange } from "../utils/pagination-utils";
 // Hook for managing NSFW filter state
 export function useNsfwFilter() {
   const [nsfwFilterEnabled, setNsfwFilterEnabled] = useLocalStorage(
-    false,
-    "nsfwFilterEnabled"
+    true,
+    "nsfwFilterEnabled",
   );
 
   const toggleFilter = useCallback(() => {
@@ -30,21 +30,18 @@ export function useNsfwFilter() {
 export function useTaskFilter(
   tasks: readonly SupabaseTaskRecord[],
   nsfwFilterEnabled: boolean,
-  localTaskUrls?: readonly string[]
+  localTaskUrls?: readonly string[],
 ) {
-  // Memoize the BadWordsFilter instance to prevent recreating it on every render
-  const badWordsFilter = useMemo(() => new BadWordsFilter({}), []);
-
   const filteredTasks = useMemo(() => {
     let result = [...tasks]; // Create a copy to avoid mutating the original array
 
     // Apply NSFW filter
     if (nsfwFilterEnabled) {
-      result = result.filter((task) => !badWordsFilter.isProfane(getTaskName(task)));
+      result = result.filter((task) => !isProfane(getTaskName(task)));
     }
 
     return result;
-  }, [tasks, nsfwFilterEnabled, badWordsFilter]);
+  }, [tasks, nsfwFilterEnabled]);
 
   const filteredTasksWithLocalFlag = useMemo(() => {
     return filteredTasks.map((task) => ({
@@ -62,7 +59,7 @@ export function useTaskFilter(
 // Hook for managing preview dialog state
 export function useTaskPreview() {
   const [previewTask, setPreviewTask] = useState<SupabaseTaskRecord | null>(
-    null
+    null,
   );
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -99,7 +96,7 @@ export function useEmptyState(
   error: string | undefined,
   showMyTasksOnly: boolean,
   nsfwFilterEnabled: boolean,
-  page: number
+  page: number,
 ) {
   const emptyMessage = useMemo(() => {
     if (loading || error) {
@@ -143,7 +140,7 @@ export function useEmptyState(
 export function useItemRange(
   page: number,
   pageSize: number,
-  totalItems: number
+  totalItems: number,
 ) {
   const itemRange = useMemo(() => {
     return calculateItemRange(page, pageSize, totalItems);
@@ -159,7 +156,7 @@ export function useItemRange(
 export function useTaskContent(
   loading: boolean,
   error: string | undefined,
-  emptyMessage: string | null
+  emptyMessage: string | null,
 ) {
   const contentType = useMemo(() => {
     if (loading) return "loading" as const;

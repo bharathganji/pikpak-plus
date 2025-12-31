@@ -36,7 +36,7 @@ export default function StatisticsPage() {
     try {
       const apiUrl = getApiUrl();
       const response = await axios.get<StatisticsResponse>(
-        `${apiUrl}/statistics?limit=30`
+        `${apiUrl}/statistics?limit=30`,
       );
       setData(response.data.data);
       setSchedule(response.data.schedule);

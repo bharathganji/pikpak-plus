@@ -27,7 +27,6 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@tailwindcss/postcss": "^4.1.17",
     "axios": "^1.13.2",
-    "bad-words": "^4.0.0",
     "class-variance-authority": "^0.7.1",
     "copy-to-clipboard": "^3.3.3",
     "date-fns": "^4.1.0",

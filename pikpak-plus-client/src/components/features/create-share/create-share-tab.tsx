@@ -23,7 +23,7 @@ export function CreateShareTab() {
   const [pageSize, setPageSize] = useState(25);
   const [showMyTasksOnly, setShowMyTasksOnly] = useLocalStorage(
     false,
-    "showMyTasksOnly"
+    "showMyTasksOnly",
   );
 
   // Cleanup status state
@@ -46,7 +46,7 @@ export function CreateShareTab() {
   // Local tasks storage
   const [localTasks, setLocalTasks] = useLocalStorage<LocalTask[]>(
     [],
-    LOCAL_TASKS_STORAGE_KEY
+    LOCAL_TASKS_STORAGE_KEY,
   );
 
   // Optimized local task URLs extraction using useMemo
@@ -79,7 +79,7 @@ export function CreateShareTab() {
 
         setMaxFileSizeGB(configData.max_file_size_gb);
         setTaskStatusUpdateIntervalMinutes(
-          configData.task_status_update_interval_minutes
+          configData.task_status_update_interval_minutes,
         );
         setNextTaskStatusUpdate(configData.next_task_status_update);
 
@@ -214,7 +214,7 @@ export function CreateShareTab() {
         console.error("Failed to refresh tasks after adding:", error);
       }
     },
-    [setLocalTasks, pageSize]
+    [setLocalTasks, pageSize],
   );
 
   // Optimized page size change handler

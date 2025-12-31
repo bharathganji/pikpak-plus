@@ -135,7 +135,7 @@ export function QuotaDisplay() {
     downloadTotal > 0 ? (downloadUsed / downloadTotal) * 100 : 0;
 
   const activeProducts = quotaData.transfer.data?.filter(
-    (p) => p.status === "active"
+    (p) => p.status === "active",
   );
 
   const getProgressColor = (percent: number) => {
@@ -279,7 +279,7 @@ export function QuotaDisplay() {
                 className="font-mono text-xs bg-background"
               >
                 {calculateTimeRemaining(
-                  quotaData.refresh_info.quota_next_refresh
+                  quotaData.refresh_info.quota_next_refresh,
                 )}
               </Badge>
             </div>

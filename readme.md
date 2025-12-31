@@ -336,6 +336,7 @@ Project Link: [https://github.com/bharathganji/pikpak-plus](https://github.com/b
 - <https://github.com/Quan666/PikPakAPI>
 - <https://github.com/sudozid/jackett-metasearch-flask>
 - <https://github.com/n-wall/pikpak/>
+- <https://github.com/rrgeorge-pdcontributions/NSFW-Words-List/>
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->

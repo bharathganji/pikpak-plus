@@ -41,14 +41,16 @@ export const FilterControls = React.memo(function FilterControls({
       >
         <Filter className="h-3 w-3" />
         NSFW Filter
-        {nsfwFilterEnabled && filteredCount !== undefined && filteredCount > 0 && (
-          <Badge
-            variant="secondary"
-            className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] font-bold bg-red-500 text-white border-0"
-          >
-            {filteredCount}
-          </Badge>
-        )}
+        {nsfwFilterEnabled &&
+          filteredCount !== undefined &&
+          filteredCount > 0 && (
+            <Badge
+              variant="secondary"
+              className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] font-bold bg-red-500 text-white border-0"
+            >
+              {filteredCount}
+            </Badge>
+          )}
       </Button>
     </div>
   );

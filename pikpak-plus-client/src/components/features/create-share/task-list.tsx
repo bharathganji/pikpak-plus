@@ -40,7 +40,7 @@ interface TaskListProps {
 }
 
 export const TaskList = React.memo(function TaskList(
-  props: Readonly<TaskListProps>
+  props: Readonly<TaskListProps>,
 ) {
   const {
     tasks,
@@ -66,7 +66,7 @@ export const TaskList = React.memo(function TaskList(
   const { filteredTasks } = useTaskFilter(
     tasks,
     nsfwFilterEnabled,
-    localTaskUrls
+    localTaskUrls,
   );
 
   // Calculate filtered count (items removed by NSFW filter)
@@ -83,7 +83,7 @@ export const TaskList = React.memo(function TaskList(
     error,
     showMyTasksOnly,
     nsfwFilterEnabled,
-    page
+    page,
   );
 
   // Memoized task content component

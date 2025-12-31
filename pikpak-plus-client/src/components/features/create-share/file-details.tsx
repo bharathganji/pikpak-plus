@@ -30,7 +30,7 @@ export function FileDetails({
   const rawScreenshots = whatslink?.screenshots || [];
   const screenshots: string[] = rawScreenshots
     .map((item: string | { screenshot: string }) =>
-      typeof item === "string" ? item : item.screenshot
+      typeof item === "string" ? item : item.screenshot,
     )
     .filter(Boolean);
   const hasScreenshots = screenshots.length > 0;

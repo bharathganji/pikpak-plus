@@ -27,7 +27,7 @@ export interface PaginationConfig {
 export function generatePageNumbers(
   current: number,
   total: number,
-  maxVisiblePages: number = 7
+  maxVisiblePages: number = 7,
 ): (number | string)[] {
   if (total <= maxVisiblePages) {
     return Array.from({ length: total }, (_, i) => i + 1);
@@ -68,7 +68,7 @@ export function generatePageNumbers(
 export function calculateItemRange(
   currentPage: number,
   pageSize: number,
-  totalItems: number
+  totalItems: number,
 ): { start: number; end: number; total: number } {
   const start = (currentPage - 1) * pageSize + 1;
   const end = Math.min(currentPage * pageSize, totalItems);
@@ -88,7 +88,7 @@ export function isValidPage(page: number, totalPages: number): boolean {
 // Select optimal pagination variant based on total pages
 export function selectPaginationVariant(
   totalPages: number,
-  userPreference?: PaginationVariant
+  userPreference?: PaginationVariant,
 ): PaginationVariant {
   if (userPreference) {
     return userPreference;
@@ -104,7 +104,7 @@ export function selectPaginationVariant(
 // Calculate animation delay for list items
 export function calculateAnimationDelay(
   index: number,
-  baseDelay: number = 0.05
+  baseDelay: number = 0.05,
 ): string {
   return `${index * baseDelay}s`;
 }
