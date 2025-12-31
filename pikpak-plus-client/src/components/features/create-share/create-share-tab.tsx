@@ -96,29 +96,22 @@ export function CreateShareTab() {
     fetchData();
   }, []);
 
-  // Calculate time until cleanup and refresh it periodically
+  // Calculate time until cleanup once when cleanupStatus changes
   useEffect(() => {
     if (!cleanupStatus?.next_cleanup) return;
 
-    const updateCountdown = () => {
-      const now = new Date();
-      const next = new Date(cleanupStatus.next_cleanup!);
-      const diff = next.getTime() - now.getTime();
-      if (diff <= 0) {
-        setTimeUntilCleanup("Soon");
-        // Refresh cleanup status when time is up
-        fetchCleanupStatus().then(setCleanupStatus);
-        return;
-      }
+    const now = new Date();
+    const next = new Date(cleanupStatus.next_cleanup);
+    const diff = next.getTime() - now.getTime();
+
+    if (diff <= 0) {
+      setTimeUntilCleanup("Soon");
+    } else {
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       setTimeUntilCleanup(`${hours}h ${minutes}m`);
-    };
-
-    updateCountdown();
-    const interval = setInterval(updateCountdown, 60000);
-    return () => clearInterval(interval);
-  }, [cleanupStatus]);
+    }
+  }, [cleanupStatus?.next_cleanup]);
 
   // Memoized fetch function for global tasks
   const fetchGlobalTasksData = useCallback(async () => {
