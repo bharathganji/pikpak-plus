@@ -21,7 +21,6 @@ interface MagnetInputCardProps {
   cleanupStatus: {
     next_cleanup: string | null;
     cleanup_interval_hours: number;
-    task_retention_hours: number;
     scheduler_running: boolean;
   } | null;
   timeUntilCleanup: string;
@@ -179,7 +178,7 @@ export function MagnetInputCard({
               <strong className="text-foreground">
                 {timeUntilCleanup || "..."}
               </strong>{" "}
-              · Content removed every {cleanupStatus.task_retention_hours}h
+              · Content removed every {cleanupStatus.cleanup_interval_hours}h
             </span>
           </div>
         )}
