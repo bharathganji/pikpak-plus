@@ -59,9 +59,10 @@ def collect_daily_statistics(self):
                 logger.info(
                     f"Statistics for {target_date_str} already exist. Skipping.")
 
-                # Update Redis status for next check (1 hour later)
+                # Update Redis status for next check (next UTC midnight)
                 from app.tasks.utils import update_redis_status
-                next_run_time = run_time + timedelta(hours=1)
+                next_run_time = (run_time + timedelta(days=1)
+                                 ).replace(hour=0, minute=0, second=0, microsecond=0)
                 update_redis_status(redis_client, run_time,
                                     next_run_time, "statistics_collection")
                 return
@@ -139,8 +140,9 @@ def collect_daily_statistics(self):
             # Update Redis status
             from app.tasks.utils import update_redis_status
 
-            # Check again in 1 hour
-            next_run_time = run_time + timedelta(hours=1)
+            # Check again at next UTC midnight
+            next_run_time = (run_time + timedelta(days=1)
+                             ).replace(hour=0, minute=0, second=0, microsecond=0)
             update_redis_status(redis_client, run_time,
                                 next_run_time, "statistics_collection")
 
