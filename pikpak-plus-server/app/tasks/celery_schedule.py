@@ -16,7 +16,7 @@ beat_schedule = {
     },
     'webdav-generation': {
         'task': 'app.tasks.jobs.webdav_job.scheduled_webdav_generation',
-        'schedule': crontab(minute=0, hour=f'*/{AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS}'),
+        'schedule': timedelta(hours=AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS),
     },
     'statistics-collection': {
         'task': 'app.tasks.jobs.statistics_job.collect_daily_statistics',
