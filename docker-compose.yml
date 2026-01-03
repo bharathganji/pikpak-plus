@@ -9,7 +9,7 @@ services:
     depends_on:
       - server
     ports:
-      - "3000:3000"
+      - "${APP_PORT:-3000}:3000"
     volumes:
       - ./pikpak-plus-client:/user/src/app
     environment:
