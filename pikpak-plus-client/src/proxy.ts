@@ -22,7 +22,7 @@ export async function proxy(request: NextRequest) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
 
-    const res = await fetch(`${apiUrl}/api/health/live`, {
+    const res = await fetch(`${apiUrl}/health/live`, {
       method: "GET",
       signal: controller.signal,
       cache: "no-store",

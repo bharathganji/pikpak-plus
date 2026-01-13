@@ -146,7 +146,7 @@ def create_app():
                 cache_manager, None, webdav_manager, redis_client)
 
     # Register blueprints
-    app.register_blueprint(api_bp, url_prefix='/api')
+    app.register_blueprint(api_bp, url_prefix='/')
 
     # Rate Limiter disabled
     # Limiter(
