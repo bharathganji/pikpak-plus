@@ -476,10 +476,11 @@ export interface AdminStats {
 
 export interface DailyStats {
   date: string;
-  tasks: number;
-  users: number;
-  logs: number;
-  active_users: number;
+  tasks_added: number;
+  storage_used: number;
+  transfer_used: number;
+  downstream_traffic: number;
+  is_predicted?: boolean;
 }
 
 export interface PaginatedResponse<T> {
