@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 api_bp = Blueprint('api', __name__)
 
 # Register all route blueprints
-api_bp.register_blueprint(auth.bp, url_prefix='/auth')
+api_bp.register_blueprint(auth.bp, url_prefix='/')
 api_bp.register_blueprint(admin.bp, url_prefix='/admin')
 api_bp.register_blueprint(tasks.bp, url_prefix='/')
 api_bp.register_blueprint(quota.bp, url_prefix='/')

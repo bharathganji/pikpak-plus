@@ -69,7 +69,7 @@ services:
       - PASSWORD_RESET_TOKEN_EXPIRATION_HOURS=${PASSWORD_RESET_TOKEN_EXPIRATION_HOURS:-1}
 
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health/ready"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health/ready"]
       interval: 2m
       timeout: 10s
       retries: 3

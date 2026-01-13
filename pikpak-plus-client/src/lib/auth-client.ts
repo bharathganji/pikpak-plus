@@ -25,9 +25,9 @@ const authClient = createAuthClient();
 
 export const login = async (
   email: string,
-  password: string,
+  password: string
 ): Promise<AuthResponse> => {
-  const res = await axios.post(`${getApiUrl()}/auth/login`, {
+  const res = await axios.post(`${getApiUrl()}/login`, {
     email,
     password,
   });
@@ -36,9 +36,9 @@ export const login = async (
 
 export const register = async (
   email: string,
-  password: string,
+  password: string
 ): Promise<AuthResponse> => {
-  const res = await axios.post(`${getApiUrl()}/auth/register`, {
+  const res = await axios.post(`${getApiUrl()}/register`, {
     email,
     password,
   });
@@ -50,7 +50,7 @@ export const logout = async (): Promise<void> => {
   // We can just call API, client side cleanup is done in context
   if (headers.Authorization) {
     try {
-      await authClient.post("auth/logout");
+      await authClient.post("logout");
     } catch (e) {
       // Ignore logout errors
     }
@@ -58,12 +58,12 @@ export const logout = async (): Promise<void> => {
 };
 
 export const getMe = async (): Promise<AuthResponse> => {
-  const res = await authClient.get("auth/me");
+  const res = await authClient.get("me");
   return res.data;
 };
 
 export const forgotPassword = async (email: string): Promise<AuthResponse> => {
-  const res = await axios.post(`${getApiUrl()}/auth/forgot-password`, {
+  const res = await axios.post(`${getApiUrl()}/forgot-password`, {
     email,
   });
   return res.data;
@@ -71,9 +71,9 @@ export const forgotPassword = async (email: string): Promise<AuthResponse> => {
 
 export const resetPassword = async (
   token: string,
-  newPassword: string,
+  newPassword: string
 ): Promise<AuthResponse> => {
-  const res = await axios.post(`${getApiUrl()}/auth/reset-password`, {
+  const res = await axios.post(`${getApiUrl()}/reset-password`, {
     token,
     new_password: newPassword,
   });
