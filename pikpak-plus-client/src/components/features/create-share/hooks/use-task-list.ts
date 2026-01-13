@@ -30,7 +30,6 @@ export function useNsfwFilter() {
 export function useTaskFilter(
   tasks: readonly SupabaseTaskRecord[],
   nsfwFilterEnabled: boolean,
-  localTaskUrls?: readonly string[],
 ) {
   const filteredTasks = useMemo(() => {
     let result = [...tasks]; // Create a copy to avoid mutating the original array
@@ -43,16 +42,8 @@ export function useTaskFilter(
     return result;
   }, [tasks, nsfwFilterEnabled]);
 
-  const filteredTasksWithLocalFlag = useMemo(() => {
-    return filteredTasks.map((task) => ({
-      ...task,
-      isLocal: localTaskUrls?.includes(task.data.url) || false,
-    }));
-  }, [filteredTasks, localTaskUrls]);
-
   return {
     filteredTasks,
-    filteredTasksWithLocalFlag,
   };
 }
 
@@ -94,7 +85,6 @@ export function useEmptyState(
   filteredTasks: readonly SupabaseTaskRecord[],
   loading: boolean,
   error: string | undefined,
-  showMyTasksOnly: boolean,
   nsfwFilterEnabled: boolean,
   page: number,
 ) {
@@ -104,13 +94,10 @@ export function useEmptyState(
     }
 
     if (tasks.length === 0) {
-      if (showMyTasksOnly) {
-        return "You haven't added any tasks yet.";
-      }
       if (page > 1) {
         return "No tasks on this page.";
       }
-      return "No tasks found.";
+      return "You haven't added any tasks yet.";
     }
 
     if (filteredTasks.length === 0) {
@@ -126,7 +113,6 @@ export function useEmptyState(
     filteredTasks.length,
     loading,
     error,
-    showMyTasksOnly,
     nsfwFilterEnabled,
     page,
   ]);

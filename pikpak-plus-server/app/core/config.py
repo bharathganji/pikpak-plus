@@ -48,6 +48,19 @@ class AppConfig:
     WEBDAV_GENERATION_INTERVAL_HOURS = int(
         os.getenv("WEBDAV_GENERATION_INTERVAL_HOURS", "24"))
 
+    # Authentication Configuration
+    # Admin account credentials (auto-created on startup)
+    ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
+    ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+
+    # JWT Configuration
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", os.urandom(64).hex())
+    JWT_EXPIRATION_HOURS = int(os.getenv("JWT_EXPIRATION_HOURS", "24"))
+
+    # Password Reset Configuration
+    PASSWORD_RESET_TOKEN_EXPIRATION_HOURS = int(
+        os.getenv("PASSWORD_RESET_TOKEN_EXPIRATION_HOURS", "1"))
+
     @classmethod
     def validate(cls):
         """Validate that all required config is present"""

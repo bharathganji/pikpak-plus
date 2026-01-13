@@ -1,16 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useLocalStorage } from "primereact/hooks";
+import { useState, useEffect, useCallback } from "react";
 import { MagnetInputCard } from "./magnet-input-card";
 import { GlobalActivityCard } from "./global-activity-card";
+import { fetchConfig, fetchCleanupStatus, fetchGlobalTasks } from "./api-utils";
+import { useLocalStorage } from "primereact/hooks";
 import { LocalTask, LOCAL_TASKS_STORAGE_KEY } from "../my-activity/types";
-import {
-  fetchConfig,
-  fetchCleanupStatus,
-  fetchGlobalTasks,
-  fetchMyTasks,
-} from "./api-utils";
 
 export function CreateShareTab() {
   // Global tasks state
@@ -21,9 +16,11 @@ export function CreateShareTab() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [pageSize, setPageSize] = useState(25);
-  const [showMyTasksOnly, setShowMyTasksOnly] = useLocalStorage(
-    false,
-    "showMyTasksOnly",
+
+  // Local activity state (for permanent retention)
+  const [, setLocalTasks] = useLocalStorage<LocalTask[]>(
+    [],
+    LOCAL_TASKS_STORAGE_KEY,
   );
 
   // Cleanup status state
@@ -42,23 +39,6 @@ export function CreateShareTab() {
   const [nextTaskStatusUpdate, setNextTaskStatusUpdate] = useState<
     string | null
   >(null);
-
-  // Local tasks storage
-  const [localTasks, setLocalTasks] = useLocalStorage<LocalTask[]>(
-    [],
-    LOCAL_TASKS_STORAGE_KEY,
-  );
-
-  // Optimized local task URLs extraction using useMemo
-  const localTaskUrls = useMemo(() => {
-    // Use array.map efficiently without creating intermediate arrays
-    return localTasks.reduce<string[]>((urls, task) => {
-      if (task.url) {
-        urls.push(task.url);
-      }
-      return urls;
-    }, []);
-  }, [localTasks]);
 
   // Mount check to prevent hydration mismatches
   const [isMounted, setIsMounted] = useState(false);
@@ -113,9 +93,9 @@ export function CreateShareTab() {
     }
   }, [cleanupStatus?.next_cleanup]);
 
-  // Memoized fetch function for global tasks
-  const fetchGlobalTasksData = useCallback(async () => {
-    if (!isMounted || showMyTasksOnly) return;
+  // Memoized fetch function for tasks
+  const fetchTasksData = useCallback(async () => {
+    if (!isMounted) return;
 
     setGlobalTasksLoading(true);
     setGlobalTasksError("");
@@ -123,7 +103,6 @@ export function CreateShareTab() {
     try {
       const result = await fetchGlobalTasks(page, pageSize);
 
-      // Batch state updates to prevent multiple re-renders
       setGlobalTasks(result.data);
       setTotalPages(Math.ceil(result.count / pageSize));
       setTotalItems(result.count);
@@ -132,47 +111,12 @@ export function CreateShareTab() {
     } finally {
       setGlobalTasksLoading(false);
     }
-  }, [isMounted, showMyTasksOnly, page, pageSize]);
+  }, [isMounted, page, pageSize]);
 
-  // Fetch global tasks
+  // Fetch tasks
   useEffect(() => {
-    fetchGlobalTasksData();
-  }, [fetchGlobalTasksData]);
-
-  // Memoized fetch function for my tasks
-  const fetchMyTasksData = useCallback(async () => {
-    if (!isMounted || !showMyTasksOnly) return;
-
-    setGlobalTasksLoading(true);
-    setGlobalTasksError("");
-
-    // Early return if no local tasks to avoid unnecessary API call
-    if (localTaskUrls.length === 0) {
-      setGlobalTasks([]);
-      setTotalPages(1);
-      setTotalItems(0);
-      setGlobalTasksLoading(false);
-      return;
-    }
-
-    try {
-      const result = await fetchMyTasks(localTaskUrls);
-
-      // Batch state updates
-      setGlobalTasks(result.data);
-      setTotalPages(1); // No pagination for my tasks
-      setTotalItems(result.data.length);
-    } catch (error: any) {
-      setGlobalTasksError(error.message);
-    } finally {
-      setGlobalTasksLoading(false);
-    }
-  }, [isMounted, showMyTasksOnly, localTaskUrls]);
-
-  // Fetch my tasks
-  useEffect(() => {
-    fetchMyTasksData();
-  }, [fetchMyTasksData]);
+    fetchTasksData();
+  }, [fetchTasksData]);
 
   // Optimized task addition with batch operations
   const handleAddSuccess = useCallback(
@@ -234,7 +178,6 @@ export function CreateShareTab() {
       />
       <GlobalActivityCard
         tasks={globalTasks}
-        localTaskUrls={localTaskUrls}
         loading={globalTasksLoading}
         error={globalTasksError}
         page={page}
@@ -244,8 +187,6 @@ export function CreateShareTab() {
         onPageChange={setPage}
         onPageSizeChange={handlePageSizeChange}
         nextTaskStatusUpdate={nextTaskStatusUpdate}
-        showMyTasksOnly={showMyTasksOnly}
-        onFilterChange={setShowMyTasksOnly}
       />
     </div>
   );

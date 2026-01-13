@@ -1,7 +1,7 @@
 """API Routes Package"""
 import logging
 from flask import Blueprint
-from app.api.routes import tasks, quota, webdav, shares, system, statistics, health
+from app.api.routes import tasks, quota, webdav, shares, system, statistics, health, auth, admin
 
 logger = logging.getLogger(__name__)
 
@@ -9,6 +9,8 @@ logger = logging.getLogger(__name__)
 api_bp = Blueprint('api', __name__)
 
 # Register all route blueprints
+api_bp.register_blueprint(auth.bp, url_prefix='/auth')
+api_bp.register_blueprint(admin.bp, url_prefix='/admin')
 api_bp.register_blueprint(tasks.bp, url_prefix='/')
 api_bp.register_blueprint(quota.bp, url_prefix='/')
 api_bp.register_blueprint(webdav.bp, url_prefix='/')

@@ -15,3 +15,4 @@ flask-limiter>=3.5.0
 flask-compress>=1.14
 pybreaker>=1.0.0
 pyjwt[crypto]>=2.10.1
+bcrypt>=4.0.0

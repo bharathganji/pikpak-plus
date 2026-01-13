@@ -11,7 +11,6 @@ import { TaskList } from "./task-list";
 
 interface GlobalActivityCardProps {
   tasks: any[];
-  localTaskUrls: string[];
   loading: boolean;
   error: string;
   page: number;
@@ -21,13 +20,10 @@ interface GlobalActivityCardProps {
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
   nextTaskStatusUpdate?: string | null;
-  showMyTasksOnly: boolean;
-  onFilterChange: (show: boolean) => void;
 }
 
 export function GlobalActivityCard({
   tasks,
-  localTaskUrls,
   loading,
   error,
   page,
@@ -37,15 +33,13 @@ export function GlobalActivityCard({
   onPageChange,
   onPageSizeChange,
   nextTaskStatusUpdate,
-  showMyTasksOnly,
-  onFilterChange,
 }: Readonly<GlobalActivityCardProps>) {
   return (
     <Card className="w-full">
       <CardHeader className="pb-3 pt-4 px-4">
-        <CardTitle className="text-base">Global Activity</CardTitle>
+        <CardTitle className="text-base">My Activity</CardTitle>
         <CardDescription className="text-xs">
-          Recent tasks added by all users
+          Recent tasks you added
           {nextTaskStatusUpdate && (
             <span className="mt-1 flex items-center gap-1 text-muted-foreground">
               <Clock className="h-3 w-3" />
@@ -62,7 +56,6 @@ export function GlobalActivityCard({
       <CardContent className="px-4 pt-0.5 pb-4">
         <TaskList
           tasks={tasks}
-          localTaskUrls={localTaskUrls}
           loading={loading}
           error={error}
           page={page}
@@ -71,8 +64,6 @@ export function GlobalActivityCard({
           pageSize={pageSize}
           onPageChange={onPageChange}
           onPageSizeChange={onPageSizeChange}
-          showMyTasksOnly={showMyTasksOnly}
-          onFilterChange={onFilterChange}
         />
       </CardContent>
     </Card>

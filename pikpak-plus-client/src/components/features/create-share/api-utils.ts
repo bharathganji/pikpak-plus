@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getApiUrl } from "@/lib/api-utils";
+import { getApiUrl, getAuthHeaders } from "@/lib/api-utils";
 import type { ConfigResponse } from "@/types";
 
 export const fetchConfig = async (): Promise<ConfigResponse> => {
@@ -33,8 +33,12 @@ export const fetchCleanupStatus = async () => {
 export const fetchGlobalTasks = async (page: number, pageSize: number) => {
   try {
     const apiUrl = getApiUrl();
+    const headers = getAuthHeaders();
     const res = await axios.get(`${apiUrl}/tasks`, {
       params: { page: page, limit: pageSize },
+      headers: headers.Authorization
+        ? { Authorization: headers.Authorization }
+        : {},
     });
     return {
       data: res.data.data || [],
@@ -61,7 +65,16 @@ export const fetchGlobalTasks = async (page: number, pageSize: number) => {
 export const addMagnetLink = async (url: string) => {
   try {
     const apiUrl = getApiUrl();
-    const res = await axios.post(`${apiUrl}/add`, { url: url.trim() });
+    const headers = getAuthHeaders();
+    const res = await axios.post(
+      `${apiUrl}/add`,
+      { url: url.trim() },
+      {
+        headers: headers.Authorization
+          ? { Authorization: headers.Authorization }
+          : {},
+      },
+    );
     return res.data;
   } catch (error: any) {
     let errMsg = "Failed to add magnet link";
@@ -81,30 +94,5 @@ export const addMagnetLink = async (url: string) => {
     // Add the response data to the error for file info
     (error as any).response = error.response;
     throw error;
-  }
-};
-
-export const fetchMyTasks = async (urls: string[]) => {
-  try {
-    const apiUrl = getApiUrl();
-    const res = await axios.post(`${apiUrl}/tasks/my-tasks`, { urls });
-    return {
-      data: res.data.data || [],
-      count: res.data.count || 0,
-    };
-  } catch (error: any) {
-    console.error("Failed to fetch my tasks", error);
-
-    let msg = "Failed to load your tasks";
-
-    if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
-      msg = "Cannot connect to server. Please ensure the backend is running.";
-    } else if (error.response?.data?.error) {
-      msg = error.response.data.error;
-    } else if (error.message) {
-      msg = error.message;
-    }
-
-    throw new Error(msg);
   }
 };

@@ -6,6 +6,8 @@ from app.api.utils.dependencies import (
     get_pikpak_service,
     get_supabase_service
 )
+from app.core.auth import require_auth, get_current_user
+from app.services.user_service import UserService
 
 logger = logging.getLogger(__name__)
 
@@ -48,41 +50,43 @@ async def _create_new_share(file_id, need_password, expiration_days):
     return result
 
 
-def _store_share_globally(file_id, share_data):
-    """Store share in Supabase for global deduplication."""
+def _store_share_globally(file_id, share_data, user_email=None):
+    """Store share in Supabase for global deduplication and user tracking."""
     supabase_service = get_supabase_service()
     if not supabase_service:
         return
 
     try:
-        supabase_service.store_share(file_id, share_data)
-        logger.info(f"Stored share in public_actions for file: {file_id}")
+        supabase_service.store_share(file_id, share_data, user_email)
+        logger.info(
+            f"Stored share in public_actions for file: {file_id} (user: {user_email})")
     except Exception as e:
         logger.warning(f"Failed to store share in Supabase: {e}")
 
 
-def _store_user_action(email, share_data):
-    """Store share action for user tracking."""
-    supabase_service = get_supabase_service()
-    if not supabase_service:
-        return
-
-    try:
-        supabase_service.store_user_action(
-            email=email,
-            action="share",
-            data=share_data
-        )
-        logger.info(f"Stored share action for user: {email}")
-    except Exception as e:
-        logger.warning(f"Failed to store user action: {e}")
-
-
 @bp.route('/share', methods=['POST'])
+@require_auth
 def create_share():
     """Create a share link for a file (with global deduplication)"""
     async def _async_create_share():
         try:
+            # Get current user
+            user_data = get_current_user()
+            if not user_data:
+                return jsonify({"error": "Authentication required"}), 401
+
+            user_email = user_data['email']
+
+            # Check if user is blocked
+            supabase_service = get_supabase_service()
+            user_service = UserService(supabase_service)
+
+            if user_service.is_user_blocked(user_email):
+                return jsonify({
+                    "error": "Account blocked",
+                    "message": "Your account has been blocked. You cannot perform this action."
+                }), 403
+
             data = request.json
 
             # Validate request
@@ -93,6 +97,10 @@ def create_share():
             logger.info(f"Share request for file: {file_id}")
 
             # Check for existing share (global deduplication)
+            # We skip this check if we want to force new share creation per user?
+            # Requirement says "No change with related to pikpak", so we keep global deduplication logic.
+            # But the user might want to track this action even if share exists?
+            # For now, let's keep it as is - if share exists, return it.
             existing_share = _check_existing_share(file_id)
             if existing_share:
                 return jsonify(existing_share)
@@ -102,13 +110,10 @@ def create_share():
             expiration_days = data.get('expiration_days', -1)
             result = await _create_new_share(file_id, need_password, expiration_days)
 
-            # Store share globally
-            _store_share_globally(file_id, result)
+            # Store share globally with user email
+            _store_share_globally(file_id, result, user_email)
 
-            # Store user action if email provided
-            email = data.get('email')
-            if email:
-                _store_user_action(email, result)
+            return jsonify(result)
 
             return jsonify(result)
         except Exception as e:

@@ -26,7 +26,6 @@ import { selectPaginationVariant } from "./utils/pagination-utils";
 // Props interface with readonly modifiers for S6759 compliance
 interface TaskListProps {
   readonly tasks: readonly SupabaseTaskRecord[];
-  readonly localTaskUrls?: readonly string[];
   readonly loading: boolean;
   readonly error?: string;
   readonly page: number;
@@ -35,8 +34,6 @@ interface TaskListProps {
   readonly pageSize: number;
   readonly onPageChange: (page: number) => void;
   readonly onPageSizeChange: (pageSize: number) => void;
-  readonly showMyTasksOnly: boolean;
-  readonly onFilterChange: (show: boolean) => void;
 }
 
 export const TaskList = React.memo(function TaskList(
@@ -44,7 +41,6 @@ export const TaskList = React.memo(function TaskList(
 ) {
   const {
     tasks,
-    localTaskUrls,
     loading,
     error,
     page,
@@ -53,8 +49,6 @@ export const TaskList = React.memo(function TaskList(
     pageSize,
     onPageChange,
     onPageSizeChange,
-    showMyTasksOnly,
-    onFilterChange,
   } = props;
 
   // State management hooks
@@ -63,11 +57,7 @@ export const TaskList = React.memo(function TaskList(
     useTaskPreview();
 
   // Task filtering logic
-  const { filteredTasks } = useTaskFilter(
-    tasks,
-    nsfwFilterEnabled,
-    localTaskUrls,
-  );
+  const { filteredTasks } = useTaskFilter(tasks, nsfwFilterEnabled);
 
   // Calculate filtered count (items removed by NSFW filter)
   const filteredCount = useMemo(() => {
@@ -81,7 +71,6 @@ export const TaskList = React.memo(function TaskList(
     filteredTasks,
     loading,
     error,
-    showMyTasksOnly,
     nsfwFilterEnabled,
     page,
   );
@@ -93,20 +82,9 @@ export const TaskList = React.memo(function TaskList(
     }
 
     return (
-      <TaskListContent
-        tasks={filteredTasks}
-        localTaskUrls={localTaskUrls}
-        onTaskPreview={handlePreview}
-      />
+      <TaskListContent tasks={filteredTasks} onTaskPreview={handlePreview} />
     );
-  }, [
-    loading,
-    error,
-    emptyMessage,
-    filteredTasks,
-    localTaskUrls,
-    handlePreview,
-  ]);
+  }, [loading, error, emptyMessage, filteredTasks, handlePreview]);
 
   // Content based on loading/error/empty states
   let content: React.ReactNode;
@@ -139,16 +117,13 @@ export const TaskList = React.memo(function TaskList(
     return selectPaginationVariant(totalPages);
   }, [totalPages]);
 
-  // Should show pagination (not when loading, error, or showing my tasks only)
-  const shouldShowPagination =
-    !loading && !error && !showMyTasksOnly && totalPages > 1;
+  // Should show pagination (not when loading or error)
+  const shouldShowPagination = !loading && !error && totalPages > 1;
 
   return (
     <div className="space-y-3">
       {/* Filter Toggle Controls */}
       <FilterControls
-        showMyTasksOnly={showMyTasksOnly}
-        onFilterChange={onFilterChange}
         nsfwFilterEnabled={nsfwFilterEnabled}
         onNsfwFilterToggle={toggleFilter}
         filteredCount={filteredCount}

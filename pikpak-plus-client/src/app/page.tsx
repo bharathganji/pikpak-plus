@@ -1,20 +1,31 @@
 "use client";
 
-import { useLocalStorage } from "primereact/hooks";
+import { useAuth } from "@/components/auth-provider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Fab } from "@/components/layout/fab";
 import { CreateShareTab } from "@/components/features/create-share/create-share-tab";
 import { DownloadsTab } from "@/components/features/downloads/downloads-tab";
-import { MyActivityTab } from "@/components/features/downloads/my-activity-tab";
 import { DisclaimerModal } from "@/components/disclaimer-modal";
-import { Share2, Download, Activity } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { LOCAL_TASKS_STORAGE_KEY } from "@/components/features/my-activity/types";
+import { Share2, Download, Loader2, History } from "lucide-react";
+import { MyActivityTab } from "@/components/features/my-activity";
 
 export default function Home() {
-  const [localTasks] = useLocalStorage<any[]>([], LOCAL_TASKS_STORAGE_KEY);
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // AuthProvider handles redirect, but we can show nothing or loading while checking
+  if (!user) {
+    return null;
+  }
 
   return (
     <main
@@ -35,17 +46,9 @@ export default function Home() {
             <span>Downloads</span>
           </TabsTrigger>
           <TabsTrigger value="my-activity" className="gap-2">
-            <Activity className="h-4 w-4" />
+            <History className="h-4 w-4" />
             <span className="hidden sm:inline">My Activity</span>
             <span className="sm:hidden">Activity</span>
-            {localTasks.length > 0 && (
-              <Badge
-                variant="secondary"
-                className="ml-1 h-5 min-w-5 px-1.5 rounded-full text-[10px] flex items-center justify-center bg-primary/10 text-primary hover:bg-primary/20"
-              >
-                {localTasks.length}
-              </Badge>
-            )}
           </TabsTrigger>
         </TabsList>
 
