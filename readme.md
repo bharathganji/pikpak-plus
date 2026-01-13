@@ -58,7 +58,8 @@
 - 🔗 **Smart Share Links**: Global share deduplication ensures one link per file, reused by all users
 - 📁 **WebDAV Support**: Auto-generate WebDAV clients for easy access from any WebDAV-compatible application
 - 🗑️ **Auto Cleanup**: Automated task cleanup after 24 hours to maintain account hygiene
-- 📊 **Quota Monitoring**: Real-time tracking of storage and bandwidth usage
+- 📊 **Quota Monitoring**: Real-time tracking of personal storage and bandwidth usage
+- 🛠️ **Admin Dashboard**: Centralized management for administrators to oversee users, moderate content, and monitor system health
 - 📈 **Statistics Dashboard**: Track daily usage metrics including tasks added, storage utilization, cloud download usage, and downstream traffic with interactive charts
 - ⚡ **Performance**: Redis caching for faster API responses
 - 🎨 **Modern UI**: Built with Next.js, React 19, and Tailwind CSS for a premium user experience
@@ -160,6 +161,10 @@ This project is designed to run in a containerized environment using Docker Comp
 
    # Optional: File Size Limit (in GB)
    MAX_FILE_SIZE_GB=25
+
+   # Administrative Access (Required for Admin Dashboard)
+   ADMIN_EMAIL=admin@example.com
+   ADMIN_PASSWORD=your_secure_password
 
    # Optional: Task Scheduler Configuration
    TASK_STATUS_UPDATE_INTERVAL_MINUTES=15
@@ -274,6 +279,13 @@ See [DOCKER.md](DOCKER.md) for detailed Docker configuration and troubleshooting
 - View real-time storage and bandwidth usage in the **Quota** tab
 - Track download/upload limits
 - Monitor VIP status and expiration
+
+#### 🛠️ Admin Dashboard
+
+- **Centralized Control**: Access the dashboard at `/admin` to manage the entire system
+- **User Management**: Monitor growth, track activity, and block/unblock users as needed
+- **Content Moderation**: Complete visibility into system-wide tasks and shares with permanent deletion capabilities
+- **Analytics**: Interactive charts for monitoring system-wide usage trends and user adoption
 
 #### 📈 Statistics Dashboard
 
