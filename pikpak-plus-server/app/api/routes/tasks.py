@@ -2,7 +2,9 @@
 import logging
 from flask import Blueprint, request, jsonify
 from app.core.config import AppConfig
+from app.core.auth import require_auth, get_current_user
 from app.services import WhatsLinkService
+from app.services.user_service import UserService
 from app.api.utils.async_helpers import run_async
 from app.api.utils.dependencies import (
     get_pikpak_service,
@@ -28,9 +30,27 @@ def check_duplicate_task(url: str):
 
 
 @bp.route('/add', methods=['POST'])
+@require_auth
 def add_task():
-    """Add a new download task with file size validation"""
+    """Add a new download task with file size validation and user tracking"""
     async def _async_add_task():
+        # Get current user
+        user_data = get_current_user()
+        if not user_data:
+            return jsonify({"error": "Authentication required"}), 401
+
+        user_email = user_data['email']
+
+        # Check if user is blocked
+        supabase_service = get_supabase_service()
+        user_service = UserService(supabase_service)
+
+        if user_service.is_user_blocked(user_email):
+            return jsonify({
+                "error": "Account blocked",
+                "message": "Your account has been blocked. You cannot perform this action."
+            }), 403
+
         data = request.json
         url = data.get('url')
 
@@ -69,9 +89,9 @@ def add_task():
         except Exception as e:
             return jsonify({"error": f"PikPak Error: {str(e)}"}), 500
 
-        # Log to Supabase with WhatsLink metadata
-        supabase_service = get_supabase_service()
-        supabase_service.log_action(url, task_result, file_info)
+        # Log to Supabase with WhatsLink metadata and user email
+        supabase_service.log_action(
+            url, task_result, file_info, user_email=user_email)
 
         # Invalidate cache
         cache_manager = get_cache_manager()
@@ -87,27 +107,24 @@ def add_task():
 
 
 @bp.route('/tasks', methods=['GET'])
+@require_auth
 def get_tasks():
-    """Get paginated list of tasks with caching"""
+    """Get paginated list of user's tasks with caching"""
     try:
+        # Get current user
+        user_data = get_current_user()
+        if not user_data:
+            return jsonify({"error": "Authentication required"}), 401
+
+        user_email = user_data['email']
+
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', AppConfig.DEFAULT_PAGE_SIZE))
         offset = (page - 1) * limit
 
-        # Create cache key
-        cache_key = f"tasks_page_{page}_limit_{limit}"
-
-        # Try cache first
-        cache_manager = get_cache_manager()
-        cached_result = cache_manager.get(cache_key)
-        if cached_result is not None:
-            logger.info(f"Cache hit for {cache_key}")
-            return jsonify(cached_result)
-
-        # Cache miss - query Supabase
-        logger.info(f"Cache miss for {cache_key}, querying Supabase")
+        # Fetch user-specific tasks
         supabase_service = get_supabase_service()
-        data = supabase_service.get_tasks(offset, limit)
+        data = supabase_service.get_user_tasks(user_email, offset, limit)
 
         result = {
             "data": data["data"],
@@ -116,36 +133,10 @@ def get_tasks():
             "limit": limit
         }
 
-        # Store in cache
-        cache_manager.set(cache_key, result)
-
         return jsonify(result)
 
     except Exception as e:
         logger.error(f"Failed to fetch tasks: {e}")
-        return jsonify({"error": str(e)}), 500
-
-
-@bp.route('/tasks/my-tasks', methods=['POST'])
-def get_my_tasks():
-    """Get tasks matching specific URLs (user's tasks from localStorage)"""
-    try:
-        data = request.json
-        urls = data.get('urls', [])
-
-        if not urls or not isinstance(urls, list):
-            return jsonify({"error": "URLs array required"}), 400
-
-        # No caching for user-specific queries
-        supabase_service = get_supabase_service()
-        tasks = supabase_service.get_tasks_by_urls(urls)
-
-        return jsonify({
-            "data": tasks,
-            "count": len(tasks)
-        })
-    except Exception as e:
-        logger.error(f"Failed to fetch my tasks: {e}")
         return jsonify({"error": str(e)}), 500
 
 

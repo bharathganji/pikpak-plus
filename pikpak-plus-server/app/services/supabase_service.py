@@ -14,7 +14,7 @@ class SupabaseService:
     def __init__(self, client: Client):
         self.client = client
 
-    def log_action(self, url: str, task_result: dict, file_info: dict = None):
+    def log_action(self, url: str, task_result: dict, file_info: dict = None, user_email: str = None):
         """Log an action to Supabase
 
         Args:
@@ -26,6 +26,7 @@ class SupabaseService:
                 - size: Size in bytes
                 - count: Number of files
                 - screenshots: List of preview image URLs
+            user_email: Optional email of user who performed the action
         """
         if not self.client:
             logger.warning("Supabase client not available, skipping logging")
@@ -60,11 +61,14 @@ class SupabaseService:
                 if whatslink_data:
                     data["whatslink"] = whatslink_data
 
+            # Insert with user_email
             self.client.table("public_actions").insert({
                 "action": "add",
-                "data": data
+                "data": data,
+                "user_email": user_email
             }).execute()
-            logger.info(f"Logged action to Supabase for {url}")
+            logger.info(
+                f"Logged action to Supabase for {url} (user: {user_email or 'anonymous'})")
         except Exception as e:
             logger.error(f"Supabase Log Error for {url}: {e}")
             # Don't fail the request just because logging failed
@@ -131,23 +135,18 @@ class SupabaseService:
 
         return response.data
 
-    def store_user_action(self, email: str, action: str, data: dict):
-        """Store a user action in Supabase"""
+    def get_action_by_id(self, action_id: int):
+        """Get a specific action (any type) by ID"""
         if not self.client:
-            logger.warning(
-                "Supabase client not available, skipping user action storage")
-            return
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
 
-        try:
-            self.client.table("user_actions").insert({
-                "email": email,
-                "actions": action,
-                "data": data
-            }).execute()
-            logger.info(f"Stored {action} action for user {email}")
-        except Exception as e:
-            logger.error(f"Failed to store user action: {e}")
-            raise
+        response = self.client.table("public_actions") \
+            .select("*") \
+            .eq("id", action_id) \
+            .single() \
+            .execute()
+
+        return response.data
 
     def get_existing_share_by_file_id(self, file_id: str):
         """
@@ -218,13 +217,14 @@ class SupabaseService:
             logger.error(f"Failed to check for existing task: {e}")
             return None
 
-    def store_share(self, file_id: str, share_data: dict):
+    def store_share(self, file_id: str, share_data: dict, user_email: str = None):
         """
         Store a share in public_actions table
 
         Args:
             file_id: The PikPak file ID
-            share_data: Share data from PikPak API (share_url, share_id, pass_code, etc.)
+            share_data: Share data from PikPak API
+            user_email: Optional email of user who created the share
         """
         if not self.client:
             logger.warning(
@@ -240,8 +240,11 @@ class SupabaseService:
 
             self.client.table("public_actions").insert({
                 "action": "share",
-                "data": data_with_file_id
+                "data": data_with_file_id,
+                "user_email": user_email
             }).execute()
+            logger.info(
+                f"Stored share for file_id: {file_id} (user: {user_email})")
             logger.info(f"Stored share for file_id: {file_id}")
         except Exception as e:
             logger.error(f"Failed to store share: {e}")
@@ -474,3 +477,335 @@ class SupabaseService:
             logger.error(f"Failed to get daily statistics: {e}")
             # Fallback to returning whatever raw data we have or empty list
             return []
+
+    # ========================================
+    # User Management Methods
+    # ========================================
+
+    def create_user(self, email: str, password_hash: str, is_admin: bool = False) -> Dict[str, Any]:
+        """Insert new user into database
+
+        Args:
+            email: User's email address
+            password_hash: Hashed password
+            is_admin: Whether user has admin privileges
+
+        Returns:
+            Created user record
+        """
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        try:
+            response = self.client.table("users").insert({
+                "email": email,
+                "password_hash": password_hash,
+                "is_admin": is_admin,
+                "blocked": False
+            }).execute()
+
+            if response.data and len(response.data) > 0:
+                logger.info(f"Created user: {email}")
+                return response.data[0]
+
+            raise RuntimeError("Failed to create user")
+        except Exception as e:
+            logger.error(f"Error creating user {email}: {e}")
+            raise
+
+    def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+        """Query user by email address
+
+        Args:
+            email: User's email address
+
+        Returns:
+            User record if found, None otherwise
+        """
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        try:
+            response = self.client.table("users") \
+                .select("*") \
+                .eq("email", email) \
+                .limit(1) \
+                .execute()
+
+            if response.data and len(response.data) > 0:
+                return response.data[0]
+
+            return None
+        except Exception as e:
+            logger.error(f"Error fetching user {email}: {e}")
+            return None
+
+    def update_user_password(self, email: str, password_hash: str) -> bool:
+        """Update user's password
+
+        Args:
+            email: User's email address
+            password_hash: New hashed password
+
+        Returns:
+            True if updated successfully
+        """
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        try:
+            self.client.table("users") \
+                .update({"password_hash": password_hash}) \
+                .eq("email", email) \
+                .execute()
+
+            logger.info(f"Updated password for user: {email}")
+            return True
+        except Exception as e:
+            logger.error(f"Error updating password for {email}: {e}")
+            raise
+
+    def store_password_reset_token(self, email: str, token: str, expires_at) -> bool:
+        """Store password reset token for user
+
+        Args:
+            email: User's email address
+            token: Reset token
+            expires_at: Token expiration datetime
+
+        Returns:
+            True if stored successfully
+        """
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        try:
+            self.client.table("users") \
+                .update({
+                    "reset_token": token,
+                    "reset_token_expires_at": expires_at.isoformat()
+                }) \
+                .eq("email", email) \
+                .execute()
+
+            logger.info(f"Stored reset token for user: {email}")
+            return True
+        except Exception as e:
+            logger.error(f"Error storing reset token for {email}: {e}")
+            raise
+
+    def get_user_by_reset_token(self, token: str) -> Optional[Dict[str, Any]]:
+        """Retrieve user by valid reset token
+
+        Args:
+            token: Password reset token
+
+        Returns:
+            User record if token is valid, None otherwise
+        """
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        try:
+            response = self.client.table("users") \
+                .select("*") \
+                .eq("reset_token", token) \
+                .limit(1) \
+                .execute()
+
+            if response.data and len(response.data) > 0:
+                return response.data[0]
+
+            return None
+        except Exception as e:
+            logger.error(f"Error fetching user by reset token: {e}")
+            return None
+
+    def clear_password_reset_token(self, email: str) -> bool:
+        """Clear reset token after use
+
+        Args:
+            email: User's email address
+
+        Returns:
+            True if cleared successfully
+        """
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        try:
+            self.client.table("users") \
+                .update({
+                    "reset_token": None,
+                    "reset_token_expires_at": None
+                }) \
+                .eq("email", email) \
+                .execute()
+
+            logger.info(f"Cleared reset token for user: {email}")
+            return True
+        except Exception as e:
+            logger.error(f"Error clearing reset token for {email}: {e}")
+            raise
+
+    def update_user_blocked_status(self, email: str, blocked: bool) -> bool:
+        """Update user's blocked status
+
+        Args:
+            email: User's email address
+            blocked: New blocked status
+
+        Returns:
+            True if updated successfully
+        """
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        try:
+            self.client.table("users") \
+                .update({"blocked": blocked}) \
+                .eq("email", email) \
+                .execute()
+
+            logger.info(f"Updated blocked status for {email}: {blocked}")
+            return True
+        except Exception as e:
+            logger.error(f"Error updating blocked status for {email}: {e}")
+            raise
+
+    def get_users_list(self, offset: int, limit: int, blocked_filter: Optional[bool] = None) -> Dict[str, Any]:
+        """Get filtered and paginated user list
+
+        Args:
+            offset: Pagination offset
+            limit: Number of users to return
+            blocked_filter: Filter by blocked status (None = all)
+
+        Returns:
+            Dictionary with users data and total count
+        """
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        try:
+            query = self.client.table("users") \
+                .select("email, is_admin, blocked, created_at", count="exact")
+
+            # Apply filter if specified
+            if blocked_filter is not None:
+                query = query.eq("blocked", blocked_filter)
+
+            response = query \
+                .order("created_at", desc=True) \
+                .range(offset, offset + limit - 1) \
+                .execute()
+
+            return {
+                "data": response.data,
+                "count": response.count
+            }
+        except Exception as e:
+            logger.error(f"Error fetching users list: {e}")
+            raise
+
+    def get_user_tasks(self, email: str, offset: int, limit: int) -> Dict[str, Any]:
+        """Get user's tasks from public_actions (filtered by user_email)
+
+        Args:
+            email: User's email address
+            offset: Pagination offset
+            limit: Number of tasks to return
+
+        Returns:
+            Dictionary with tasks data and total count
+        """
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        try:
+            response = self.client.table("public_actions") \
+                .select("*", count="exact") \
+                .eq("action", "add") \
+                .eq("user_email", email) \
+                .order("created_at", desc=True) \
+                .range(offset, offset + limit - 1) \
+                .execute()
+
+            return {
+                "data": response.data,
+                "count": response.count
+            }
+        except Exception as e:
+            logger.error(f"Error fetching tasks for user {email}: {e}")
+            raise
+
+    def delete_action_by_id(self, action_id: int) -> bool:
+        """Delete specific action/task by ID
+
+        Args:
+            action_id: ID of the action to delete
+
+        Returns:
+            True if deleted successfully
+        """
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        try:
+            self.client.table("public_actions") \
+                .delete() \
+                .eq("id", action_id) \
+                .execute()
+
+            logger.info(f"Deleted action with ID: {action_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting action {action_id}: {e}")
+            raise
+
+    def get_admin_statistics(self) -> Dict[str, Any]:
+        """Aggregate counts for admin dashboard
+
+        Returns:
+            Dictionary containing various statistics
+        """
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        try:
+            # Get total users count
+            users_response = self.client.table("users") \
+                .select("id", count="exact") \
+                .execute()
+            total_users = users_response.count or 0
+
+            # Get blocked users count
+            blocked_response = self.client.table("users") \
+                .select("id", count="exact") \
+                .eq("blocked", True) \
+                .execute()
+            blocked_users = blocked_response.count or 0
+
+            # Get total tasks count
+            tasks_response = self.client.table("public_actions") \
+                .select("id", count="exact") \
+                .eq("action", "add") \
+                .execute()
+            total_tasks = tasks_response.count or 0
+
+            # Get total logs count
+            logs_response = self.client.table("public_actions") \
+                .select("id", count="exact") \
+                .execute()
+            total_logs = logs_response.count or 0
+
+            return {
+                "total_users": total_users,
+                "active_users": total_users - blocked_users,
+                "blocked_users": blocked_users,
+                "total_tasks": total_tasks,
+                "total_logs": total_logs
+            }
+        except Exception as e:
+            logger.error(f"Error fetching admin statistics: {e}")
+            raise

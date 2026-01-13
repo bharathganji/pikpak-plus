@@ -566,3 +566,25 @@ class PikPakService:
             return result
 
         return await self._execute_with_retry(_do_create_share)
+
+    async def delete_task(self, task_id: str, delete_files: bool = False):
+        """Delete a task from PikPak"""
+        if not self.client:
+            raise RuntimeError(PIKPAK_CLIENT_NOT_INITIALIZED)
+
+        async def _do_delete():
+            await self.client.delete_tasks([task_id], delete_files=delete_files)
+            logger.info(f"Deleted PikPak task: {task_id}")
+
+        await self._execute_with_retry(_do_delete)
+
+    async def delete_file_forever(self, file_id: str):
+        """Delete a file permanently from PikPak"""
+        if not self.client:
+            raise RuntimeError(PIKPAK_CLIENT_NOT_INITIALIZED)
+
+        async def _do_delete():
+            await self.client.delete_forever([file_id])
+            logger.info(f"Deleted PikPak file permanently: {file_id}")
+
+        await self._execute_with_retry(_do_delete)

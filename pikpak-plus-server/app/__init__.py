@@ -10,6 +10,7 @@ from supabase import create_client
 
 from app.core.config import AppConfig
 from app.services import PikPakService, SupabaseService, WebDAVManager
+from app.services.user_service import UserService
 from app.utils.common import CacheManager
 from app.api.routes import init_routes, api_bp
 from app.celery_app import celery_app
@@ -119,6 +120,13 @@ def create_app():
     # Initialize Supabase service
     supabase_service = SupabaseService(supabase_client)
 
+    # Bootstrap Admin User
+    try:
+        user_service = UserService(supabase_service)
+        user_service.bootstrap_admin_user()
+    except Exception as e:
+        logger.error(f"Failed to bootstrap admin user: {e}")
+
     # Initialize PikPak service
     pikpak_service = PikPakService(
         AppConfig.PIKPAK_USER, AppConfig.PIKPAK_PASS)
@@ -138,7 +146,7 @@ def create_app():
                 cache_manager, None, webdav_manager, redis_client)
 
     # Register blueprints
-    app.register_blueprint(api_bp)
+    app.register_blueprint(api_bp, url_prefix='/api')
 
     # Rate Limiter disabled
     # Limiter(

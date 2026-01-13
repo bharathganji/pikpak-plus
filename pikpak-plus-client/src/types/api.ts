@@ -442,3 +442,50 @@ export interface SupabaseTaskRecord {
     whatslink?: WhatsLinkMetadata;
   };
 }
+
+// ============================================================================
+// Auth & User Types
+// ============================================================================
+
+export interface AuthUser {
+  email: string;
+  is_admin: boolean;
+  blocked: boolean;
+  created_at?: string;
+}
+
+export interface AuthResponse {
+  message: string;
+  user?: AuthUser;
+  token?: string;
+  error?: string;
+}
+
+export interface UserStats {
+  email: string;
+  total_tasks: number;
+}
+
+export interface AdminStats {
+  total_users: number;
+  active_users: number;
+  blocked_users: number;
+  total_tasks: number;
+  total_logs: number;
+}
+
+export interface DailyStats {
+  date: string;
+  tasks: number;
+  users: number;
+  logs: number;
+  active_users: number;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  count: number;
+  page: number;
+  limit: number;
+  user_email?: string;
+}
