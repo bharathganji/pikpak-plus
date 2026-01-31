@@ -3,7 +3,15 @@
 import { useState } from "react";
 import { useLocalStorage } from "primereact/hooks";
 import { Button } from "@/components/ui/button";
-import { Copy, Share2, Loader2, AlertTriangle, Info } from "lucide-react";
+import {
+  Copy,
+  Share2,
+  Loader2,
+  AlertTriangle,
+  Info,
+  CheckCircle2,
+  Clock,
+} from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getApiUrl } from "@/lib/api-utils";
 import axios from "axios";
@@ -15,6 +23,38 @@ interface ShareSectionProps {
   copyToClipboard: (text: string, taskId?: number) => void;
   copiedId: number | null;
 }
+
+// Helper function to get user-friendly error messages
+const getUserFriendlyError = (error: any): string => {
+  // Network errors
+  if (!error.response) {
+    return "Unable to connect. Please check your internet connection.";
+  }
+
+  // HTTP status codes
+  const status = error.response?.status;
+  if (status === 403 || status === 401) {
+    return "You don't have permission to share this file.";
+  }
+  if (status >= 500) {
+    return "Server is temporarily unavailable. Please try again later.";
+  }
+
+  // Use API error message if available, otherwise generic message
+  const apiError = error.response?.data?.error;
+  if (apiError && typeof apiError === "string") {
+    // Simplify technical error messages
+    if (apiError.toLowerCase().includes("timeout")) {
+      return "Request timed out. Please try again.";
+    }
+    if (apiError.toLowerCase().includes("not found")) {
+      return "File not found. It may have been deleted.";
+    }
+    return apiError;
+  }
+
+  return "Failed to create share link. Please try again.";
+};
 
 export function ShareSection({
   task,
@@ -34,6 +74,8 @@ export function ShareSection({
   );
 
   const taskData = task.data.task?.task;
+  const hasFileId = !!taskData?.file_id;
+  const taskProgress = taskData?.progress || 0;
 
   const saveToLocalStorage = (shareResult: any, fileId: string) => {
     const newShare: LocalShare = {
@@ -75,12 +117,16 @@ export function ShareSection({
         saveToLocalStorage(shareResult, taskData.file_id);
       }
     } catch (error: any) {
-      setShareError(
-        error.response?.data?.error || "Failed to create share link",
-      );
+      const friendlyError = getUserFriendlyError(error);
+      setShareError(friendlyError);
     } finally {
       setShareLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    setShareError(null);
+    handleShare();
   };
 
   return (
@@ -88,6 +134,59 @@ export function ShareSection({
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-sm font-semibold">Share File</h4>
       </div>
+
+      {/* Visual Status Indicator - Fix 4 */}
+      <div className="mb-3">
+        {hasFileId ? (
+          <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-950/30 p-2 rounded-md">
+            <CheckCircle2 className="h-4 w-4" />
+            <span className="font-medium">✓ Ready to Share</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-orange-600 dark:text-orange-500 bg-orange-50 dark:bg-orange-950/30 p-2 rounded-md">
+            <Clock className="h-4 w-4" />
+            <div className="flex-1">
+              <span className="font-medium">⏳ Task in Progress</span>
+              {taskProgress > 0 && (
+                <span className="ml-2 text-xs opacity-80">
+                  ({taskProgress}% complete)
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Progress Warning - Fix 2 */}
+      {!hasFileId && (
+        <Alert variant="warning" className="mb-3">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            ⏳ Task is still in progress. Share will be available once download
+            completes.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* API Error Display - Fix 3 */}
+      {shareError && (
+        <Alert variant="destructive" className="mb-3">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-2">
+              <p>{shareError}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRetry}
+                className="h-7 text-xs"
+              >
+                Retry
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Share Link Display - Above Button */}
       {shareData && (
@@ -98,13 +197,6 @@ export function ShareSection({
               <Info className="h-3 w-3" />
               <span>Existing share link</span>
             </div>
-          )}
-
-          {/* Share Error */}
-          {shareError && (
-            <Alert variant="destructive" className="mt-3">
-              <AlertDescription>{shareError}</AlertDescription>
-            </Alert>
           )}
 
           <div className="flex items-center gap-2">
@@ -137,41 +229,30 @@ export function ShareSection({
         </div>
       )}
 
-      {/* Create Share Button */}
+      {/* Create Share Button - Fix 1: Stable structure to prevent flicker */}
       <Button
         variant="outline"
         size="sm"
         onClick={handleShare}
-        disabled={shareLoading || !taskData?.file_id || shareData?.is_existing}
+        disabled={shareLoading || !hasFileId || shareData?.is_existing}
         className="gap-2 w-full"
       >
-        {(() => {
-          if (shareLoading) {
-            return (
-              <>
-                <Loader2 className="h-3 w-3 animate-spin" />
-                Creating...
-              </>
-            );
-          } else if (shareData?.is_existing) {
-            return (
-              <>
-                <Share2 className="h-3 w-3" />
-                Share Link Already Exists
-              </>
-            );
-          } else {
-            const buttonText = shareData
-              ? "Refresh Share Link"
-              : "Create Share Link";
-            return (
-              <>
-                <Share2 className="h-3 w-3" />
-                {buttonText}
-              </>
-            );
-          }
-        })()}
+        {shareLoading ? (
+          <>
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Creating...
+          </>
+        ) : shareData?.is_existing ? (
+          <>
+            <Share2 className="h-3 w-3" />
+            Share Link Already Exists
+          </>
+        ) : (
+          <>
+            <Share2 className="h-3 w-3" />
+            {shareData ? "Refresh Share Link" : "Create Share Link"}
+          </>
+        )}
       </Button>
 
       {/* Warning about cleanup */}
