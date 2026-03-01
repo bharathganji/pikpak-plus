@@ -114,8 +114,6 @@ def create_share():
             _store_share_globally(file_id, result, user_email)
 
             return jsonify(result)
-
-            return jsonify(result)
         except Exception as e:
             logger.error(f"Failed to create share: {e}")
             return jsonify({"error": str(e)}), 500

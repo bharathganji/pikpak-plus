@@ -13,7 +13,7 @@ import {
   Clock,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getApiUrl } from "@/lib/api-utils";
+import { getApiUrl, getAuthHeaders } from "@/lib/api-utils";
 import axios from "axios";
 import type { SupabaseTaskRecord } from "@/types";
 import { LocalShare, LOCAL_SHARES_STORAGE_KEY } from "../my-activity/types";
@@ -105,9 +105,11 @@ export function ShareSection({
 
     try {
       const apiUrl = getApiUrl();
-      const response = await axios.post(`${apiUrl}/share`, {
-        id: taskData.file_id,
-      });
+      const response = await axios.post(
+        `${apiUrl}/share`,
+        { id: taskData.file_id },
+        { headers: getAuthHeaders() },
+      );
 
       const shareResult = response.data;
       setShareData(shareResult);
@@ -234,7 +236,7 @@ export function ShareSection({
         variant="outline"
         size="sm"
         onClick={handleShare}
-        disabled={shareLoading || !hasFileId || shareData?.is_existing}
+        disabled={shareLoading || !hasFileId}
         className="gap-2 w-full"
       >
         {shareLoading ? (
@@ -242,15 +244,14 @@ export function ShareSection({
             <Loader2 className="h-3 w-3 animate-spin" />
             Creating...
           </>
-        ) : shareData?.is_existing ? (
-          <>
-            <Share2 className="h-3 w-3" />
-            Share Link Already Exists
-          </>
         ) : (
           <>
             <Share2 className="h-3 w-3" />
-            {shareData ? "Refresh Share Link" : "Create Share Link"}
+            {shareData?.is_existing
+              ? "View Existing Share"
+              : shareData
+                ? "Refresh Share Link"
+                : "Create Share Link"}
           </>
         )}
       </Button>
