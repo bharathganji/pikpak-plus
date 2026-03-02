@@ -130,7 +130,6 @@ export function CreateShareTab() {
         name: taskData?.name || fileInfoData?.name || "Processing...",
         file_size: taskData?.file_size || fileInfoData?.size?.toString(),
         file_type: fileInfoData?.file_type,
-        supabase_id: taskData?.supabase_id ?? undefined,
       };
 
       // Optimized array operations using Set for O(1) lookup

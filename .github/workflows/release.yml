@@ -49,6 +49,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Build client
+      - name: Build client
+        working-directory: ./pikpak-plus-client
+        run: npm run build
+
       # Run Semantic Release
       - name: Semantic Release
         run: npx semantic-release
