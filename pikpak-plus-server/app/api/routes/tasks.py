@@ -12,7 +12,7 @@ from app.api.utils.dependencies import (
     get_cache_manager,
     get_scheduler
 )
-from app.utils.common import extract_magnet_hash
+from app.utils.common import extract_magnet_hash, extract_e2dk_hash, validate_link
 
 logger = logging.getLogger(__name__)
 
@@ -21,18 +21,26 @@ bp = Blueprint('tasks', __name__)
 
 
 def check_duplicate_task(url: str):
-    """Check if a task with the same magnet hash already exists"""
+    """Check if a task with the same hash already exists (supports both magnet and E2DK)"""
+    # Try to extract magnet hash first
     magnet_hash = extract_magnet_hash(url)
     if magnet_hash:
         supabase_service = get_supabase_service()
         return supabase_service.check_existing_task_by_hash(magnet_hash)
+    
+    # Try to extract E2DK hash
+    e2dk_hash = extract_e2dk_hash(url)
+    if e2dk_hash:
+        supabase_service = get_supabase_service()
+        return supabase_service.check_existing_task_by_hash(e2dk_hash)
+    
     return None
 
 
 @bp.route('/add', methods=['POST'])
 @require_auth
 def add_task():
-    """Add a new download task with file size validation and user tracking"""
+    """Add a new download task (magnet or E2DK) with file size validation and user tracking"""
     async def _async_add_task():
         # Get current user
         user_data = get_current_user()
@@ -58,6 +66,14 @@ def add_task():
             return jsonify({"error": "No URL provided"}), 400
 
         logger.info(f"Received add request for: {url}")
+
+        # Validate link type (magnet or E2DK)
+        is_valid, error_msg, link_type = validate_link(url)
+        if not is_valid:
+            logger.warning(f"Invalid link format for {url}: {error_msg}")
+            return jsonify({"error": error_msg}), 400
+
+        logger.info(f"Processing {link_type} link: {url}")
 
         # Check for existing task (deduplication)
         existing_task = check_duplicate_task(url)
