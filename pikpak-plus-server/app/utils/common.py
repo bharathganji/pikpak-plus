@@ -133,6 +133,69 @@ def validate_magnet_link(url: str) -> tuple[bool, str]:
     return True, ""
 
 
+def validate_e2dk_link(url: str) -> tuple[bool, str]:
+    """Validate that a URL is a valid E2DK (End-to-End Encrypted Download Key) link"""
+    if not url or not url.strip():
+        return False, "No URL provided"
+
+    url = url.strip()
+    
+    # E2DK links start with 'ed2k://' protocol
+    if not url.startswith("ed2k://"):
+        return False, "URL must be an E2DK link (starting with 'ed2k://')"
+
+    # Basic E2DK format validation: ed2k://|file|filename|size|hash|/
+    # Example: ed2k://|file|example.zip|123456|abcdef1234567890abcdef1234567890|/
+    try:
+        # Remove protocol prefix
+        content = url[7:]  # Remove 'ed2k://'
+        
+        if not content.startswith("|file|"):
+            return False, "Invalid E2DK format: must start with 'ed2k://|file|'"
+        
+        # Count pipes to ensure proper format (at least 5: |file|name|size|hash|/)
+        pipe_count = url.count("|")
+        if pipe_count < 5:
+            return False, "Invalid E2DK format: incomplete file information"
+        
+        if not url.endswith("|/"):
+            return False, "Invalid E2DK format: must end with '|/'"
+            
+        return True, ""
+    except Exception as e:
+        logger.error(f"E2DK validation error: {e}")
+        return False, f"E2DK validation failed: {str(e)}"
+
+
+def validate_link(url: str) -> tuple[bool, str, str]:
+    """
+    Validate a URL and determine its type (magnet or E2DK)
+    
+    Args:
+        url: The URL to validate
+    
+    Returns:
+        Tuple of (is_valid, error_message, link_type)
+        link_type can be 'magnet', 'e2dk', or 'unknown'
+    """
+    if not url or not url.strip():
+        return False, "No URL provided", "unknown"
+    
+    url = url.strip()
+    
+    # Check magnet link
+    if url.startswith("magnet:"):
+        valid, error = validate_magnet_link(url)
+        return valid, error, "magnet"
+    
+    # Check E2DK link
+    if url.startswith("ed2k://"):
+        valid, error = validate_e2dk_link(url)
+        return valid, error, "e2dk"
+    
+    return False, "URL must be either a magnet link (magnet:) or E2DK link (ed2k://)", "unknown"
+
+
 def extract_magnet_hash(url: str) -> Optional[str]:
     """
     Extract the info hash from a magnet link
@@ -160,5 +223,38 @@ def extract_magnet_hash(url: str) -> Optional[str]:
 
     except Exception as e:
         logger.error(f"Failed to extract hash from magnet link: {e}")
+
+    return None
+
+
+def extract_e2dk_hash(url: str) -> Optional[str]:
+    """
+    Extract the MD5 hash from an E2DK link
+
+    Args:
+        url: The E2DK link URL
+
+    Returns:
+        The MD5 hash if found, None otherwise
+    """
+    if not url or not url.startswith("ed2k://"):
+        return None
+
+    try:
+        # E2DK format: ed2k://|file|filename|size|hash|/
+        # Extract the parts between pipes
+        content = url[7:]  # Remove 'ed2k://'
+        parts = content.split("|")
+        
+        # parts[0] = 'file'
+        # parts[1] = filename
+        # parts[2] = size
+        # parts[3] = hash (MD5)
+        # parts[4] = '' (empty before final /)
+        
+        if len(parts) >= 4 and parts[0] == "file":
+            return parts[3].lower()
+    except Exception as e:
+        logger.error(f"Failed to extract hash from E2DK link: {e}")
 
     return None
