@@ -30,5 +30,8 @@
       "eslint --fix",
       "prettier --write"
     ]
+  },
+  "overrides": {
+    "undici": "^6.24.0"
   }
 }
