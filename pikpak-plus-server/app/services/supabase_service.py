@@ -648,6 +648,75 @@ class SupabaseService:
             logger.error(f"Error clearing reset token for {email}: {e}")
             raise
 
+    def update_user_admin_status(self, email: str, is_admin: bool) -> bool:
+        """Update user's admin status
+
+        Args:
+            email: User's email address
+            is_admin: New admin status
+
+        Returns:
+            True if updated successfully
+        """
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        try:
+            self.client.table("users") \
+                .update({"is_admin": is_admin}) \
+                .eq("email", email) \
+                .execute()
+
+            logger.info(f"Updated admin status for {email}: {is_admin}")
+            return True
+        except Exception as e:
+            logger.error(f"Error updating admin status for {email}: {e}")
+            raise
+
+    def delete_user(self, email: str) -> bool:
+        """Delete user by email
+
+        Args:
+            email: User's email address
+
+        Returns:
+            True if deleted successfully
+        """
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        try:
+            self.client.table("users") \
+                .delete() \
+                .eq("email", email) \
+                .execute()
+
+            logger.info(f"Deleted user: {email}")
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting user {email}: {e}")
+            raise
+
+    def get_admins_count(self) -> int:
+        """Count number of admin users
+
+        Returns:
+            Count of users with is_admin=True
+        """
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        try:
+            response = self.client.table("users") \
+                .select("id", count="exact") \
+                .eq("is_admin", True) \
+                .execute()
+
+            return response.count or 0
+        except Exception as e:
+            logger.error(f"Error counting admins: {e}")
+            raise
+
     def update_user_blocked_status(self, email: str, blocked: bool) -> bool:
         """Update user's blocked status
 
