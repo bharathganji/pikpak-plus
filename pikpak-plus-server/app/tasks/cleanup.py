@@ -7,6 +7,8 @@ logger = logging.getLogger(__name__)
 
 # Maximum number of tasks that can be deleted in one PikPak API call
 PIKPAK_MAX_BATCH_SIZE = 100
+# Supabase page size for pagination (matches default limit)
+SUPABASE_PAGE_SIZE = 1000
 
 
 def get_task_and_file_ids_from_supabase(supabase: Client) -> Tuple[List[str], List[str]]:
@@ -23,65 +25,80 @@ def get_task_and_file_ids_from_supabase(supabase: Client) -> Tuple[List[str], Li
     file_ids: Set[str] = set()
 
     try:
-        # Get all "add" actions from public_actions table
-        response = supabase.table("public_actions") \
-            .select("id, data") \
-            .eq("action", "add") \
-            .execute()
+        # Paginate through all "add" actions from public_actions table
+        offset = 0
+        total_fetched = 0
 
-        records = response.data or []
-        logger.info(f"Found {len(records)} tasks in Supabase to process")
+        while True:
+            response = supabase.table("public_actions") \
+                .select("id, data") \
+                .eq("action", "add") \
+                .range(offset, offset + SUPABASE_PAGE_SIZE - 1) \
+                .execute()
 
-        if not records:
+            records = response.data or []
+            if not records:
+                break
+
+            total_fetched += len(records)
+
+            # Track records with missing IDs for warning
+            missing_task_ids = 0
+            missing_file_ids = 0
+
+            for record in records:
+                data = record.get("data", {})
+                task_wrapper = data.get("task", {})
+
+                if isinstance(task_wrapper, dict) and "task" in task_wrapper:
+                    task_info = task_wrapper.get("task", {})
+                    file_info = task_wrapper.get("file", {})
+                else:
+                    task_info = task_wrapper
+                    file_info = task_wrapper
+
+                task_id = task_info.get("id") if isinstance(
+                    task_info, dict) else None
+                file_id = file_info.get("id") if isinstance(
+                    file_info, dict) else None
+
+                if not file_id and isinstance(task_info, dict):
+                    file_id = task_info.get("file_id")
+
+                if task_id:
+                    task_ids.add(task_id)
+                else:
+                    missing_task_ids += 1
+
+                if file_id:
+                    file_ids.add(file_id)
+                else:
+                    missing_file_ids += 1
+
+            if missing_task_ids > 0:
+                logger.warning(
+                    f"{missing_task_ids} records missing task IDs in current page")
+            if missing_file_ids > 0:
+                logger.warning(
+                    f"{missing_file_ids} records missing file IDs in current page")
+
+            logger.info(f"Fetched page: {len(records)} records (total so far: {total_fetched})")
+
+            offset += len(records)
+            if len(records) < SUPABASE_PAGE_SIZE:
+                break
+
+        logger.info(f"Found {total_fetched} tasks in Supabase to process")
+
+        if not task_ids and not file_ids:
             return [], []
-
-        # Track records with missing IDs for warning
-        missing_task_ids = 0
-        missing_file_ids = 0
-
-        for record in records:
-            data = record.get("data", {})
-            task_wrapper = data.get("task", {})
-
-            # Try nested structure first (data.task.task and data.task.file)
-            if isinstance(task_wrapper, dict) and "task" in task_wrapper:
-                task_info = task_wrapper.get("task", {})
-                file_info = task_wrapper.get("file", {})
-            else:
-                # Direct structure (data.task is the task itself)
-                task_info = task_wrapper
-                file_info = task_wrapper
-
-            task_id = task_info.get("id") if isinstance(
-                task_info, dict) else None
-            file_id = file_info.get("id") if isinstance(
-                file_info, dict) else None
-
-            # Also try file_id from task_info (some responses have it there)
-            if not file_id and isinstance(task_info, dict):
-                file_id = task_info.get("file_id")
-
-            if task_id:
-                task_ids.add(task_id)
-            else:
-                missing_task_ids += 1
-
-            if file_id:
-                file_ids.add(file_id)
-            else:
-                missing_file_ids += 1
 
         task_ids_list = list(task_ids)
         file_ids_list = list(file_ids)
 
-        # Warn if some records couldn't be parsed
-        if missing_task_ids > 0:
-            logger.warning(f"{missing_task_ids} records missing task IDs")
-        if missing_file_ids > 0:
-            logger.warning(f"{missing_file_ids} records missing file IDs")
-
-        logger.info(
-            f"Extracted {len(task_ids_list)} task IDs and {len(file_ids_list)} file IDs")
+        if total_fetched > 0:
+            logger.info(
+                f"Extracted {len(task_ids_list)} task IDs and {len(file_ids_list)} file IDs")
 
         return task_ids_list, file_ids_list
 
