@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardOverview } from "./components/dashboard-overview";
 import { UsersTable } from "./components/users-table";
 import { ContentModeration } from "./components/content-moderation";
+import { SystemSettings } from "./components/system-settings";
 import { Activity, Users, FileText, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -48,7 +49,7 @@ export default function AdminPage() {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-[400px]">
+        <TabsList className="grid w-full grid-cols-4 max-w-[600px]">
           <TabsTrigger value="overview" className="flex gap-2">
             <Activity className="h-4 w-4" /> Overview
           </TabsTrigger>
@@ -57,6 +58,9 @@ export default function AdminPage() {
           </TabsTrigger>
           <TabsTrigger value="content" className="flex gap-2">
             <FileText className="h-4 w-4" /> Content
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex gap-2">
+            <Settings className="h-4 w-4" /> Settings
           </TabsTrigger>
         </TabsList>
 
@@ -70,6 +74,10 @@ export default function AdminPage() {
 
         <TabsContent value="content">
           <ContentModeration />
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <SystemSettings />
         </TabsContent>
       </Tabs>
     </div>

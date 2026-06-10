@@ -490,3 +490,21 @@ export interface PaginatedResponse<T> {
   limit: number;
   user_email?: string;
 }
+
+export interface SystemConfig {
+  cleanup_interval_hours: number;
+  task_status_update_interval_minutes: number;
+  webdav_generation_interval_hours: number;
+  max_file_size_gb: number;
+}
+
+export interface SchedulerJob {
+  name: string;
+  last_run: string | null;
+  next_run: string | null;
+  status?: string;
+}
+
+export interface SchedulerStatus {
+  jobs: SchedulerJob[];
+}
