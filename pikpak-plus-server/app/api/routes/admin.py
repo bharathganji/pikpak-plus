@@ -869,7 +869,7 @@ def update_config():
             return jsonify({
                 "error": "Service Unavailable",
                 "message": "Configuration storage (Redis) is unavailable"
-            }), 404
+            }), 503
 
         data = request.get_json()
         if not data:
@@ -896,10 +896,10 @@ def update_config():
             if not isinstance(value, (int, float)):
                 return jsonify({
                     "error": "Bad Request",
-                    "message": f"{key} must be a positive number"
+                    "message": f"{key} must be a number"
                 }), 400
 
-            if value is None or value <= 0:
+            if value <= 0:
                 return jsonify({
                     "error": "Bad Request",
                     "message": f"{key} must be a positive number"
@@ -1011,7 +1011,7 @@ def get_scheduler_status():
             return jsonify({
                 "error": "Service Unavailable",
                 "message": "Scheduler status storage (Redis) is unavailable"
-            }), 404
+            }), 503
 
         raw_status = redis_client.get("pikpak_scheduler_status")
         if not raw_status:
