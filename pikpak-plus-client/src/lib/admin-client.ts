@@ -31,6 +31,31 @@ const createAdminClient = () => {
 const adminClient = createAdminClient();
 
 // User Management
+export const createUser = async (
+  email: string,
+  password: string,
+  isAdmin: boolean = false,
+): Promise<void> => {
+  await adminClient.post("admin/users", {
+    email,
+    password,
+    is_admin: isAdmin,
+  });
+};
+
+export const deleteUser = async (email: string): Promise<void> => {
+  await adminClient.delete(`admin/users/${email}`);
+};
+
+export const updateUserRole = async (
+  email: string,
+  isAdmin: boolean,
+): Promise<void> => {
+  await adminClient.patch(`admin/users/${email}/role`, {
+    is_admin: isAdmin,
+  });
+};
+
 export const getUsers = async (
   page: number = 1,
   limit: number = 25,
@@ -87,6 +112,28 @@ export const getUserLogs = async (
 
 export const deleteTask = async (taskId: number): Promise<void> => {
   await adminClient.delete(`admin/tasks/${taskId}`);
+};
+
+export const updateUserPassword = async (
+  email: string,
+  newPassword: string,
+): Promise<void> => {
+  await adminClient.patch(`admin/users/${email}/password`, {
+    new_password: newPassword,
+  });
+};
+
+export const bulkUserAction = async (
+  emails: string[],
+  action: "block" | "unblock" | "delete",
+): Promise<void> => {
+  await Promise.all(
+    emails.map((email) => {
+      if (action === "block") return blockUser(email);
+      if (action === "unblock") return unblockUser(email);
+      return adminClient.delete(`admin/users/${email}`);
+    }),
+  );
 };
 
 // Statistics
