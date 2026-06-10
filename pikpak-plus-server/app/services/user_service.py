@@ -259,6 +259,124 @@ class UserService:
             'total_tasks': task_count
         }
 
+    def create_user(self, email: str, password: str, is_admin: bool = False) -> Dict[str, Any]:
+        """Create a new user account (admin operation)
+
+        Args:
+            email: User's email address
+            password: Plain text password
+            is_admin: Whether user has admin privileges
+
+        Returns:
+            Dictionary containing user information without password hash
+
+        Raises:
+            ValueError: If email already exists or validation fails
+        """
+        existing_user = self.supabase_service.get_user_by_email(email)
+        if existing_user:
+            raise ValueError("Email already registered")
+
+        password_hash = hash_password(password)
+        user = self.supabase_service.create_user(email, password_hash, is_admin=is_admin)
+
+        logger.info(f"Admin created new user: {email}")
+
+        return {
+            'email': user['email'],
+            'is_admin': user.get('is_admin', False),
+            'blocked': user.get('blocked', False),
+            'created_at': user.get('created_at')
+        }
+
+    def delete_user(self, email: str) -> Dict[str, Any]:
+        """Delete a user account (admin operation)
+
+        Args:
+            email: User's email address
+
+        Returns:
+            Dictionary with deletion result
+
+        Raises:
+            ValueError: If user not found or operation is protected
+        """
+        user = self.supabase_service.get_user_by_email(email)
+        if not user:
+            raise ValueError("User not found")
+
+        if user.get('is_admin', False):
+            admin_count = self.supabase_service.get_admins_count()
+            if admin_count <= 1:
+                raise ValueError("Cannot delete the last admin user")
+
+        self.supabase_service.delete_user(email)
+        logger.info(f"Admin deleted user: {email}")
+
+        return {"message": "User deleted successfully", "email": email}
+
+    def update_user_role(self, email: str, is_admin: bool) -> Dict[str, Any]:
+        """Update user's admin status (admin operation)
+
+        Args:
+            email: User's email address
+            is_admin: New admin status
+
+        Returns:
+            Dictionary with update result
+
+        Raises:
+            ValueError: If user not found or operation is protected
+        """
+        user = self.supabase_service.get_user_by_email(email)
+        if not user:
+            raise ValueError("User not found")
+
+        if not is_admin:
+            admin_count = self.supabase_service.get_admins_count()
+            if admin_count <= 1:
+                raise ValueError("Cannot remove admin status from the last admin user")
+
+        self.supabase_service.update_user_admin_status(email, is_admin)
+        logger.info(f"Admin updated role for {email}: is_admin={is_admin}")
+
+        return {
+            "message": "User role updated successfully",
+            "email": email,
+            "is_admin": is_admin
+        }
+
+    def reset_user_password(self, email: str, new_password: str) -> Dict[str, Any]:
+        """Reset user password (admin override)
+
+        Args:
+            email: User's email address
+            new_password: New plain text password
+
+        Returns:
+            Dictionary with reset result
+
+        Raises:
+            ValueError: If user not found or validation fails
+        """
+        user = self.supabase_service.get_user_by_email(email)
+        if not user:
+            raise ValueError("User not found")
+
+        password_hash = hash_password(new_password)
+        self.supabase_service.update_user_password(email, password_hash)
+        logger.info(f"Admin reset password for user: {email}")
+
+        return {"message": "Password reset successfully", "email": email}
+
+    def get_admins_count(self) -> int:
+        """Get count of admin users
+
+        Returns:
+            Number of admin users
+        """
+        return self.supabase_service.get_admins_count()
+
     def bootstrap_admin_user(self) -> None:
         """Create admin user from environment variables on startup
 

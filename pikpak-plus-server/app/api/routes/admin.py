@@ -174,6 +174,232 @@ def unblock_user(email: str):
 
 
 # ========================================
+# User CRUD Endpoints
+# ========================================
+
+
+@bp.route('/users', methods=['POST'])
+@require_admin
+def create_user():
+    """Create a new user account (admin operation)
+
+    Body:
+        - email: User's email address
+        - password: Plain text password (min 6 characters)
+        - is_admin: Optional boolean, default False
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                "error": "Bad Request",
+                "message": "Request body is required"
+            }), 400
+
+        email = data.get('email', '').strip()
+        password = data.get('password', '')
+        is_admin = data.get('is_admin', False)
+
+        if not email or not password:
+            return jsonify({
+                "error": "Bad Request",
+                "message": "Email and password are required"
+            }), 400
+
+        if len(password) < 6:
+            return jsonify({
+                "error": "Bad Request",
+                "message": "Password must be at least 6 characters"
+            }), 400
+
+        supabase_service = get_supabase_service()
+        user_service = UserService(supabase_service)
+
+        current_user = get_current_user()
+        if current_user and current_user.get('email') == email:
+            return jsonify({
+                "error": "Bad Request",
+                "message": "Cannot create user with the same email as current admin"
+            }), 400
+
+        user = user_service.create_user(email, password, is_admin=is_admin)
+
+        return jsonify({
+            "message": "User created successfully",
+            "user": user
+        }), 201
+
+    except ValueError as e:
+        return jsonify({
+            "error": "Bad Request",
+            "message": str(e)
+        }), 400
+
+    except Exception as e:
+        logger.error(f"Create user error: {e}")
+        return jsonify({
+            "error": "Internal server error",
+            "message": "Failed to create user"
+        }), 500
+
+
+@bp.route('/users/<email>', methods=['DELETE'])
+@require_admin
+def delete_user(email: str):
+    """Delete a user account (admin operation)
+
+    Prevents:
+        - Deleting the last admin user
+        - Deleting self (current admin)
+    """
+    try:
+        supabase_service = get_supabase_service()
+        user_service = UserService(supabase_service)
+
+        current_user = get_current_user()
+        if current_user and current_user.get('email') == email:
+            return jsonify({
+                "error": "Forbidden",
+                "message": "Cannot delete your own account"
+            }), 403
+
+        result = user_service.delete_user(email)
+
+        if 'error' in result:
+            return jsonify({
+                "error": "Bad Request",
+                "message": result['error']
+            }), 400
+
+        return jsonify(result), 200
+
+    except ValueError as e:
+        return jsonify({
+            "error": "Bad Request",
+            "message": str(e)
+        }), 400
+
+    except Exception as e:
+        logger.error(f"Delete user error: {e}")
+        return jsonify({
+            "error": "Internal server error",
+            "message": "Failed to delete user"
+        }), 500
+
+
+@bp.route('/users/<email>/role', methods=['PATCH'])
+@require_admin
+def update_user_role(email: str):
+    """Update user's admin status (admin operation)
+
+    Body:
+        - is_admin: Boolean indicating new admin status
+    """
+    try:
+        data = request.get_json()
+        if not data or 'is_admin' not in data:
+            return jsonify({
+                "error": "Bad Request",
+                "message": "is_admin field is required in request body"
+            }), 400
+
+        is_admin = data.get('is_admin')
+        if not isinstance(is_admin, bool):
+            return jsonify({
+                "error": "Bad Request",
+                "message": "is_admin must be a boolean value"
+            }), 400
+
+        supabase_service = get_supabase_service()
+        user_service = UserService(supabase_service)
+
+        result = user_service.update_user_role(email, is_admin)
+
+        if 'error' in result:
+            return jsonify({
+                "error": "Bad Request",
+                "message": result['error']
+            }), 400
+
+        return jsonify(result), 200
+
+    except ValueError as e:
+        return jsonify({
+            "error": "Bad Request",
+            "message": str(e)
+        }), 400
+
+    except Exception as e:
+        logger.error(f"Update user role error: {e}")
+        return jsonify({
+            "error": "Internal server error",
+            "message": "Failed to update user role"
+        }), 500
+
+
+@bp.route('/users/<email>/password', methods=['PATCH'])
+@require_admin
+def update_user_password(email: str):
+    """Reset user password (admin override)
+
+    Body:
+        - new_password: New plain text password (min 6 characters)
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                "error": "Bad Request",
+                "message": "Request body is required"
+            }), 400
+
+        new_password = data.get('new_password', '')
+        if not new_password:
+            return jsonify({
+                "error": "Bad Request",
+                "message": "new_password is required"
+            }), 400
+
+        if len(new_password) < 6:
+            return jsonify({
+                "error": "Bad Request",
+                "message": "Password must be at least 6 characters"
+            }), 400
+
+        supabase_service = get_supabase_service()
+        user_service = UserService(supabase_service)
+
+        result = user_service.reset_user_password(email, new_password)
+
+        if 'error' in result:
+            return jsonify({
+                "error": "Bad Request",
+                "message": result['error']
+            }), 400
+
+        return jsonify(result), 200
+
+    except ValueError as e:
+        error_msg = str(e)
+        if "not found" in error_msg.lower():
+            return jsonify({
+                "error": "Not Found",
+                "message": error_msg
+            }), 404
+        return jsonify({
+            "error": "Bad Request",
+            "message": error_msg
+        }), 400
+
+    except Exception as e:
+        logger.error(f"Reset user password error: {e}")
+        return jsonify({
+            "error": "Internal server error",
+            "message": "Failed to reset user password"
+        }), 500
+
+
+# ========================================
 # Content Moderation
 # ========================================
 
