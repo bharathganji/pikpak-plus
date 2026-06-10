@@ -206,6 +206,13 @@ def create_user():
                 "message": "Email and password are required"
             }), 400
 
+        # Validate email format
+        if '@' not in email or '.' not in email:
+            return jsonify({
+                "error": "Bad Request",
+                "message": "Invalid email format"
+            }), 400
+
         if len(password) < 6:
             return jsonify({
                 "error": "Bad Request",
@@ -266,17 +273,29 @@ def delete_user(email: str):
         result = user_service.delete_user(email)
 
         if 'error' in result:
+            error_msg = result['error']
+            if "not found" in error_msg.lower():
+                return jsonify({
+                    "error": "Not Found",
+                    "message": error_msg
+                }), 404
             return jsonify({
                 "error": "Bad Request",
-                "message": result['error']
+                "message": error_msg
             }), 400
 
-        return jsonify(result), 200
+        return '', 204
 
     except ValueError as e:
+        error_msg = str(e)
+        if "not found" in error_msg.lower():
+            return jsonify({
+                "error": "Not Found",
+                "message": error_msg
+            }), 404
         return jsonify({
             "error": "Bad Request",
-            "message": str(e)
+            "message": error_msg
         }), 400
 
     except Exception as e:
@@ -324,9 +343,15 @@ def update_user_role(email: str):
         return jsonify(result), 200
 
     except ValueError as e:
+        error_msg = str(e)
+        if "not found" in error_msg.lower():
+            return jsonify({
+                "error": "Not Found",
+                "message": error_msg
+            }), 404
         return jsonify({
             "error": "Bad Request",
-            "message": str(e)
+            "message": error_msg
         }), 400
 
     except Exception as e:
