@@ -22,7 +22,7 @@ def scheduled_cleanup(self):
     1. Get all task IDs and file IDs from Supabase public_actions table
     2. Delete tasks from PikPak (in batches of 100)
     3. Delete files permanently from PikPak (not trash)
-    4. After both succeed, empty the public_actions table (all rows)
+    4. Clear Supabase records for successfully deleted items only (failed items remain for retry)
     """
     run_time = datetime.now(timezone.utc)
     logger.info(f"Running scheduled cleanup job at {run_time.isoformat()}Z...")
@@ -55,7 +55,7 @@ def scheduled_cleanup(self):
             ))
 
             logger.info(
-                f"Cleanup job completed successfully at {datetime.now(timezone.utc).isoformat()}Z")
+                f"Cleanup job completed at {datetime.now(timezone.utc).isoformat()}Z")
 
             # Update Redis status
             from app.tasks.utils import update_redis_status
