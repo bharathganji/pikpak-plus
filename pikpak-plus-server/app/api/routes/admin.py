@@ -662,3 +662,398 @@ def get_stats_daily():
             "error": "Internal server error",
             "message": "Failed to fetch daily statistics"
         }), 500
+
+
+# ========================================
+# Bulk User Actions
+# ========================================
+
+@bp.route('/users/bulk-action', methods=['POST'])
+@require_admin
+def bulk_user_action():
+    """Perform bulk actions on multiple users
+
+    Body:
+        - emails: List of user emails
+        - action: 'block' | 'unblock' | 'delete'
+    """
+    try:
+        data = request.get_json()
+        if not data or 'emails' not in data or 'action' not in data:
+            return jsonify({
+                "error": "Bad Request",
+                "message": "emails list and action are required in request body"
+            }), 400
+
+        emails = data.get('emails', [])
+        action = data.get('action', '').lower()
+
+        if not isinstance(emails, list) or len(emails) == 0:
+            return jsonify({
+                "error": "Bad Request",
+                "message": "emails must be a non-empty list"
+            }), 400
+
+        valid_actions = {'block', 'unblock', 'delete'}
+        if action not in valid_actions:
+            return jsonify({
+                "error": "Bad Request",
+                "message": f"Invalid action '{action}'. Must be one of: {', '.join(sorted(valid_actions))}"
+            }), 400
+
+        supabase_service = get_supabase_service()
+        user_service = UserService(supabase_service)
+        current_user = get_current_user()
+        current_email = current_user.get('email') if current_user else None
+
+        affected = 0
+        skipped = 0
+        skipped_reasons = []
+
+        for email in emails:
+            if not isinstance(email, str) or not email.strip():
+                skipped += 1
+                skipped_reasons.append({
+                    "email": str(email),
+                    "reason": "Invalid email"
+                })
+                continue
+
+            email = email.strip().lower()
+
+            try:
+                user = user_service.get_user_by_email(email)
+            except Exception:
+                user = None
+
+            if not user:
+                skipped += 1
+                skipped_reasons.append({
+                    "email": email,
+                    "reason": "User not found"
+                })
+                continue
+
+            is_admin_user = user.get('is_admin', False)
+
+            if action in ('block', 'delete') and is_admin_user:
+                skipped += 1
+                skipped_reasons.append({
+                    "email": email,
+                    "reason": "Protected admin user"
+                })
+                continue
+
+            if action == 'delete':
+                if current_email and email == current_email:
+                    skipped += 1
+                    skipped_reasons.append({
+                        "email": email,
+                        "reason": "Cannot delete your own account"
+                    })
+                    continue
+
+                try:
+                    user_service.delete_user(email)
+                    affected += 1
+                except ValueError as ve:
+                    skipped += 1
+                    skipped_reasons.append({
+                        "email": email,
+                        "reason": str(ve)
+                    })
+                except Exception as ue:
+                    logger.error(f"Bulk delete error for {email}: {ue}")
+                    skipped += 1
+                    skipped_reasons.append({
+                        "email": email,
+                        "reason": "Failed to delete user"
+                    })
+                continue
+
+            if action == 'block':
+                try:
+                    user_service.block_user(email)
+                    affected += 1
+                except Exception as e:
+                    logger.error(f"Bulk block error for {email}: {e}")
+                    skipped += 1
+                    skipped_reasons.append({
+                        "email": email,
+                        "reason": "Failed to block user"
+                    })
+                continue
+
+            if action == 'unblock':
+                try:
+                    user_service.unblock_user(email)
+                    affected += 1
+                except Exception as e:
+                    logger.error(f"Bulk unblock error for {email}: {e}")
+                    skipped += 1
+                    skipped_reasons.append({
+                        "email": email,
+                        "reason": "Failed to unblock user"
+                    })
+                continue
+
+        logger.info(
+            f"Bulk {action} completed: {affected} affected, {skipped} skipped")
+
+        return jsonify({
+            "action": action,
+            "affected": affected,
+            "skipped": skipped,
+            "skipped_details": skipped_reasons
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Bulk user action error: {e}")
+        return jsonify({
+            "error": "Internal server error",
+            "message": "Failed to perform bulk action"
+        }), 500
+
+
+# ========================================
+# System Configuration
+# ========================================
+
+@bp.route('/config', methods=['GET'])
+@require_admin
+def get_config():
+    """Return public-safe configuration values
+
+    Does NOT return secrets like JWT_SECRET_KEY, API keys, etc.
+    """
+    try:
+        return jsonify({
+            "MAX_FILE_SIZE_GB": AppConfig.MAX_FILE_SIZE_GB,
+            "CLEANUP_INTERVAL_HOURS": AppConfig.CLEANUP_INTERVAL_HOURS,
+            "TASK_STATUS_UPDATE_INTERVAL_MINUTES": AppConfig.TASK_STATUS_UPDATE_INTERVAL_MINUTES,
+            "WEBDAV_GENERATION_INTERVAL_HOURS": AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS,
+            "DEFAULT_PAGE_SIZE": AppConfig.DEFAULT_PAGE_SIZE,
+            "SCHEDULER_API_ENABLED": AppConfig.SCHEDULER_API_ENABLED,
+            "TASK_CACHE_TTL": AppConfig.TASK_CACHE_TTL,
+            "QUOTA_CACHE_TTL": AppConfig.QUOTA_CACHE_TTL,
+            "REQUEST_TIMEOUT": AppConfig.REQUEST_TIMEOUT,
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Get config error: {e}")
+        return jsonify({
+            "error": "Internal server error",
+            "message": "Failed to fetch configuration"
+        }), 500
+
+
+@bp.route('/config', methods=['PATCH'])
+@require_admin
+def update_config():
+    """Update runtime-adjustable configuration values
+
+    Body:
+        - cleanup_interval_hours?: int (positive)
+        - task_status_update_interval_minutes?: int (positive)
+        - webdav_generation_interval_hours?: int (positive)
+        - max_file_size_gb?: float (positive)
+    """
+    try:
+        redis_client = None
+        try:
+            import redis as redis_lib
+            redis_client = redis_lib.from_url(
+                AppConfig.REDIS_URL, decode_responses=True)
+        except Exception as e:
+            logger.error(f"Redis connection failed: {e}")
+            return jsonify({
+                "error": "Service Unavailable",
+                "message": "Configuration storage (Redis) is unavailable"
+            }), 503
+
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                "error": "Bad Request",
+                "message": "Request body is required"
+            }), 400
+
+        allowed_keys = {
+            'cleanup_interval_hours',
+            'task_status_update_interval_minutes',
+            'webdav_generation_interval_hours',
+            'max_file_size_gb',
+        }
+
+        updates = {}
+        for key, value in data.items():
+            if key not in allowed_keys:
+                return jsonify({
+                    "error": "Bad Request",
+                    "message": f"Unsupported config key: {key}"
+                }), 400
+
+            if not isinstance(value, (int, float)):
+                return jsonify({
+                    "error": "Bad Request",
+                    "message": f"{key} must be a number"
+                }), 400
+
+            if value <= 0:
+                return jsonify({
+                    "error": "Bad Request",
+                    "message": f"{key} must be a positive number"
+                }), 400
+
+            updates[key] = value
+
+        if not updates:
+            return jsonify({
+                "error": "Bad Request",
+                "message": "No valid configuration keys provided"
+            }), 400
+
+        existing_config = {}
+        try:
+            raw = redis_client.get("system_config")
+            if raw:
+                import json
+                existing_config = json.loads(raw)
+        except Exception as e:
+            logger.error(f"Failed to read existing config from Redis: {e}")
+            return jsonify({
+                "error": "Internal server error",
+                "message": "Failed to read existing configuration"
+            }), 500
+
+        updated_config = {**existing_config, **updates}
+
+        try:
+            import json
+            redis_client.set(
+                "system_config",
+                json.dumps(updated_config),
+                ex=3600
+            )
+        except Exception as e:
+            logger.error(f"Failed to write config to Redis: {e}")
+            return jsonify({
+                "error": "Internal server error",
+                "message": "Failed to save configuration"
+            }), 500
+
+        logger.info(f"Config updated: {list(updates.keys())}")
+
+        return jsonify({
+            "updated": updates,
+            "config": updated_config
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Update config error: {e}")
+        return jsonify({
+            "error": "Internal server error",
+            "message": "Failed to update configuration"
+        }), 500
+
+
+# ========================================
+# Cleanup Control
+# ========================================
+
+@bp.route('/cleanup/trigger', methods=['POST'])
+@require_admin
+def trigger_cleanup():
+    """Manually trigger the cleanup job
+
+    Returns immediately with trigger confirmation. The cleanup job runs
+    asynchronously in the background via Celery.
+    """
+    try:
+        from app.tasks.jobs.cleanup_job import scheduled_cleanup
+
+        scheduled_cleanup.delay()
+
+        logger.info("Manual cleanup triggered by admin")
+
+        return jsonify({
+            "status": "triggered",
+            "message": "Cleanup job started"
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Trigger cleanup error: {e}")
+        return jsonify({
+            "error": "Internal server error",
+            "message": "Failed to trigger cleanup job"
+        }), 500
+
+
+# ========================================
+# Scheduler Status
+# ========================================
+
+@bp.route('/scheduler/status', methods=['GET'])
+@require_admin
+def get_scheduler_status():
+    """Return scheduler status from Redis
+
+    Includes last/next run times for cleanup, task-status, webdav, and heartbeat.
+    """
+    try:
+        redis_client = None
+        try:
+            import redis as redis_lib
+            redis_client = redis_lib.from_url(
+                AppConfig.REDIS_URL, decode_responses=True)
+        except Exception as e:
+            logger.error(f"Redis connection failed: {e}")
+            return jsonify({
+                "error": "Service Unavailable",
+                "message": "Scheduler status storage (Redis) is unavailable"
+            }), 503
+
+        raw_status = redis_client.get("pikpak_scheduler_status")
+        if not raw_status:
+            return jsonify({
+                "status": "unknown",
+                "message": "Scheduler status not available"
+            }), 404
+
+        import json
+        scheduler_info = json.loads(raw_status)
+
+        jobs = [
+            {
+                "name": "cleanup",
+                "last_run": scheduler_info.get("last_cleanup"),
+                "next_run": scheduler_info.get("next_cleanup")
+            },
+            {
+                "name": "task-status",
+                "last_run": scheduler_info.get("last_task_status_update"),
+                "next_run": scheduler_info.get("next_task_status_update")
+            },
+            {
+                "name": "webdav",
+                "last_run": scheduler_info.get("last_webdav_generation"),
+                "next_run": scheduler_info.get("next_webdav_generation")
+            },
+            {
+                "name": "heartbeat",
+                "last_run": scheduler_info.get("last_heartbeat"),
+                "next_run": None
+            }
+        ]
+
+        return jsonify({
+            "status": scheduler_info.get("status", "unknown"),
+            "jobs": jobs
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Get scheduler status error: {e}")
+        return jsonify({
+            "error": "Internal server error",
+            "message": "Failed to fetch scheduler status"
+        }), 500
