@@ -7,6 +7,9 @@ import {
   SupabaseTaskRecord,
   AdminStats,
   DailyStats,
+  SystemConfig,
+  SchedulerJob,
+  SchedulerStatus,
 } from "@/types/api";
 
 // Create an axio instance for admin requests
@@ -101,5 +104,28 @@ export const getDailyStats = async (
   const res = await adminClient.get("admin/stats/daily", {
     params: { limit },
   });
+  return res.data;
+};
+
+// System Settings
+export const getConfig = async (): Promise<SystemConfig> => {
+  const res = await adminClient.get("admin/config");
+  return res.data;
+};
+
+export const updateConfig = async (
+  config: Partial<SystemConfig>,
+): Promise<SystemConfig> => {
+  const res = await adminClient.patch("admin/config", config);
+  return res.data;
+};
+
+export const triggerCleanup = async (): Promise<{ message: string }> => {
+  const res = await adminClient.post("admin/cleanup/trigger");
+  return res.data;
+};
+
+export const getSchedulerStatus = async (): Promise<SchedulerStatus> => {
+  const res = await adminClient.get("admin/scheduler/status");
   return res.data;
 };
