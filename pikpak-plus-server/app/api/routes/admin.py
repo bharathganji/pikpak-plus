@@ -899,7 +899,7 @@ def update_config():
                     "message": f"{key} must be a number"
                 }), 400
 
-            if value <= 0:
+            if value < 0:
                 return jsonify({
                     "error": "Bad Request",
                     "message": f"{key} must be a positive number"

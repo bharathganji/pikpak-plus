@@ -393,11 +393,11 @@ class UserService:
             AppConfig.ADMIN_EMAIL)
 
         if existing_admin:
-            # Update is_admin flag if needed
             if not existing_admin.get('is_admin'):
                 logger.info(
                     f"Updating existing user to admin: {AppConfig.ADMIN_EMAIL}")
-                # TODO: Add update_user_admin_status method to supabase_service
+                self.supabase_service.update_user_admin_status(
+                    AppConfig.ADMIN_EMAIL, True)
             else:
                 logger.info(
                     f"Admin user already exists: {AppConfig.ADMIN_EMAIL}")
