@@ -7,6 +7,9 @@ import {
   SupabaseTaskRecord,
   AdminStats,
   DailyStats,
+  SystemConfig,
+  SchedulerJob,
+  SchedulerStatus,
 } from "@/types/api";
 
 // Create an axio instance for admin requests
@@ -105,13 +108,6 @@ export const getDailyStats = async (
 };
 
 // System Settings
-export interface SystemConfig {
-  cleanup_interval_hours: number;
-  task_status_update_interval_minutes: number;
-  webdav_generation_interval_hours: number;
-  max_file_size_gb: number;
-}
-
 export const getConfig = async (): Promise<SystemConfig> => {
   const res = await adminClient.get("admin/config");
   return res.data;
@@ -128,17 +124,6 @@ export const triggerCleanup = async (): Promise<{ message: string }> => {
   const res = await adminClient.post("admin/cleanup/trigger");
   return res.data;
 };
-
-export interface SchedulerJob {
-  name: string;
-  last_run: string | null;
-  next_run: string | null;
-  status?: string;
-}
-
-export interface SchedulerStatus {
-  jobs: SchedulerJob[];
-}
 
 export const getSchedulerStatus = async (): Promise<SchedulerStatus> => {
   const res = await adminClient.get("admin/scheduler/status");
