@@ -130,8 +130,7 @@ export const getSchedulerStatus = async (): Promise<SchedulerStatus> => {
   return res.data;
 };
 
-// WebDAV Administration
-export const regenerateWebdavCredentials = async (): Promise<{ message: string, clients_count?: number }> => {
+export const regenerateWebdavCredentials = async (): Promise<{ message: string; clients_count: number }> => {
   const res = await adminClient.post("admin/webdav/regenerate-credentials");
   return res.data;
 };
