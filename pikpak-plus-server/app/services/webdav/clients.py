@@ -294,3 +294,99 @@ class ClientManager:
                 "message": f"Error: {str(e)}",
                 "clients": []
             }
+
+    async def regenerate_webdav_clients(self) -> Dict[str, Any]:
+        """
+        Manually regenerate WebDAV clients (admin triggered)
+        
+        This method is called by admin users to manually trigger WebDAV credential regeneration.
+        It cleans up all existing clients and creates new ones with the same planet names.
+        
+        Returns:
+            dict: Result with success/failure status and client count
+        """
+        try:
+            logger.info("=== Starting manual WebDAV credential regeneration ===")
+            
+            # Clean up old clients first
+            logger.info("Cleaning up old WebDAV clients...")
+            deleted_count = await self.cleanup_expired_clients()
+            logger.info(f"Cleaned up {deleted_count} old WebDAV clients")
+            
+            # Check if downstream traffic is available
+            if not await self.traffic_checker.is_downstream_traffic_available():
+                logger.warning(
+                    "Downstream traffic exhausted, skipping WebDAV client creation")
+                return {
+                    "success": False,
+                    "message": "Downstream traffic quota exhausted",
+                    "clients_count": 0
+                }
+            
+            # Create new clients
+            logger.info("Creating new WebDAV clients...")
+            result = await self.create_daily_webdav_clients()
+            
+            if result.get("success"):
+                clients_count = len(result.get("clients", []))
+                logger.info(f"Successfully regenerated {clients_count} WebDAV clients")
+                return {
+                    "success": True,
+                    "message": f"Regenerated {clients_count} WebDAV clients successfully",
+                    "clients_count": clients_count
+                }
+            else:
+                logger.error(f"Failed to regenerate WebDAV clients: {result.get('message')}")
+                return {
+                    "success": False,
+                    "message": f"Failed to create new clients: {result.get('message')}",
+                    "clients_count": 0
+                }
+                
+        except Exception as e:
+            logger.error(f"WebDAV credential regeneration failed: {e}", exc_info=True)
+            return {
+                "success": False,
+                "message": f"Error: {str(e)}",
+                "clients_count": 0
+            }
+
+    async def regenerate_webdav_clients(self) -> Dict[str, Any]:
+        """
+        Manually trigger WebDAV client regeneration
+        
+        This method is called by the admin API to manually regenerate WebDAV clients.
+        It ensures old clients are cleaned up before creating new ones.
+        
+        Returns:
+            dict: Result of the regeneration operation
+        """
+        try:
+            logger.info("Admin manually triggering WebDAV client regeneration")
+            
+            # Clean up old clients first
+            await self.cleanup_expired_clients()
+            
+            # Create new clients
+            result = await self.create_daily_webdav_clients()
+            
+            if result.get("success"):
+                logger.info("WebDAV client regeneration completed successfully")
+                return {
+                    "success": True,
+                    "message": "WebDAV clients regenerated successfully",
+                    "clients_count": len(result.get("clients", []))
+                }
+            else:
+                logger.error(f"WebDAV client regeneration failed: {result.get('message')}")
+                return {
+                    "success": False,
+                    "message": f"Failed to regenerate WebDAV clients: {result.get('message')}"
+                }
+                
+        except Exception as e:
+            logger.error(f"WebDAV client regeneration error: {e}")
+            return {
+                "success": False,
+                "message": f"Error: {str(e)}"
+            }
