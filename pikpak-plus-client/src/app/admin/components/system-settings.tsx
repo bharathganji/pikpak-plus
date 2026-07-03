@@ -10,6 +10,7 @@ import {
   updateConfig,
   triggerCleanup,
   getSchedulerStatus,
+  regenerateWebdavCredentials,
 } from "@/lib/admin-client";
 import {
   Settings as SettingsIcon,
@@ -20,6 +21,7 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
+  KeyRound,
 } from "lucide-react";
 
 const defaultConfig: SystemConfig = {
@@ -37,6 +39,7 @@ export function SystemSettings() {
   const [saving, setSaving] = useState(false);
   const [triggering, setTriggering] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -112,6 +115,21 @@ export function SystemSettings() {
       console.error(err);
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const handleRegenerateWebdav = async () => {
+    setRegenerating(true);
+    setError(null);
+    try {
+      const result = await regenerateWebdavCredentials();
+      setSuccess(`WebDAV credentials regenerated successfully (${result.clients_count} clients)`);
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError("Failed to regenerate WebDAV credentials");
+      console.error(err);
+    } finally {
+      setRegenerating(false);
     }
   };
 
@@ -264,6 +282,18 @@ export function SystemSettings() {
               <RefreshCw className="mr-2 h-4 w-4" />
             )}
             Refresh Scheduler Status
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={handleRegenerateWebdav}
+            disabled={regenerating}
+          >
+            {regenerating ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <KeyRound className="mr-2 h-4 w-4" />
+            )}
+            Regenerate WebDAV Credentials
           </Button>
         </CardContent>
       </Card>

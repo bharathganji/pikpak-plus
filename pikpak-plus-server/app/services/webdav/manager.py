@@ -61,11 +61,14 @@ class WebDAVManager:
         """
         return await self.client_manager.cleanup_expired_clients()
 
-    async def get_active_clients(self) -> Dict[str, Any]:
+    async def regenerate_webdav_credentials(self) -> Dict[str, Any]:
         """
-        Get list of active WebDAV clients with TTL info
-
+        Manually trigger WebDAV credential regeneration (admin trigger)
+        
+        This method is called by admin users to manually trigger WebDAV credential regeneration.
+        It delegates to the client manager's regenerate method.
+        
         Returns:
-            dict: Active clients or message if none available
+            dict: Result with success/failure status and client count
         """
-        return await self.client_manager.get_active_clients()
+        return await self.client_manager.regenerate_webdav_clients()
