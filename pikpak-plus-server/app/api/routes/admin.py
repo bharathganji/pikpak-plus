@@ -937,6 +937,34 @@ def get_scheduler_status():
         }), 500
 
 
+@bp.route('/config', methods=['GET'])
+@require_admin
+def get_config():
+    """Return public-safe configuration values
+
+    Does NOT return secrets like JWT_SECRET_KEY, API keys, etc.
+    """
+    try:
+        return jsonify({
+            "MAX_FILE_SIZE_GB": AppConfig.MAX_FILE_SIZE_GB,
+            "CLEANUP_INTERVAL_HOURS": AppConfig.CLEANUP_INTERVAL_HOURS,
+            "TASK_STATUS_UPDATE_INTERVAL_MINUTES": AppConfig.TASK_STATUS_UPDATE_INTERVAL_MINUTES,
+            "WEBDAV_GENERATION_INTERVAL_HOURS": AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS,
+            "DEFAULT_PAGE_SIZE": AppConfig.DEFAULT_PAGE_SIZE,
+            "SCHEDULER_API_ENABLED": AppConfig.SCHEDULER_API_ENABLED,
+            "TASK_CACHE_TTL": AppConfig.TASK_CACHE_TTL,
+            "QUOTA_CACHE_TTL": AppConfig.QUOTA_CACHE_TTL,
+            "REQUEST_TIMEOUT": AppConfig.REQUEST_TIMEOUT,
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Get config error: {e}")
+        return jsonify({
+            "error": "Internal server error",
+            "message": "Failed to fetch configuration"
+        }), 500
+
+
 @bp.route('/config', methods=['PATCH'])
 @require_admin
 def update_config():
