@@ -300,18 +300,13 @@ class ClientManager:
         Manually regenerate WebDAV clients (admin triggered)
         
         This method is called by admin users to manually trigger WebDAV credential regeneration.
-        It cleans up all existing clients and creates new ones with the same planet names.
+        It creates new clients after cleaning up existing ones.
         
         Returns:
             dict: Result with success/failure status and client count
         """
         try:
             logger.info("=== Starting manual WebDAV credential regeneration ===")
-            
-            # Clean up old clients first
-            logger.info("Cleaning up old WebDAV clients...")
-            deleted_count = await self.cleanup_expired_clients()
-            logger.info(f"Cleaned up {deleted_count} old WebDAV clients")
             
             # Check if downstream traffic is available
             if not await self.traffic_checker.is_downstream_traffic_available():
@@ -323,7 +318,7 @@ class ClientManager:
                     "clients_count": 0
                 }
             
-            # Create new clients
+            # Create new clients (which handles cleanup internally)
             logger.info("Creating new WebDAV clients...")
             result = await self.create_daily_webdav_clients()
             

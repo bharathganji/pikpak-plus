@@ -937,6 +937,34 @@ def get_scheduler_status():
         }), 500
 
 
+@bp.route('/config', methods=['GET'])
+@require_admin
+def get_config():
+    """Return public-safe configuration values
+
+    Does NOT return secrets like JWT_SECRET_KEY, API keys, etc.
+    """
+    try:
+        return jsonify({
+            "MAX_FILE_SIZE_GB": AppConfig.MAX_FILE_SIZE_GB,
+            "CLEANUP_INTERVAL_HOURS": AppConfig.CLEANUP_INTERVAL_HOURS,
+            "TASK_STATUS_UPDATE_INTERVAL_MINUTES": AppConfig.TASK_STATUS_UPDATE_INTERVAL_MINUTES,
+            "WEBDAV_GENERATION_INTERVAL_HOURS": AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS,
+            "DEFAULT_PAGE_SIZE": AppConfig.DEFAULT_PAGE_SIZE,
+            "SCHEDULER_API_ENABLED": AppConfig.SCHEDULER_API_ENABLED,
+            "TASK_CACHE_TTL": AppConfig.TASK_CACHE_TTL,
+            "QUOTA_CACHE_TTL": AppConfig.QUOTA_CACHE_TTL,
+            "REQUEST_TIMEOUT": AppConfig.REQUEST_TIMEOUT,
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Get config error: {e}")
+        return jsonify({
+            "error": "Internal server error",
+            "message": "Failed to fetch configuration"
+        }), 500
+
+
 @bp.route('/config', methods=['PATCH'])
 @require_admin
 def update_config():
@@ -1079,56 +1107,9 @@ def trigger_cleanup():
         }), 500
 
 
-@bp.route('/webdav/regenerate-credentials', methods=['POST'])
-@require_admin
-def regenerate_webdav_credentials():
-    """Manually regenerate WebDAV credentials
-    
-    This endpoint allows admin users to manually trigger a regeneration of WebDAV
-    client credentials. The operation cleans up existing clients before creating
-    new ones.
-    
-    Returns:
-        JSON: Success/failure response with operation details
-    """
-    try:
-        # Import the ClientManager here to avoid circular imports
-        from app.services.webdav.clients import ClientManager
-        from app.services.pikpak_service import PikPakService
-        from app.core.config import AppConfig
-        from app.services.traffic_checker import TrafficChecker
-        from app.services.cache_manager import CacheManager
-        
-        logger.info("Admin triggering WebDAV credential regeneration")
-        
-        # Initialize dependencies for ClientManager
-        pikpak_service = PikPakService(AppConfig.PIKPAK_USER, AppConfig.PIKPAK_PASS)
-        traffic_checker = TrafficChecker()
-        cache_manager = CacheManager()
-        client_manager = ClientManager(pikpak_service, traffic_checker, ttl_hours=24, cache_manager=cache_manager)
-        
-        # Trigger regeneration
-        result = run_async(client_manager.regenerate_webdav_clients())
-        
-        if result.get("success"):
-            logger.info("WebDAV credential regeneration completed successfully")
-            return jsonify({
-                "message": "WebDAV credentials regenerated successfully",
-                "clients_count": result.get("clients_count")
-            }), 200
-        else:
-            logger.error(f"WebDAV credential regeneration failed: {result.get('message')}")
-            return jsonify({
-                "error": "Failed to regenerate WebDAV credentials",
-                "message": result.get("message")
-            }), 400
-            
-    except Exception as e:
-        logger.error(f"WebDAV credential regeneration error: {e}")
-        return jsonify({
-            "error": "Internal server error",
-            "message": "Failed to regenerate WebDAV credentials"
-        }), 500
+# ========================================
+# Scheduler Status
+# ========================================
 
 @bp.route('/scheduler/status', methods=['GET'])
 @require_admin
