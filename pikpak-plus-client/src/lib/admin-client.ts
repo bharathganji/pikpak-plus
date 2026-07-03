@@ -129,8 +129,3 @@ export const getSchedulerStatus = async (): Promise<SchedulerStatus> => {
   const res = await adminClient.get("admin/scheduler/status");
   return res.data;
 };
-
-export const regenerateWebdavCredentials = async (): Promise<{ message: string; clients_count: number }> => {
-  const res = await adminClient.post("admin/webdav/regenerate-credentials");
-  return res.data;
-};
