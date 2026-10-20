@@ -8,10 +8,55 @@ from app.core.config import AppConfig
 from celery import shared_task
 from app.services import PikPakService, SupabaseService
 from app.core.config import AppConfig
+from app.tasks.utils import update_redis_status
 import redis
 import asyncio
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_pikpak_metrics(quota_info: dict, transfer_info: dict, vip_info: dict) -> tuple:
+    """Extract metrics from PikPak API responses."""
+    # 1. Get Storage Usage
+    storage_quota = quota_info.get("quota", {})
+    storage_used = int(storage_quota.get("usage", 0))
+
+    # 2. Get Cloud Download Traffic (Offline Downloads)
+    # Base quota (common for all users)
+    transfer_base = transfer_info.get("base", {})
+    base_offline = transfer_base.get("offline", {})
+    base_offline_used = int(base_offline.get(
+        "size", base_offline.get("assets", 0)))
+
+    # Extra quota from purchased premium plans (may not exist)
+    transfer_extra = transfer_info.get("transfer", {})
+    extra_offline = transfer_extra.get("offline", {})
+    extra_offline_used = int(extra_offline.get("assets", 0))
+
+    # Total = base + extra
+    transfer_used = base_offline_used + extra_offline_used
+
+    # 3. Get Downstream Traffic (Streaming & Direct Downloads)
+    base_download = transfer_base.get("download", {})
+    base_download_used = int(base_download.get(
+        "size", base_download.get("assets", 0)))
+
+    extra_download = transfer_extra.get("download", {})
+    extra_download_used = int(extra_download.get("assets", 0))
+
+    # Total = base + extra
+    downstream_traffic = base_download_used + extra_download_used
+
+    # 5. Premium Expiration
+    premium_expiration = vip_info.get("data", {}).get("expire")
+
+    return storage_used, transfer_used, downstream_traffic, premium_expiration
+
+
+def _schedule_next_run(redis_client, run_time):
+    """Update Redis status for next check (next UTC midnight)."""
+    next_run_time = (run_time + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    update_redis_status(redis_client, run_time, next_run_time, "statistics_collection")
 
 
 @shared_task(bind=True, name='app.tasks.jobs.statistics_job.collect_daily_statistics')
@@ -59,12 +104,7 @@ def collect_daily_statistics(self):
                 logger.info(
                     f"Statistics for {target_date_str} already exist. Skipping.")
 
-                # Update Redis status for next check (next UTC midnight)
-                from app.tasks.utils import update_redis_status
-                next_run_time = (run_time + timedelta(days=1)
-                                 ).replace(hour=0, minute=0, second=0, microsecond=0)
-                update_redis_status(redis_client, run_time,
-                                    next_run_time, "statistics_collection")
+                _schedule_next_run(redis_client, run_time)
                 return
 
             logger.info(f"Collecting statistics for {target_date_str}...")
@@ -77,35 +117,8 @@ def collect_daily_statistics(self):
                 pikpak_service.client.vip_info()
             ))
 
-            # 1. Get Storage Usage
-            storage_quota = quota_info.get("quota", {})
-            storage_used = int(storage_quota.get("usage", 0))
-
-            # 2. Get Cloud Download Traffic (Offline Downloads)
-            # Base quota (common for all users)
-            transfer_base = transfer_info.get("base", {})
-            base_offline = transfer_base.get("offline", {})
-            base_offline_used = int(base_offline.get(
-                "size", base_offline.get("assets", 0)))
-
-            # Extra quota from purchased premium plans (may not exist)
-            transfer_extra = transfer_info.get("transfer", {})
-            extra_offline = transfer_extra.get("offline", {})
-            extra_offline_used = int(extra_offline.get("assets", 0))
-
-            # Total = base + extra
-            transfer_used = base_offline_used + extra_offline_used
-
-            # 3. Get Downstream Traffic (Streaming & Direct Downloads)
-            base_download = transfer_base.get("download", {})
-            base_download_used = int(base_download.get(
-                "size", base_download.get("assets", 0)))
-
-            extra_download = transfer_extra.get("download", {})
-            extra_download_used = int(extra_download.get("assets", 0))
-
-            # Total = base + extra
-            downstream_traffic = base_download_used + extra_download_used
+            storage_used, transfer_used, downstream_traffic, premium_expiration = _extract_pikpak_metrics(
+                quota_info, transfer_info, vip_info)
 
             # 4. Count Tasks Added (Target Day 00:00 to 23:59:59)
             start_of_day = datetime.combine(
@@ -116,9 +129,6 @@ def collect_daily_statistics(self):
                 start_of_day.isoformat(),
                 end_of_day.isoformat()
             )
-
-            # 5. Premium Expiration
-            premium_expiration = vip_info.get("data", {}).get("expire")
 
             # Prepare stats data
             stats_data = {
@@ -137,14 +147,7 @@ def collect_daily_statistics(self):
             logger.info(
                 f"Daily statistics collected successfully for {stats_data['date']}")
 
-            # Update Redis status
-            from app.tasks.utils import update_redis_status
-
-            # Check again at next UTC midnight
-            next_run_time = (run_time + timedelta(days=1)
-                             ).replace(hour=0, minute=0, second=0, microsecond=0)
-            update_redis_status(redis_client, run_time,
-                                next_run_time, "statistics_collection")
+            _schedule_next_run(redis_client, run_time)
 
         finally:
             loop.close()
