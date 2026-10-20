@@ -307,11 +307,11 @@ def delete_supabase_records_for_ids(supabase: Client, ids: List[str]) -> int:
                 if record_task_id in ids or record_file_id in ids:
                     ids_to_delete.append(record.get("id"))
 
-            for record_id in ids_to_delete:
+            if ids_to_delete:
                 result = (
                     supabase.table("public_actions")
                     .delete()
-                    .eq("id", record_id)
+                    .in_("id", ids_to_delete)
                     .execute()
                 )
                 if result.data:
