@@ -1,18 +1,20 @@
 """
 JWT Token Utility
-Decode and validate PikPak JWT tokens to check expiration
+Decode and validate JWT tokens to check expiration
 """
 import jwt
 import time
 from typing import Optional, Dict, Any
 import logging
 
+from app.core.config import AppConfig
+
 logger = logging.getLogger(__name__)
 
 
 def decode_token(token: str) -> Optional[Dict[str, Any]]:
     """
-    Decode a JWT token without verification
+    Decode a JWT token with verification
 
     Args:
         token: JWT token string
@@ -21,8 +23,8 @@ def decode_token(token: str) -> Optional[Dict[str, Any]]:
         Decoded token payload or None if invalid
     """
     try:
-        # Decode without verification (we just need to read the payload)
-        decoded = jwt.decode(token, options={"verify_signature": False})
+        # Decode with signature verification
+        decoded = jwt.decode(token, AppConfig.JWT_SECRET_KEY, algorithms=["HS256"])
         return decoded
     except Exception as e:
         logger.debug(f"Failed to decode token: {e}")
