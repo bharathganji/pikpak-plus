@@ -43,7 +43,7 @@ export const calculateTimeRemaining = (
 
     let diff = target - now;
 
-    const totalSeconds = Math.floor(diff / 1000); // Flooring only once here prevents rounding inconsistencies
+    const totalSeconds = Math.floor(diff / 1000); // Only flooring ONCE fixes the reset bug
 
     if (totalSeconds <= 10) return "Now";
 
