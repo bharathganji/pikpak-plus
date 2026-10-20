@@ -56,3 +56,4 @@ cache_dir
 #pikpak token
 pikpak_tokens.json
 pikpak_login_state.json
+.jwt_secret
