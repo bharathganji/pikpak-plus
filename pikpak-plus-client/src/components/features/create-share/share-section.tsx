@@ -159,7 +159,6 @@ export function ShareSection({
         )}
       </div>
 
-      {/* Progress Warning */}
       {!hasFileId && (
         <Alert variant="warning" className="mb-3">
           <AlertTriangle className="h-4 w-4" />
