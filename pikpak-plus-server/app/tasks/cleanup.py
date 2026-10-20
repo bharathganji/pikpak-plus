@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import List, Tuple, Set
+from typing import List, Tuple, Set, Optional
 from supabase import Client
 
 logger = logging.getLogger(__name__)
@@ -330,6 +330,89 @@ def delete_supabase_records_for_ids(supabase: Client, ids: List[str]) -> int:
         raise
 
 
+async def _ensure_logged_in(pikpak_service, cleanup_results: dict) -> bool:
+    try:
+        logger.info("Step 0: Ensuring PikPak client is logged in...")
+        await pikpak_service.ensure_logged_in()
+        logger.info("PikPak login verified")
+        return True
+    except Exception as e:
+        logger.error(f"Login failed during cleanup: {e}")
+        cleanup_results["errors"].append(f"Login failed: {e}")
+        return False
+
+
+def _fetch_ids_from_supabase(supabase_client: Client, cleanup_results: dict) -> Tuple[Optional[List[str]], Optional[List[str]]]:
+    logger.info("-" * 40)
+    logger.info("Step 1: Retrieving task and file IDs from Supabase...")
+    try:
+        task_ids, file_ids = get_task_and_file_ids_from_supabase(supabase_client)
+        cleanup_results["task_ids_found"] = len(task_ids)
+        cleanup_results["file_ids_found"] = len(file_ids)
+        return task_ids, file_ids
+    except Exception as e:
+        logger.error(f"Failed to retrieve IDs from Supabase: {e}")
+        cleanup_results["errors"].append(f"Supabase fetch failed: {e}")
+        return None, None
+
+
+async def _retry_failed_deletions(pikpak_service, tasks_failed: Set[str], files_failed: Set[str],
+                                  tasks_succeeded: Set[str], files_succeeded: Set[str],
+                                  cleanup_results: dict):
+    logger.info("-" * 40)
+    logger.info("Step 3.5: Retrying failed IDs individually...")
+
+    retried_tasks: Set[str] = set()
+    retried_files: Set[str] = set()
+
+    if tasks_failed:
+        retried_tasks = set(tasks_failed)
+        for task_id in list(tasks_failed):
+            if await delete_single_id_with_retry(pikpak_service, task_id, "task"):
+                tasks_succeeded.add(task_id)
+                retried_tasks.discard(task_id)
+
+    if files_failed:
+        retried_files = set(files_failed)
+        for file_id in list(files_failed):
+            if await delete_single_id_with_retry(pikpak_service, file_id, "file"):
+                files_succeeded.add(file_id)
+                retried_files.discard(file_id)
+
+    cleanup_results["tasks_succeeded"] = len(tasks_succeeded)
+    cleanup_results["tasks_failed"] = len(tasks_failed - tasks_succeeded)
+    cleanup_results["files_succeeded"] = len(files_succeeded)
+    cleanup_results["files_failed"] = len(files_failed - files_succeeded)
+
+    if retried_tasks or retried_files:
+        failed_items = []
+        if retried_tasks:
+            failed_items.append(f"{len(retried_tasks)} task(s)")
+        if retried_files:
+            failed_items.append(f"{len(retried_files)} file(s)")
+        cleanup_results["errors"].append(
+            f"Final retry pass failed for: {', '.join(failed_items)} "
+            f"(will be retried next run)"
+        )
+
+
+def _cleanup_supabase_records(supabase_client: Client, all_succeeded_ids: Set[str],
+                              all_failed_ids: Set[str], cleanup_results: dict) -> bool:
+    logger.info("-" * 40)
+    logger.info(f"Step 4: Cleaning up {len(all_succeeded_ids)} successfully deleted records from Supabase...")
+    try:
+        deleted_count = delete_supabase_records_for_ids(supabase_client, list(all_succeeded_ids))
+        cleanup_results["supabase_rows_deleted"] = deleted_count
+        logger.info(
+            f"Supabase cleanup complete: {deleted_count} rows removed. "
+            f"{len(all_failed_ids)} failed ID(s) remain for next run.")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to clean up Supabase table: {e}")
+        cleanup_results["errors"].append(f"Supabase cleanup failed: {e}")
+        return False
+
+
 async def run_cleanup(pikpak_service, supabase_client: Client):
     """
     Orchestrates the cleanup process:
@@ -360,26 +443,12 @@ async def run_cleanup(pikpak_service, supabase_client: Client):
         "errors": []
     }
 
-    try:
-        logger.info("Step 0: Ensuring PikPak client is logged in...")
-        await pikpak_service.ensure_logged_in()
-        logger.info("PikPak login verified")
-    except Exception as e:
-        logger.error(f"Login failed during cleanup: {e}")
-        cleanup_results["errors"].append(f"Login failed: {e}")
+    if not await _ensure_logged_in(pikpak_service, cleanup_results):
         _print_cleanup_summary(cleanup_results, success=False)
         return
 
-    logger.info("-" * 40)
-    logger.info("Step 1: Retrieving task and file IDs from Supabase...")
-    try:
-        task_ids, file_ids = get_task_and_file_ids_from_supabase(
-            supabase_client)
-        cleanup_results["task_ids_found"] = len(task_ids)
-        cleanup_results["file_ids_found"] = len(file_ids)
-    except Exception as e:
-        logger.error(f"Failed to retrieve IDs from Supabase: {e}")
-        cleanup_results["errors"].append(f"Supabase fetch failed: {e}")
+    task_ids, file_ids = _fetch_ids_from_supabase(supabase_client, cleanup_results)
+    if task_ids is None and file_ids is None:
         _print_cleanup_summary(cleanup_results, success=False)
         return
 
@@ -406,41 +475,10 @@ async def run_cleanup(pikpak_service, supabase_client: Client):
     cleanup_results["files_failed"] = len(files_failed)
 
     if tasks_failed or files_failed:
-        logger.info("-" * 40)
-        logger.info("Step 3.5: Retrying failed IDs individually...")
-
-        retried_tasks: Set[str] = set()
-        retried_files: Set[str] = set()
-
-        if tasks_failed:
-            retried_tasks = set(tasks_failed)
-            for task_id in list(tasks_failed):
-                if await delete_single_id_with_retry(pikpak_service, task_id, "task"):
-                    tasks_succeeded.add(task_id)
-                    retried_tasks.discard(task_id)
-
-        if files_failed:
-            retried_files = set(files_failed)
-            for file_id in list(files_failed):
-                if await delete_single_id_with_retry(pikpak_service, file_id, "file"):
-                    files_succeeded.add(file_id)
-                    retried_files.discard(file_id)
-
-        cleanup_results["tasks_succeeded"] = len(tasks_succeeded)
-        cleanup_results["tasks_failed"] = len(tasks_failed - tasks_succeeded)
-        cleanup_results["files_succeeded"] = len(files_succeeded)
-        cleanup_results["files_failed"] = len(files_failed - files_succeeded)
-
-        if retried_tasks or retried_files:
-            failed_items = []
-            if retried_tasks:
-                failed_items.append(f"{len(retried_tasks)} task(s)")
-            if retried_files:
-                failed_items.append(f"{len(retried_files)} file(s)")
-            cleanup_results["errors"].append(
-                f"Final retry pass failed for: {', '.join(failed_items)} "
-                f"(will be retried next run)"
-            )
+        await _retry_failed_deletions(
+            pikpak_service, tasks_failed, files_failed,
+            tasks_succeeded, files_succeeded, cleanup_results
+        )
 
     if not tasks_succeeded and not files_succeeded:
         logger.error("No tasks or files were successfully deleted. Aborting cleanup.")
@@ -455,17 +493,7 @@ async def run_cleanup(pikpak_service, supabase_client: Client):
         _print_cleanup_summary(cleanup_results, success=False)
         return
 
-    logger.info("-" * 40)
-    logger.info(f"Step 4: Cleaning up {len(all_succeeded_ids)} successfully deleted records from Supabase...")
-    try:
-        deleted_count = delete_supabase_records_for_ids(supabase_client, list(all_succeeded_ids))
-        cleanup_results["supabase_rows_deleted"] = deleted_count
-        logger.info(
-            f"Supabase cleanup complete: {deleted_count} rows removed. "
-            f"{len(all_failed_ids)} failed ID(s) remain for next run.")
-    except Exception as e:
-        logger.error(f"Failed to clean up Supabase table: {e}")
-        cleanup_results["errors"].append(f"Supabase cleanup failed: {e}")
+    if not _cleanup_supabase_records(supabase_client, all_succeeded_ids, all_failed_ids, cleanup_results):
         _print_cleanup_summary(cleanup_results, success=False)
         return
 
