@@ -231,7 +231,7 @@ export function ShareSection({
         </div>
       )}
 
-      {/* Create Share Button */}
+      {/* Create Share Button: Stable structure to prevent flicker */}
       <Button
         variant="outline"
         size="sm"
