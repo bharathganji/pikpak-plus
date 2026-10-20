@@ -198,20 +198,15 @@ def internal_only(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Get client IP
-        client_ip = request.remote_addr
+        from app.core.config import AppConfig
 
-        # Allow localhost and common local IPs
-        allowed_ips = ['127.0.0.1', 'localhost', '::1']
+        # Get API key from headers
+        api_key = request.headers.get('X-Internal-API-Key')
 
-        # Also allow if request is coming from the same server (Docker internal network)
-        if client_ip.startswith('172.') or client_ip.startswith('10.'):
-            # Docker/internal network IPs
-            return f(*args, **kwargs)
-
-        if client_ip not in allowed_ips:
+        if not api_key or api_key != AppConfig.INTERNAL_API_KEY:
             logger.warning(
-                f"Blocked internal-only endpoint access from {client_ip}")
+                f"Blocked internal-only endpoint access from {request.remote_addr} (invalid or missing API key)"
+            )
             return jsonify({
                 "error": "Access denied",
                 "message": "This endpoint is for internal use only"

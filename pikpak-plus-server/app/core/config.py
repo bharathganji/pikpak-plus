@@ -61,6 +61,9 @@ class AppConfig:
     PASSWORD_RESET_TOKEN_EXPIRATION_HOURS = int(
         os.getenv("PASSWORD_RESET_TOKEN_EXPIRATION_HOURS", "1"))
 
+    # Internal API Configuration
+    INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY", os.urandom(32).hex())
+
     @classmethod
     def validate(cls):
         """Validate that all required config is present"""
