@@ -34,7 +34,7 @@ export const calculateTimeRemaining = (
 ): string => {
   try {
     let dateStr = targetDate.toString();
-    // Fix double timezone suffix if present (e.g. from backend bug)
+    // Handles double timezone suffix if present (e.g. from backend bug)
     if (typeof targetDate === "string" && targetDate.endsWith("+00:00Z")) {
       dateStr = targetDate.replace("+00:00Z", "Z");
     }
