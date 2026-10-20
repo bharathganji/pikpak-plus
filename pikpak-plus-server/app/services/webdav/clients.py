@@ -188,103 +188,6 @@ class ClientManager:
             logger.error(f"Failed to cleanup WebDAV clients: {e}")
             return 0
 
-    def _get_cached_clients(self) -> Optional[Dict[str, Any]]:
-        """
-        Get existing WebDAV clients from cache or memory.
-        """
-        cache_key = "webdav_active_clients"
-        cached_result = None
-
-        logger.info(
-            f"Cache manager exists: {self.cache_manager is not None}")
-
-        if self.cache_manager:
-            cached_result = self.cache_manager.get(cache_key)
-            if cached_result is not None:
-                logger.debug("Cache hit for active WebDAV clients")
-                logger.info(f"Cached result: {cached_result}")
-
-        # If not in cache, check memory
-        if cached_result is None and self.active_clients:
-            logger.info(
-                f"Found {len(self.active_clients)} clients in memory")
-            cached_result = {
-                "available": True,
-                "message": f"{len(self.active_clients)} active clients",
-                "clients": self.active_clients
-            }
-            # Cache it for future requests
-            if self.cache_manager:
-                webdav_cache_ttl_seconds = AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS * 3600
-                self.cache_manager.set(
-                    cache_key, cached_result, ttl=webdav_cache_ttl_seconds)
-                logger.info(
-                    f"Cached clients from memory for {AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS} hours ({webdav_cache_ttl_seconds} seconds)")
-
-        return cached_result
-
-    async def _resolve_client_availability(
-        self, cached_result: Optional[Dict[str, Any]], traffic_available: bool
-    ) -> Dict[str, Any]:
-        """
-        Resolve client availability based on cache and traffic status.
-        Creates new clients if necessary.
-        """
-        # If we have clients (from cache or memory)
-        if cached_result and cached_result.get("clients"):
-            logger.info(
-                f"Returning {len(cached_result['clients'])} clients from cache/memory")
-            # Update availability based on traffic status
-            if not traffic_available:
-                # Traffic exhausted but clients exist - show them with warning
-                logger.info(
-                    "Traffic exhausted but returning existing clients with warning")
-                return {
-                    "available": False,
-                    "message": "Downstream traffic quota exhausted. WebDAV clients exist but cannot be used until traffic is available.",
-                    "clients": cached_result["clients"]
-                }
-            else:
-                # Traffic available and clients exist - all good
-                return {
-                    "available": True,
-                    "message": cached_result.get("message", f"{len(cached_result['clients'])} active clients"),
-                    "clients": cached_result["clients"]
-                }
-
-        # No clients exist
-        logger.info("No clients found in cache or memory")
-        if not traffic_available:
-            # No traffic and no clients
-            logger.info(
-                "No traffic available and no clients - returning empty result")
-            return {
-                "available": False,
-                "message": "Downstream traffic quota exhausted. No WebDAV clients available.",
-                "clients": []
-            }
-        else:
-            # Traffic available but no clients yet - create them immediately
-            logger.info(
-                "Traffic available but no clients - triggering immediate creation")
-
-            # Trigger creation in background (or await it if we want immediate result)
-            # Since the user wants them "on load", we should await it here
-            creation_result = await self.create_daily_webdav_clients()
-
-            if creation_result.get("success"):
-                return {
-                    "available": True,
-                    "message": creation_result.get("message"),
-                    "clients": creation_result.get("clients")
-                }
-            else:
-                return {
-                    "available": False,
-                    "message": f"Failed to create clients: {creation_result.get('message')}",
-                    "clients": []
-                }
-
     async def get_active_clients(self) -> Dict[str, Any]:
         """
         Get list of active WebDAV clients with TTL info
@@ -295,14 +198,94 @@ class ClientManager:
         try:
             logger.info("=== WebDAV Service get_active_clients Debug ===")
             # First, try to get existing clients from cache or memory
-            cached_result = self._get_cached_clients()
+            cache_key = "webdav_active_clients"
+            cached_result = None
+
+            logger.info(
+                f"Cache manager exists: {self.cache_manager is not None}")
+
+            if self.cache_manager:
+                cached_result = self.cache_manager.get(cache_key)
+                if cached_result is not None:
+                    logger.debug("Cache hit for active WebDAV clients")
+                    logger.info(f"Cached result: {cached_result}")
+
+            # If not in cache, check memory
+            if cached_result is None and self.active_clients:
+                logger.info(
+                    f"Found {len(self.active_clients)} clients in memory")
+                cached_result = {
+                    "available": True,
+                    "message": f"{len(self.active_clients)} active clients",
+                    "clients": self.active_clients
+                }
+                # Cache it for future requests
+                if self.cache_manager:
+                    webdav_cache_ttl_seconds = AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS * 3600
+                    self.cache_manager.set(
+                        cache_key, cached_result, ttl=webdav_cache_ttl_seconds)
+                    logger.info(
+                        f"Cached clients from memory for {AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS} hours ({webdav_cache_ttl_seconds} seconds)")
 
             # Now check if downstream traffic is available
             logger.info("Checking downstream traffic availability...")
             traffic_available = await self.traffic_checker.is_downstream_traffic_available()
             logger.info(f"Traffic available: {traffic_available}")
 
-            return await self._resolve_client_availability(cached_result, traffic_available)
+            # If we have clients (from cache or memory)
+            if cached_result and cached_result.get("clients"):
+                logger.info(
+                    f"Returning {len(cached_result['clients'])} clients from cache/memory")
+                # Update availability based on traffic status
+                if not traffic_available:
+                    # Traffic exhausted but clients exist - show them with warning
+                    logger.info(
+                        "Traffic exhausted but returning existing clients with warning")
+                    return {
+                        "available": False,
+                        "message": "Downstream traffic quota exhausted. WebDAV clients exist but cannot be used until traffic is available.",
+                        "clients": cached_result["clients"]
+                    }
+                else:
+                    # Traffic available and clients exist - all good
+                    return {
+                        "available": True,
+                        "message": cached_result.get("message", f"{len(cached_result['clients'])} active clients"),
+                        "clients": cached_result["clients"]
+                    }
+
+            # No clients exist
+            logger.info("No clients found in cache or memory")
+            if not traffic_available:
+                # No traffic and no clients
+                logger.info(
+                    "No traffic available and no clients - returning empty result")
+                return {
+                    "available": False,
+                    "message": "Downstream traffic quota exhausted. No WebDAV clients available.",
+                    "clients": []
+                }
+            else:
+                # Traffic available but no clients yet - create them immediately
+                logger.info(
+                    "Traffic available but no clients - triggering immediate creation")
+
+                # Trigger creation in background (or await it if we want immediate result)
+                # Since the user wants them "on load", we should await it here
+                creation_result = await self.create_daily_webdav_clients()
+
+                if creation_result.get("success"):
+                    return {
+                        "available": True,
+                        "message": creation_result.get("message"),
+                        "clients": creation_result.get("clients")
+                    }
+                else:
+                    return {
+                        "available": False,
+                        "message": f"Failed to create clients: {creation_result.get('message')}",
+                        "clients": []
+                    }
 
         except Exception as e:
             logger.error(f"Failed to get active clients: {e}")
