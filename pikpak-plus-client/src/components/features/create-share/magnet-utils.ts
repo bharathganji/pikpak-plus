@@ -30,7 +30,7 @@ export const validateE2dkLink = (
   // Filename cannot contain pipes (|) as they are used as delimiters
   // Example: ed2k://|file|example.zip|123456|abcdef1234567890abcdef1234567890|/
   const e2dkRegex = /^ed2k:\/\/\|file\|[^|]+\|\d+\|[a-f0-9]{32}\|\/$/i;
-  
+
   if (e2dkRegex.test(trimmedLink)) {
     return { valid: true };
   }
@@ -44,8 +44,8 @@ export const validateE2dkLink = (
 // Universal download link validation
 export const validateDownloadLink = (
   link: string,
-): { 
-  valid: boolean; 
+): {
+  valid: boolean;
   error?: string;
   linkType?: "magnet" | "e2dk";
 } => {

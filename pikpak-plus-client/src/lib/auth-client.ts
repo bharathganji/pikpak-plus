@@ -25,7 +25,7 @@ const authClient = createAuthClient();
 
 export const login = async (
   email: string,
-  password: string
+  password: string,
 ): Promise<AuthResponse> => {
   const res = await axios.post(`${getApiUrl()}/login`, {
     email,
@@ -36,7 +36,7 @@ export const login = async (
 
 export const register = async (
   email: string,
-  password: string
+  password: string,
 ): Promise<AuthResponse> => {
   const res = await axios.post(`${getApiUrl()}/register`, {
     email,
@@ -71,7 +71,7 @@ export const forgotPassword = async (email: string): Promise<AuthResponse> => {
 
 export const resetPassword = async (
   token: string,
-  newPassword: string
+  newPassword: string,
 ): Promise<AuthResponse> => {
   const res = await axios.post(`${getApiUrl()}/reset-password`, {
     token,
