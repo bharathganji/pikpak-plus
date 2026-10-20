@@ -283,7 +283,10 @@ export function SystemSettings() {
           ) : (
             <div className="space-y-4">
               {scheduler.jobs.map((job) => (
-                <div key={job.name} className="rounded-md border p-4">
+                <div
+                  key={job.name}
+                  className="rounded-md border p-4"
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <SettingsIcon className="h-4 w-4" />

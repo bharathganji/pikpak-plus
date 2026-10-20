@@ -34,7 +34,7 @@ export const calculateTimeRemaining = (
 ): string => {
   try {
     let dateStr = targetDate.toString();
-    // Handles double timezone suffix if present (e.g. from backend bug)
+    // Fix double timezone suffix if present (e.g. from backend bug)
     if (typeof targetDate === "string" && targetDate.endsWith("+00:00Z")) {
       dateStr = targetDate.replace("+00:00Z", "Z");
     }
@@ -43,7 +43,7 @@ export const calculateTimeRemaining = (
 
     let diff = target - now;
 
-    const totalSeconds = Math.floor(diff / 1000); // Flooring only once here prevents rounding inconsistencies
+    const totalSeconds = Math.floor(diff / 1000); // Only flooring ONCE fixes the reset bug
 
     if (totalSeconds <= 10) return "Now";
 

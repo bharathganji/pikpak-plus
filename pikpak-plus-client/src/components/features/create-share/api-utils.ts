@@ -91,9 +91,6 @@ export const addMagnetLink = async (url: string) => {
       errMsg = error.message;
     }
 
-    // Pass the extracted error message back in the error object so the component uses it
-    error.message = errMsg;
-
     // Add the response data to the error for file info
     (error as any).response = error.response;
     throw error;

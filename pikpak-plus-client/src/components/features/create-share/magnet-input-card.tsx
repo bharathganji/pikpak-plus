@@ -39,9 +39,7 @@ export function MagnetInputCard({
   const [message, setMessage] = useState("");
   const [validationError, setValidationError] = useState("");
   const [fileInfo, setFileInfo] = useState<any>(null);
-  const [detectedLinkType, setDetectedLinkType] = useState<
-    string | undefined
-  >();
+  const [detectedLinkType, setDetectedLinkType] = useState<string | undefined>();
 
   const handleAdd = async () => {
     if (!url.trim()) {
@@ -145,8 +143,7 @@ export function MagnetInputCard({
         <div className="flex items-start gap-2 text-xs bg-blue-50 dark:bg-blue-950/30 p-3 rounded-md border border-blue-200 dark:border-blue-800">
           <Info className="h-4 w-4 mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
           <span className="text-blue-900 dark:text-blue-300">
-            Enter a <strong>magnet link</strong> (magnet:?xt=urn:btih:...) or an{" "}
-            <strong>E2DK link</strong> (ed2k://|file|...|/){" "}
+            Enter a <strong>magnet link</strong> (magnet:?xt=urn:btih:...) or an <strong>E2DK link</strong> (ed2k://|file|...|/){" "}
           </span>
         </div>
 
