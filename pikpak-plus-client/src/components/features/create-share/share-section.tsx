@@ -170,7 +170,6 @@ export function ShareSection({
         </Alert>
       )}
 
-      {/* API Error Display */}
       {shareError && (
         <Alert variant="destructive" className="mb-3">
           <AlertTriangle className="h-4 w-4" />
