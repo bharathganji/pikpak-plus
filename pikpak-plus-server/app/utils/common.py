@@ -3,6 +3,7 @@ import logging
 import requests
 import json
 import redis
+import functools
 from typing import Optional, Any
 
 logger = logging.getLogger(__name__)
@@ -101,6 +102,7 @@ class CacheManager:
             logger.error(f"Redis invalidate tasks error: {e}")
 
 
+@functools.lru_cache(maxsize=128)
 def analyze_link(url: str) -> dict:
     """Analyze a link using WhatsLink API"""
     meta = {}
