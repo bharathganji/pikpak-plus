@@ -137,7 +137,7 @@ export function ShareSection({
         <h4 className="text-sm font-semibold">Share File</h4>
       </div>
 
-      {/* Visual Status Indicator - Fix 4 */}
+      {/* Visual Status Indicator */}
       <div className="mb-3">
         {hasFileId ? (
           <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-950/30 p-2 rounded-md">
@@ -159,7 +159,7 @@ export function ShareSection({
         )}
       </div>
 
-      {/* Progress Warning - Fix 2 */}
+      {/* Progress Warning */}
       {!hasFileId && (
         <Alert variant="warning" className="mb-3">
           <AlertTriangle className="h-4 w-4" />
@@ -170,7 +170,7 @@ export function ShareSection({
         </Alert>
       )}
 
-      {/* API Error Display - Fix 3 */}
+      {/* API Error Display */}
       {shareError && (
         <Alert variant="destructive" className="mb-3">
           <AlertTriangle className="h-4 w-4" />
