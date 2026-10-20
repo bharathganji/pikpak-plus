@@ -86,7 +86,7 @@ def add_task():
             })
 
         # Check file size using WhatsLink.info API
-        is_valid, error_msg, file_info = WhatsLinkService.check_file_size_limit(
+        is_valid, error_msg, file_info = await WhatsLinkService.check_file_size_limit(
             url,
             AppConfig.MAX_FILE_SIZE_GB
         )
