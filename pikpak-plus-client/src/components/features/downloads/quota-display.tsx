@@ -1,24 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { HardDrive, Download, Upload } from "lucide-react";
+import { HardDrive } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { QuotaResponse } from "@/types/api";
 import axios from "axios";
 import { getApiUrl } from "@/lib/api-utils";
 import { calculateTimeRemaining } from "@/lib/time-utils";
-
-const formatBytes = (bytes: number | string): string => {
-  const numBytes =
-    typeof bytes === "string" ? Number.parseInt(bytes, 10) : bytes;
-  if (numBytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(numBytes) / Math.log(k));
-  return `${(numBytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
-};
+import { QuotaStorage } from "./quota-storage";
+import { QuotaTransfer } from "./quota-transfer";
 
 export function QuotaDisplay() {
   const [quotaData, setQuotaData] = useState<QuotaResponse | null>(null);
@@ -96,55 +87,9 @@ export function QuotaDisplay() {
   const storageLimit = Number.parseInt(quotaData.storage.quota.limit, 10);
   const storagePercent = (storageUsage / storageLimit) * 100;
 
-  // API Structure (Dec 2024):
-  // - base: Common monthly quota everyone gets (40TB cloud, 4TB downstream, 1TB upload)
-  // - transfer: EXTRA quota from purchased premium plans (e.g. dt_100_year product)
-  // - Total available = base + transfer
-
-  // Cloud Download Traffic (offline)
-  const baseOffline = quotaData.transfer.base?.offline;
-  const extraOffline = quotaData.transfer.transfer?.offline;
-
-  // Base quota: usage from size/assets, total from total_assets
-  const baseOfflineUsed = baseOffline?.size ?? baseOffline?.assets ?? 0;
-  const baseOfflineTotal = baseOffline?.total_assets ?? 0;
-
-  // Extra quota from purchased plans
-  const extraOfflineUsed = extraOffline?.assets ?? 0;
-  const extraOfflineTotal = extraOffline?.total_assets ?? 0;
-
-  // Combined totals
-  const offlineUsed = baseOfflineUsed + extraOfflineUsed;
-  const offlineTotal = baseOfflineTotal + extraOfflineTotal;
-  const offlinePercent =
-    offlineTotal > 0 ? (offlineUsed / offlineTotal) * 100 : 0;
-
-  // Downstream Traffic (download)
-  const baseDownload = quotaData.transfer.base?.download;
-  const extraDownload = quotaData.transfer.transfer?.download;
-
-  const baseDownloadUsed = baseDownload?.size ?? baseDownload?.assets ?? 0;
-  const baseDownloadTotal = baseDownload?.total_assets ?? 0;
-
-  const extraDownloadUsed = extraDownload?.assets ?? 0;
-  const extraDownloadTotal = extraDownload?.total_assets ?? 0;
-
-  const downloadUsed = baseDownloadUsed + extraDownloadUsed;
-  const downloadTotal = baseDownloadTotal + extraDownloadTotal;
-  const downloadPercent =
-    downloadTotal > 0 ? (downloadUsed / downloadTotal) * 100 : 0;
-
   const activeProducts = quotaData.transfer.data?.filter(
     (p) => p.status === "active",
   );
-
-  const getProgressColor = (percent: number) => {
-    if (percent >= 90)
-      return "[&>div]:bg-gradient-to-r [&>div]:from-red-500 [&>div]:to-red-600";
-    if (percent >= 70)
-      return "[&>div]:bg-gradient-to-r [&>div]:from-yellow-500 [&>div]:to-yellow-600";
-    return ""; // Default primary gradient
-  };
 
   return (
     <Card className="border-primary/20 transition-all duration-300 hover:shadow-md">
@@ -155,95 +100,13 @@ export function QuotaDisplay() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
-        {/* Storage Quota */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground flex items-center gap-2">
-              <div className="p-1 rounded-md bg-primary/10">
-                <HardDrive className="h-3 w-3 text-primary" />
-              </div>
-              Storage
-            </span>
-            <span className="font-medium font-mono text-xs">
-              {formatBytes(storageUsage)} / {formatBytes(storageLimit)}
-            </span>
-          </div>
-          <Progress
-            value={storagePercent}
-            className={`h-2.5 ${getProgressColor(storagePercent)}`}
-          />
-          <div className="flex justify-between items-center text-xs">
-            <span className="text-muted-foreground">
-              {storagePercent >= 90 ? "Critical usage" : "Space used"}
-            </span>
-            <span
-              className={`font-medium ${storagePercent >= 90 ? "text-destructive" : "text-muted-foreground"}`}
-            >
-              {storagePercent.toFixed(1)}%
-            </span>
-          </div>
-        </div>
+        <QuotaStorage
+          storageUsage={storageUsage}
+          storageLimit={storageLimit}
+          storagePercent={storagePercent}
+        />
 
-        {/* Transfer Quotas */}
-        <div className="space-y-4 pt-4 border-t border-dashed">
-          <div className="flex items-center justify-between">
-            <div className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
-              Monthly Transfer
-            </div>
-            {quotaData.transfer.base?.vip_status && (
-              <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
-                {quotaData.transfer.base.vip_status}
-              </Badge>
-            )}
-          </div>
-
-          {/* Cloud Download Traffic */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground flex items-center gap-2">
-                <div className="p-1 rounded-md bg-green-500/10">
-                  <Download className="h-3 w-3 text-green-600" />
-                </div>
-                Cloud Download
-              </span>
-              <span className="font-medium font-mono text-xs">
-                {offlinePercent.toFixed(1)}%
-              </span>
-            </div>
-            <Progress
-              value={offlinePercent}
-              className={`h-2 ${getProgressColor(offlinePercent)}`}
-            />
-            <div className="flex justify-end text-[10px] text-muted-foreground">
-              {formatBytes(offlineUsed)} / {formatBytes(offlineTotal)}
-            </div>
-          </div>
-
-          {/* Downstream Traffic */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground flex items-center gap-2">
-                <div className="p-1 rounded-md bg-orange-500/10">
-                  <Upload className="h-3 w-3 text-orange-600" />
-                </div>
-                Downstream
-              </span>
-              <span className="font-medium font-mono text-xs">
-                {downloadPercent.toFixed(1)}%
-              </span>
-            </div>
-            <Progress
-              value={downloadPercent}
-              className={`h-2 ${getProgressColor(downloadPercent)}`}
-            />
-            <div className="flex justify-between items-center text-[10px] text-muted-foreground">
-              <span className="italic opacity-80">Streaming & Downloading</span>
-              <span>
-                {formatBytes(downloadUsed)} / {formatBytes(downloadTotal)}
-              </span>
-            </div>
-          </div>
-        </div>
+        <QuotaTransfer transferData={quotaData.transfer} />
 
         {activeProducts && activeProducts.length > 0 && (
           <div className="pt-4 space-y-2 border-t border-dashed">
