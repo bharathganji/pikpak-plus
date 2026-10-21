@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react";
 import { HardDrive } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { QuotaResponse } from "@/types/api";
 import axios from "axios";
 import { getApiUrl } from "@/lib/api-utils";
-import { calculateTimeRemaining } from "@/lib/time-utils";
 import { QuotaStorage } from "./quota-storage";
 import { QuotaTransfer } from "./quota-transfer";
+import { QuotaExtraPackages } from "./quota-extra-packages";
+import { QuotaRefreshInfo } from "./quota-refresh-info";
 
 export function QuotaDisplay() {
   const [quotaData, setQuotaData] = useState<QuotaResponse | null>(null);
@@ -108,46 +108,11 @@ export function QuotaDisplay() {
 
         <QuotaTransfer transferData={quotaData.transfer} />
 
-        {activeProducts && activeProducts.length > 0 && (
-          <div className="pt-4 space-y-2 border-t border-dashed">
-            <div className="text-[10px] font-semibold text-foreground/60 uppercase tracking-wider">
-              Extra Premium Packages
-            </div>
-            {activeProducts.map((product, idx) => (
-              <div
-                key={idx}
-                className="flex items-center justify-between text-xs bg-primary/5 p-2 rounded-md border border-primary/10 shadow-sm"
-              >
-                <div className="flex flex-col">
-                  <span className="font-medium text-foreground">
-                    {product.product_name}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    Expires:{" "}
-                    {new Date(product.expire_time).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+        {activeProducts && (
+          <QuotaExtraPackages activeProducts={activeProducts} />
         )}
 
-        {/* Quota Refresh Information */}
-        {quotaData.refresh_info && (
-          <div className="pt-3 border-t border-dashed mt-2">
-            <div className="bg-muted/50 rounded-lg p-2.5 flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Refresh in</span>
-              <Badge
-                variant="outline"
-                className="font-mono text-xs bg-background"
-              >
-                {calculateTimeRemaining(
-                  quotaData.refresh_info.quota_next_refresh,
-                )}
-              </Badge>
-            </div>
-          </div>
-        )}
+        <QuotaRefreshInfo refreshInfo={quotaData.refresh_info} />
       </CardContent>
     </Card>
   );
