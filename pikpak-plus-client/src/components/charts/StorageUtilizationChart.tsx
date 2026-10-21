@@ -19,7 +19,9 @@ interface StorageUtilizationChartProps {
   chartData: any[];
 }
 
-export function StorageUtilizationChart({ chartData }: Readonly<StorageUtilizationChartProps>) {
+export function StorageUtilizationChart({
+  chartData,
+}: Readonly<StorageUtilizationChartProps>) {
   return (
     <Card className="col-span-1 md:col-span-2 lg:col-span-1 transition-all duration-300 hover:shadow-lg">
       <CardHeader>

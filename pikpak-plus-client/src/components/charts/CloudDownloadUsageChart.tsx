@@ -19,7 +19,9 @@ interface CloudDownloadUsageChartProps {
   chartData: any[];
 }
 
-export function CloudDownloadUsageChart({ chartData }: Readonly<CloudDownloadUsageChartProps>) {
+export function CloudDownloadUsageChart({
+  chartData,
+}: Readonly<CloudDownloadUsageChartProps>) {
   return (
     <Card className="col-span-1 md:col-span-2 lg:col-span-1 transition-all duration-300 hover:shadow-lg">
       <CardHeader>
@@ -30,13 +32,7 @@ export function CloudDownloadUsageChart({ chartData }: Readonly<CloudDownloadUsa
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <defs>
-                <linearGradient
-                  id="colorTransfer"
-                  x1="0"
-                  y1="0"
-                  x2="1"
-                  y2="0"
-                >
+                <linearGradient id="colorTransfer" x1="0" y1="0" x2="1" y2="0">
                   <stop offset="0%" stopColor="#10b981" />
                   <stop offset="100%" stopColor="#34d399" />
                 </linearGradient>

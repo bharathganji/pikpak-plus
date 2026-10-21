@@ -19,7 +19,9 @@ interface DownstreamTrafficChartProps {
   chartData: any[];
 }
 
-export function DownstreamTrafficChart({ chartData }: Readonly<DownstreamTrafficChartProps>) {
+export function DownstreamTrafficChart({
+  chartData,
+}: Readonly<DownstreamTrafficChartProps>) {
   return (
     <Card className="col-span-1 md:col-span-2 lg:col-span-1 transition-all duration-300 hover:shadow-lg">
       <CardHeader>
