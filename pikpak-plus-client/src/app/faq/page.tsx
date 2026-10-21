@@ -63,26 +63,28 @@ export default function FAQPage() {
   ];
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="mb-12 text-center">
-        <h1 className="text-4xl font-bold mb-4 text-foreground">
-          Frequently Asked Questions
-        </h1>
-        <p className="text-lg text-muted-foreground">
-          Find answers to common questions about using PikPak Plus
-        </p>
-      </div>
+    <main className="flex min-h-screen flex-col items-center p-2 md:p-4 lg:p-8 bg-gradient-to-b from-background to-muted/20 overflow-x-hidden w-full">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="mb-12 text-center">
+          <h1 className="text-4xl font-bold mb-4 text-foreground">
+            Frequently Asked Questions
+          </h1>
+          <p className="text-lg text-muted-foreground">
+            Find answers to common questions about using PikPak Plus
+          </p>
+        </div>
 
-      <div className="space-y-6">
-        {faqs.map((faq) => (
-          <div key={faq.question} className="border-b border-border pb-6">
-            <h2 className="text-xl font-semibold mb-3 text-foreground">
-              {faq.question}
-            </h2>
-            <p className="text-muted-foreground">{faq.answer}</p>
-          </div>
-        ))}
+        <div className="space-y-6">
+          {faqs.map((faq) => (
+            <div key={faq.question} className="border-b border-border pb-6">
+              <h2 className="text-xl font-semibold mb-3 text-foreground">
+                {faq.question}
+              </h2>
+              <p className="text-muted-foreground">{faq.answer}</p>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </main>
   );
 }
