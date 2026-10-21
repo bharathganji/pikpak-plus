@@ -1,6 +1,7 @@
 """WhatsLink Service Module"""
 import logging
-import httpx
+import aiohttp
+import asyncio
 from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -9,6 +10,21 @@ class WhatsLinkService:
     """Service for WhatsLink.info API operations"""
 
     BASE_URL = "https://whatslink.info/api/v1/link"
+    _session: Optional[aiohttp.ClientSession] = None
+
+    @classmethod
+    def get_session(cls) -> aiohttp.ClientSession:
+        """Get or create a shared aiohttp ClientSession."""
+        if cls._session is None or cls._session.closed:
+            cls._session = aiohttp.ClientSession()
+        return cls._session
+
+    @classmethod
+    async def close_session(cls):
+        """Close the shared aiohttp ClientSession."""
+        if cls._session and not cls._session.closed:
+            await cls._session.close()
+            cls._session = None
 
     @staticmethod
     async def check_file_info(url: str, timeout: int = 10) -> Dict[str, Any]:
@@ -31,25 +47,24 @@ class WhatsLinkService:
         """
         try:
             logger.info(f"Checking file info for URL: {url}")
-            async with httpx.AsyncClient(follow_redirects=True) as client:
-                response = await client.get(
-                    WhatsLinkService.BASE_URL,
-                    params={"url": url},
-                    timeout=timeout
-                )
+            session = WhatsLinkService.get_session()
+            async with session.get(
+                WhatsLinkService.BASE_URL,
+                params={"url": url},
+                timeout=timeout
+            ) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    logger.info(f"WhatsLink response for {url}: {data}")
+                    return data
+                else:
+                    logger.warning(f"WhatsLink returned status {response.status} for {url}")
+                    return {"error": f"WhatsLink API returned status {response.status}"}
 
-            if response.status_code == 200:
-                data = response.json()
-                logger.info(f"WhatsLink response for {url}: {data}")
-                return data
-            else:
-                logger.warning(f"WhatsLink returned status {response.status_code} for {url}")
-                return {"error": f"WhatsLink API returned status {response.status_code}"}
-
-        except httpx.TimeoutException:
+        except (TimeoutError, asyncio.TimeoutError):
             logger.error(f"WhatsLink API timeout for {url}")
             return {"error": "WhatsLink API request timed out"}
-        except httpx.RequestError as e:
+        except aiohttp.ClientError as e:
             logger.error(f"WhatsLink API error for {url}: {e}")
             return {"error": f"WhatsLink API error: {str(e)}"}
         except Exception as e:
