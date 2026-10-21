@@ -11,6 +11,7 @@ import {
   Info,
   CheckCircle2,
   Clock,
+  XCircle,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getApiUrl, getAuthHeaders } from "@/lib/api-utils";
@@ -76,6 +77,7 @@ export function ShareSection({
   const taskData = task.data.task?.task;
   const hasFileId = !!taskData?.file_id;
   const taskProgress = taskData?.progress || 0;
+  const isError = taskData?.phase === "PHASE_TYPE_ERROR";
 
   const saveToLocalStorage = (shareResult: any, fileId: string) => {
     const newShare: LocalShare = {
@@ -137,18 +139,23 @@ export function ShareSection({
         <h4 className="text-sm font-semibold">Share File</h4>
       </div>
 
-      {/* Visual Status Indicator */}
+      {/* Visual Status Indicator - Fix 4 */}
       <div className="mb-3">
-        {hasFileId ? (
+        {isError ? (
+          <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-500 bg-red-50 dark:bg-red-950/30 p-2 rounded-md">
+            <XCircle className="h-4 w-4" />
+            <span className="font-medium">Task Failed</span>
+          </div>
+        ) : hasFileId ? (
           <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-950/30 p-2 rounded-md">
             <CheckCircle2 className="h-4 w-4" />
-            <span className="font-medium">✓ Ready to Share</span>
+            <span className="font-medium">Ready to Share</span>
           </div>
         ) : (
           <div className="flex items-center gap-2 text-sm text-orange-600 dark:text-orange-500 bg-orange-50 dark:bg-orange-950/30 p-2 rounded-md">
             <Clock className="h-4 w-4" />
             <div className="flex-1">
-              <span className="font-medium">⏳ Task in Progress</span>
+              <span className="font-medium">Task in Progress</span>
               {taskProgress > 0 && (
                 <span className="ml-2 text-xs opacity-80">
                   ({taskProgress}% complete)
@@ -160,12 +167,22 @@ export function ShareSection({
       </div>
 
       {/* Progress Warning */}
-      {!hasFileId && (
+      {!hasFileId && !isError && (
         <Alert variant="warning" className="mb-3">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            ⏳ Task is still in progress. Share will be available once download
+            Task is still in progress. Share will be available once download
             completes.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Error Warning */}
+      {isError && (
+        <Alert variant="destructive" className="mb-3">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Task has failed. Cannot generate share link.
           </AlertDescription>
         </Alert>
       )}
@@ -231,7 +248,7 @@ export function ShareSection({
         </div>
       )}
 
-      {/* Create Share Button: Stable structure to prevent flicker */}
+      {/* Create Share Button */}
       <Button
         variant="outline"
         size="sm"
