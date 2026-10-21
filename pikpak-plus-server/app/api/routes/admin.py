@@ -1,12 +1,26 @@
 """Admin API Routes - User Management, Content Moderation, Analytics"""
+from app.api.utils.dependencies import get_supabase_service
+from app.services.pikpak_service import PikPakService
+from app.services.user_service import UserService
+from app.api.utils.async_helpers import run_async
 import logging
 from flask import Blueprint, request, jsonify
+from marshmallow import Schema, fields, EXCLUDE, ValidationError
+
 from app.core.config import AppConfig
 from app.core.auth import require_admin, get_current_user
-from app.api.utils.dependencies import get_supabase_service
-from app.api.utils.async_helpers import run_async
-from app.services.user_service import UserService
-from app.services.pikpak_service import PikPakService
+
+
+class SystemConfigSchema(Schema):
+    """Schema for validating system configuration from Redis."""
+    cleanup_interval_hours = fields.Int(strict=False)
+    task_status_update_interval_minutes = fields.Int(strict=False)
+    webdav_generation_interval_hours = fields.Int(strict=False)
+    max_file_size_gb = fields.Float()
+
+    class Meta:
+        unknown = EXCLUDE
+
 
 logger = logging.getLogger(__name__)
 
@@ -918,7 +932,13 @@ def update_config():
             raw = redis_client.get("system_config")
             if raw:
                 import json
-                existing_config = json.loads(raw)
+                parsed_raw = json.loads(raw)
+                try:
+                    existing_config = SystemConfigSchema().load(parsed_raw)
+                except ValidationError as ve:
+                    logger.error(
+                        f"Validation error for existing config from Redis: {ve.messages}")
+                    existing_config = {}
         except Exception as e:
             logger.error(f"Failed to read existing config from Redis: {e}")
             return jsonify({
