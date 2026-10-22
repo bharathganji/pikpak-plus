@@ -990,9 +990,13 @@ def trigger_cleanup():
     asynchronously in the background via Celery.
     """
     try:
-        from app.tasks.jobs.cleanup_job import scheduled_cleanup
+        from app.celery_app import celery_app
 
-        scheduled_cleanup.delay()
+        # Use celery_app.send_task directly, and DO NOT wait for result
+        celery_app.send_task(
+            'app.tasks.jobs.cleanup_job.scheduled_cleanup',
+            ignore_result=True
+        )
 
         logger.info("Manual cleanup triggered by admin")
 

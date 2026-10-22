@@ -42,7 +42,7 @@ export async function proxy(request: NextRequest) {
   // Scenario A: Server is DOWN, logic to force Maintenance Page
   if (!isHealthy) {
     // If not already on maintenance page, redirect to it
-    if (pathname !== "/maintenance") {
+    if (pathname !== "/maintenance" && pathname !== "/faq") {
       const url = request.nextUrl.clone();
       url.pathname = "/maintenance";
       // Use 307 Temporary Redirect

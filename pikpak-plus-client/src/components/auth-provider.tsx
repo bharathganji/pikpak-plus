@@ -75,7 +75,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         pathname?.startsWith("/forgot-password");
       const isAdminPage = pathname?.startsWith("/admin");
 
-      if (!user && !isAuthPage) {
+      const isPublicPage = pathname?.startsWith("/faq");
+
+      if (!user && !isAuthPage && !isPublicPage) {
         // Not logged in and trying to access protected page
         router.push("/login");
       } else if (user && isAuthPage) {
