@@ -1,14 +1,13 @@
 """Cleanup Job - Periodically clean up old tasks and files from PikPak and Supabase."""
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-from celery import shared_task
 import redis
-import asyncio
+from celery import shared_task
 
 from app.core.config import AppConfig
+from app.services import PikPakService
 from app.tasks.cleanup import run_cleanup
-from app.services import PikPakService, SupabaseService
 
 logger = logging.getLogger(__name__)
 
@@ -24,9 +23,10 @@ def scheduled_cleanup(self):
     3. Delete files permanently from PikPak (not trash)
     4. After both succeed, empty the public_actions table (all rows)
     """
-    run_time = datetime.now(timezone.utc)
+    run_time = datetime.now(UTC)
     logger.info(f"Running scheduled cleanup job at {run_time.isoformat()}Z...")
 
+    redis_client = None
     try:
         # Initialize services locally
         redis_client = redis.from_url(
@@ -34,40 +34,38 @@ def scheduled_cleanup(self):
 
         # Initialize Supabase
         from supabase import create_client
-        supabase_client = create_client(
-            AppConfig.SUPABASE_URL, AppConfig.SUPABASE_KEY)
+        supabase_url = AppConfig.SUPABASE_URL or ""
+        supabase_key = AppConfig.SUPABASE_KEY or ""
+        supabase_client = create_client(supabase_url, supabase_key)
 
-        # Initialize PikPak
-        pikpak_service = PikPakService(
-            AppConfig.PIKPAK_USER, AppConfig.PIKPAK_PASS)
+        # Initialize PikPak and run cleanup with clean socket teardown
+        from app.tasks.utils import run_job_async, update_redis_status
 
-        # Run async logic in sync context
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        pikpak_user = AppConfig.PIKPAK_USER or ""
+        pikpak_pass = AppConfig.PIKPAK_PASS or ""
 
-        try:
-            loop.run_until_complete(pikpak_service.ensure_logged_in())
+        async def _do_cleanup():
+            pikpak_service = PikPakService(pikpak_user, pikpak_pass)
+            try:
+                await pikpak_service.ensure_logged_in()
 
-            # Run the cleanup (no age_hours - cleans everything)
-            loop.run_until_complete(run_cleanup(
-                pikpak_service,
-                supabase_client
-            ))
+                # Run the cleanup (no age_hours - cleans everything)
+                await run_cleanup(
+                    pikpak_service,
+                    supabase_client
+                )
 
-            logger.info(
-                f"Cleanup job completed successfully at {datetime.now(timezone.utc).isoformat()}Z")
+                logger.info(
+                    f"Cleanup job completed successfully at {datetime.now(UTC).isoformat()}Z")
 
-            # Update Redis status
-            from app.tasks.utils import update_redis_status
+                next_cleanup_time = run_time + \
+                    timedelta(hours=AppConfig.CLEANUP_INTERVAL_HOURS)
+                update_redis_status(redis_client, run_time,
+                                    next_cleanup_time, "cleanup")
+            finally:
+                await pikpak_service.aclose()
 
-            next_cleanup_time = run_time + \
-                timedelta(hours=AppConfig.CLEANUP_INTERVAL_HOURS)
-            update_redis_status(redis_client, run_time,
-                                next_cleanup_time, "cleanup")
-
-        finally:
-            loop.close()
-            redis_client.close()
+        run_job_async(_do_cleanup)
 
     except Exception as e:
         from app.services.pikpak_service import RateLimitError
@@ -80,3 +78,6 @@ def scheduled_cleanup(self):
 
         logger.error(f"Scheduled cleanup failed: {e}", exc_info=True)
         raise self.retry(exc=e, countdown=300, max_retries=3)
+    finally:
+        if redis_client:
+            redis_client.close()

@@ -1,9 +1,10 @@
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, ImageIcon } from "lucide-react";
+import { Copy, ImageIcon, Download } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { SupabaseTaskRecord } from "@/types";
+import { fileService } from "@/services/file-service";
 import { formatFileSize } from "./task-utils";
 
 interface FileDetailsProps {
@@ -39,7 +40,20 @@ export function FileDetails({
     <div className="space-y-4">
       {/* File Name */}
       <div>
-        <h4 className="text-sm font-semibold mb-1">File Name</h4>
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <h4 className="text-sm font-semibold">File Name</h4>
+          {taskData?.file_id && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileService.downloadFile(taskData.file_id, taskData.file_name)}
+              className="h-7 text-xs gap-1.5 text-primary hover:text-primary hover:bg-primary/10"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Direct Download
+            </Button>
+          )}
+        </div>
         <p className="text-sm text-muted-foreground break-all">
           {taskData?.file_name || "N/A"}
         </p>

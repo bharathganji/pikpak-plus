@@ -6,6 +6,7 @@ export interface LocalTask {
   name?: string;
   file_size?: string;
   file_type?: string;
+  file_id?: string;
 }
 
 export interface LocalShare {

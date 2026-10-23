@@ -1,99 +1,104 @@
-import httpx
-from typing import Dict, Any
-from .settings import WEBDAV_BASE_URL, DEFAULT_TIMEOUT
+"""
+WebDAV application provisioning and configuration for PikPak API.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from .client import BaseClient
+from .constants import WEBDAV_BASE_URL
 
 
-class WebDavMixin:
-    def _get_webdav_headers(self) -> Dict[str, str]:
-        """Get headers for WebDAV API requests"""
-        return {
-            "accept": "*/*",
-            "authorization": f"Bearer {self.access_token}",
-            "content-type": "application/json",
-            "origin": "https://mypikpak.com",
-            "referer": "https://mypikpak.com/",
+class WebDavMixin(BaseClient):
+    """Mixin providing WebDAV service toggle and application account provisioning."""
+
+    def _get_webdav_headers(self) -> dict[str, str]:
+        """Construct WebDAV API request headers."""
+        headers: dict[str, str] = {
+            "Accept": "*/*",
+            "Content-Type": "application/json; charset=utf-8",
+            "Origin": "https://mypikpak.com",
+            "Referer": "https://mypikpak.com/",
         }
+        if self.access_token:
+            headers["Authorization"] = f"Bearer {self.access_token}"
+        if self.captcha_token:
+            headers["X-Captcha-Token"] = self.captcha_token
+        if self.device_id:
+            headers["X-Device-Id"] = self.device_id
+        return headers
 
-    async def get_webdav_applications(self) -> Dict[str, Any]:
+    async def get_webdav_applications(self) -> dict[str, Any]:
         """
-        Get WebDAV configuration and application list
+        Get WebDAV configuration and application list.
+        Endpoint: GET https://api-dav.mypikpak.com/webdav/v1/applications
         """
         url = f"{WEBDAV_BASE_URL}/webdav/v1/applications"
-        headers = self._get_webdav_headers()
+        return await self._make_request(
+            method="get",
+            url=url,
+            headers=self._get_webdav_headers(),
+        )
 
-        # Use self.httpx_client if available, but extended used a new client with specific timeout
-        # We can use self.httpx_client but need to ensure headers are correct.
-        # The extended implementation created a new client for each request.
-        # To be consistent with the rest of the API, we should probably use _make_request if possible,
-        # but _make_request uses self.httpx_client which might have different config.
-        # Also _make_request handles retries and error parsing.
-        # The extended implementation used direct httpx calls.
-        # Let's try to use _make_request but with custom headers and URL.
-        # However, _make_request assumes standard PikPak error handling. WebDAV might be different.
-        # Let's stick to the extended implementation's logic but use a shared client or create one.
-
-        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
-            response = await client.get(url, headers=headers)
-            response.raise_for_status()
-            return response.json()
-
-    async def toggle_webdav(self, enable: bool) -> Dict[str, Any]:
+    async def toggle_webdav(self, enable: bool) -> dict[str, Any]:
         """
-        Toggle WebDAV status on or off
+        Toggle WebDAV status on or off.
+        Endpoint: POST https://api-dav.mypikpak.com/webdav/v1/toggle-enable
         """
         url = f"{WEBDAV_BASE_URL}/webdav/v1/toggle-enable"
-        headers = self._get_webdav_headers()
         data = {"enable": enable}
+        return await self._make_request(
+            method="post",
+            url=url,
+            data=data,
+            headers=self._get_webdav_headers(),
+        )
 
-        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
-            response = await client.post(url, headers=headers, json=data)
-            response.raise_for_status()
-            return response.json()
-
-    async def create_webdav_application(self, application_name: str) -> Dict[str, Any]:
+    async def create_webdav_application(self, application_name: str) -> dict[str, Any]:
         """
-        Create a new WebDAV application
+        Create a new WebDAV application account.
+        Endpoint: POST https://api-dav.mypikpak.com/webdav/v1/application
         """
         url = f"{WEBDAV_BASE_URL}/webdav/v1/application"
-        headers = self._get_webdav_headers()
         data = {"application_name": application_name}
+        return await self._make_request(
+            method="post",
+            url=url,
+            data=data,
+            headers=self._get_webdav_headers(),
+        )
 
-        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
-            response = await client.post(url, headers=headers, json=data)
-            response.raise_for_status()
-            return response.json()
-
-    async def delete_webdav_application(self, username: str, password: str) -> Dict[str, Any]:
+    async def delete_webdav_application(self, username: str, password: str) -> dict[str, Any]:
         """
-        Delete a WebDAV application
+        Delete a WebDAV application account.
+        Endpoint: DELETE https://api-dav.mypikpak.com/webdav/v1/application
         """
         url = f"{WEBDAV_BASE_URL}/webdav/v1/application"
-        headers = self._get_webdav_headers()
         data = {"username": username, "password": password}
+        return await self._make_request(
+            method="delete",
+            url=url,
+            data=data,
+            headers=self._get_webdav_headers(),
+        )
 
-        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
-            response = await client.request("DELETE", url, headers=headers, json=data)
-            response.raise_for_status()
-            return response.json()
-
-    async def modify_webdav_application(self, username: str, password: str, modify_props: Dict[str, Any]) -> Dict[str, Any]:
+    async def modify_webdav_application(
+        self, username: str, password: str, modify_props: dict[str, Any]
+    ) -> dict[str, Any]:
         """
-        Modify WebDAV application properties (e.g., set read_only)
-
-        Args:
-            username: WebDAV application username
-            password: WebDAV application password
-            modify_props: Dictionary of properties to modify (e.g., {"read_only": True})
+        Modify WebDAV application properties (e.g., set read_only=True).
+        Endpoint: PATCH https://api-dav.mypikpak.com/webdav/v1/application
         """
         url = f"{WEBDAV_BASE_URL}/webdav/v1/application"
-        headers = self._get_webdav_headers()
         data = {
             "username": username,
             "password": password,
-            "modify_props": modify_props
+            "modify_props": modify_props,
         }
-
-        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
-            response = await client.patch(url, headers=headers, json=data)
-            response.raise_for_status()
-            return response.json()
+        return await self._make_request(
+            method="patch",
+            url=url,
+            data=data,
+            headers=self._get_webdav_headers(),
+        )

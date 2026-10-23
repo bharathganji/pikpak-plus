@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { useLocalStorage } from "primereact/hooks";
 import {
   Dialog,
   DialogContent,
@@ -13,20 +12,27 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
+function subscribe(callback: () => void) {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+}
+
+function getSnapshot() {
+  return localStorage.getItem("pikpak-plus-consent") === "true";
+}
+
+function getServerSnapshot() {
+  return true;
+}
+
 export function DisclaimerModal() {
   const router = useRouter();
-  const [consent, setConsent] = useLocalStorage<boolean>(
-    false,
-    "pikpak-plus-consent",
-  );
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    setOpen(!consent);
-  }, [consent]);
+  const consent = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const open = !consent;
 
   const handleAgree = () => {
-    setConsent(true);
+    localStorage.setItem("pikpak-plus-consent", "true");
+    window.dispatchEvent(new Event("storage"));
   };
 
   const handleDisagree = () => {
@@ -34,7 +40,7 @@ export function DisclaimerModal() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open}>
       <DialogContent
         className="sm:max-w-[425px]"
         onPointerDownOutside={(e) => e.preventDefault()}
@@ -69,8 +75,8 @@ export function DisclaimerModal() {
             service or violation of these terms.
           </p>
           <p>
-            By clicking "I Agree", you confirm that you have read, understood,
-            and accepted these terms.
+            By clicking &quot;I Agree&quot;, you confirm that you have read,
+            understood, and accepted these terms.
           </p>
         </div>
         <DialogFooter className="flex gap-2">

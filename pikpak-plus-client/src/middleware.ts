@@ -2,15 +2,15 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getServerApiUrl } from "./lib/api-utils";
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Skip static files and API routes (if strict frontend-only checks)
-  // Also skip /_next internal routes
+  // 1. Skip static files, API routes, and assets
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/static") ||
-    pathname.includes(".") // Optimization: skip files with extensions (likely assets)
+    pathname.startsWith("/api") ||
+    pathname.includes(".")
   ) {
     return NextResponse.next();
   }
@@ -38,18 +38,15 @@ export async function proxy(request: NextRequest) {
   }
 
   // 3. Handle Redirection
-
-  // Scenario A: Server is DOWN, logic to force Maintenance Page
+  // Scenario A: Server is DOWN, force Maintenance Page
   if (!isHealthy) {
-    // If not already on maintenance page, redirect to it
     if (pathname !== "/maintenance" && pathname !== "/faq") {
       const url = request.nextUrl.clone();
       url.pathname = "/maintenance";
-      // Use 307 Temporary Redirect
       return NextResponse.redirect(url);
     }
   } else if (pathname === "/maintenance") {
-    // Scenario B: Server is UP, logic to recover from Maintenance Page
+    // Scenario B: Server is UP, recover from Maintenance Page
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);
@@ -60,14 +57,5 @@ export async function proxy(request: NextRequest) {
 
 // Configure paths to match
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    "/((?!api|_next/static|_next/image|favicon.ico).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icons|manifest.json).*)"],
 };

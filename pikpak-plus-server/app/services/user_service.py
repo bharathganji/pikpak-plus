@@ -1,12 +1,13 @@
 """User Service Module - Handles user management operations"""
 import logging
-from typing import Optional, Dict, Any, List
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
 from app.core.auth import (
+    create_password_reset_token,
     hash_password,
     verify_password,
-    create_password_reset_token,
-    verify_reset_token
+    verify_reset_token,
 )
 from app.core.config import AppConfig
 
@@ -24,7 +25,7 @@ class UserService:
         """
         self.supabase_service = supabase_service
 
-    def register_user(self, email: str, password: str) -> Dict[str, Any]:
+    def register_user(self, email: str, password: str) -> dict[str, Any]:
         """Create a new user account
 
         Args:
@@ -59,7 +60,7 @@ class UserService:
             'created_at': user.get('created_at')
         }
 
-    def authenticate_user(self, email: str, password: str) -> Optional[Dict[str, Any]]:
+    def authenticate_user(self, email: str, password: str) -> dict[str, Any] | None:
         """Verify login credentials
 
         Args:
@@ -90,7 +91,7 @@ class UserService:
             'created_at': user.get('created_at')
         }
 
-    def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+    def get_user_by_email(self, email: str) -> dict[str, Any] | None:
         """Retrieve user information
 
         Args:
@@ -131,7 +132,7 @@ class UserService:
 
         # Generate reset token
         reset_token = create_password_reset_token()
-        expires_at = datetime.utcnow() + timedelta(
+        expires_at = datetime.now(UTC) + timedelta(
             hours=AppConfig.PASSWORD_RESET_TOKEN_EXPIRATION_HOURS
         )
 
@@ -228,7 +229,7 @@ class UserService:
 
         return user.get('blocked', False)
 
-    def get_all_users(self, offset: int = 0, limit: int = 25, blocked_filter: Optional[bool] = None) -> Dict[str, Any]:
+    def get_all_users(self, offset: int = 0, limit: int = 25, blocked_filter: bool | None = None) -> dict[str, Any]:
         """Get paginated user list
 
         Args:
@@ -241,7 +242,7 @@ class UserService:
         """
         return self.supabase_service.get_users_list(offset, limit, blocked_filter)
 
-    def get_user_stats(self, email: str) -> Dict[str, Any]:
+    def get_user_stats(self, email: str) -> dict[str, Any]:
         """Get user activity statistics
 
         Args:
@@ -259,7 +260,7 @@ class UserService:
             'total_tasks': task_count
         }
 
-    def create_user(self, email: str, password: str, is_admin: bool = False) -> Dict[str, Any]:
+    def create_user(self, email: str, password: str, is_admin: bool = False) -> dict[str, Any]:
         """Create a new user account (admin operation)
 
         Args:
@@ -289,7 +290,7 @@ class UserService:
             'created_at': user.get('created_at')
         }
 
-    def delete_user(self, email: str) -> Dict[str, Any]:
+    def delete_user(self, email: str) -> dict[str, Any]:
         """Delete a user account (admin operation)
 
         Args:
@@ -315,7 +316,7 @@ class UserService:
 
         return {"message": "User deleted successfully", "email": email}
 
-    def update_user_role(self, email: str, is_admin: bool) -> Dict[str, Any]:
+    def update_user_role(self, email: str, is_admin: bool) -> dict[str, Any]:
         """Update user's admin status (admin operation)
 
         Args:
@@ -346,7 +347,7 @@ class UserService:
             "is_admin": is_admin
         }
 
-    def reset_user_password(self, email: str, new_password: str) -> Dict[str, Any]:
+    def reset_user_password(self, email: str, new_password: str) -> dict[str, Any]:
         """Reset user password (admin override)
 
         Args:

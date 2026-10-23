@@ -1,7 +1,19 @@
 """API Routes Package"""
 import logging
+
 from flask import Blueprint
-from app.api.routes import tasks, quota, webdav, shares, system, statistics, health, auth, admin
+
+from app.api.routes import (
+    admin,
+    auth,
+    health,
+    quota,
+    shares,
+    statistics,
+    system,
+    tasks,
+    webdav,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,4 +60,4 @@ def init_routes(pikpak_service, supabase_service, cache_manager, scheduler, webd
     logger.info("API routes initialized successfully")
 
 
-__all__ = ['init_routes', 'api_bp']
+__all__ = ['api_bp', 'init_routes']

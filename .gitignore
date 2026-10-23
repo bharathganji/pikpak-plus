@@ -7,52 +7,69 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Node / JS
+node_modules/
+dist/
+dist-ssr/
 *.local
+.eslintcache
+.next/
+out/
+build/
+*.tsbuildinfo
+.vercel/
 
-# Editor directories and files
+# Python & Caches
+__pycache__/
+*/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+cache_dir/
+
+# Virtual Environments
+venv/
+venv-*/
+.venv/
+env/
+ENV/
+
+# Secrets & Environment variables
+.env
+.env.*
+!.env.example
+!example.env
+.flaskenv
+.jwt_secret
+*.jwt_secret
+pikpak_tokens.json
+pikpak_login_state.json
+
+# Teamwork Multi-Agent Internal Workspaces
+.agents/
+
+# Editor & OS files
 .vscode/*
 !.vscode/extensions.json
-.idea
+!.vscode/settings.json
+.idea/
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-.eslintcache
-
-# custom
-.env
-.flaskenv
-client.json
-venv
-run
-__pycache__
-temp.*
-PP-server#*.json
-
-
-down.bash
-
-# self used virtual env
-venv/
-venv-*/
-
-#================ Python3
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-
-# temp or backup file
 *.swp
 *~
 
-#cache
-cache_dir
-
-#pikpak token
-pikpak_tokens.json
-pikpak_login_state.json
+# Temporary / Run files
+run
+temp.*
+PP-server#*.json
+down.bash
+client.json

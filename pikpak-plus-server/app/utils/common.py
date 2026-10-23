@@ -1,10 +1,11 @@
 """Utility functions and helpers"""
-import logging
-import requests
-import json
-import redis
 import functools
-from typing import Optional, Any
+import json
+import logging
+from typing import Any
+
+import redis
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -54,12 +55,12 @@ class CacheManager:
 
         try:
             ttl = self.redis_client.ttl(key)
-            return ttl if ttl > 0 else 0
+            return max(0, ttl)
         except Exception as e:
             logger.error(f"Redis TTL error: {e}")
             return 0
 
-    def set(self, key: str, value: Any, ttl: int = None):
+    def set(self, key: str, value: Any, ttl: int | None = None):
         """Set value in Redis cache with TTL"""
         if not self.redis_client:
             return
@@ -166,7 +167,7 @@ def validate_e2dk_link(url: str) -> tuple[bool, str]:
         return True, ""
     except Exception as e:
         logger.error(f"E2DK validation error: {e}")
-        return False, f"E2DK validation failed: {str(e)}"
+        return False, f"E2DK validation failed: {e!s}"
 
 
 def validate_link(url: str) -> tuple[bool, str, str]:
@@ -198,7 +199,7 @@ def validate_link(url: str) -> tuple[bool, str, str]:
     return False, "URL must be either a magnet link (magnet:) or E2DK link (ed2k://)", "unknown"
 
 
-def extract_magnet_hash(url: str) -> Optional[str]:
+def extract_magnet_hash(url: str) -> str | None:
     """
     Extract the info hash from a magnet link
 
@@ -229,7 +230,7 @@ def extract_magnet_hash(url: str) -> Optional[str]:
     return None
 
 
-def extract_e2dk_hash(url: str) -> Optional[str]:
+def extract_e2dk_hash(url: str) -> str | None:
     """
     Extract the MD5 hash from an E2DK link
 

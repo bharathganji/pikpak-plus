@@ -1,8 +1,8 @@
 """WhatsLink Service Module"""
 import logging
+from typing import Any
+
 import aiohttp
-import asyncio
-from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -10,7 +10,7 @@ class WhatsLinkService:
     """Service for WhatsLink.info API operations"""
 
     BASE_URL = "https://whatslink.info/api/v1/link"
-    _session: Optional[aiohttp.ClientSession] = None
+    _session: aiohttp.ClientSession | None = None
 
     @classmethod
     def get_session(cls) -> aiohttp.ClientSession:
@@ -27,7 +27,7 @@ class WhatsLinkService:
             cls._session = None
 
     @staticmethod
-    async def check_file_info(url: str, timeout: int = 10) -> Dict[str, Any]:
+    async def check_file_info(url: str, timeout: int = 10) -> dict[str, Any]:
         """
         Check file information using WhatsLink.info API
 
@@ -61,18 +61,18 @@ class WhatsLinkService:
                     logger.warning(f"WhatsLink returned status {response.status} for {url}")
                     return {"error": f"WhatsLink API returned status {response.status}"}
 
-        except (TimeoutError, asyncio.TimeoutError):
+        except TimeoutError:
             logger.error(f"WhatsLink API timeout for {url}")
             return {"error": "WhatsLink API request timed out"}
         except aiohttp.ClientError as e:
             logger.error(f"WhatsLink API error for {url}: {e}")
-            return {"error": f"WhatsLink API error: {str(e)}"}
+            return {"error": f"WhatsLink API error: {e!s}"}
         except Exception as e:
             logger.error(f"Unexpected error checking file info for {url}: {e}")
-            return {"error": f"Unexpected error: {str(e)}"}
+            return {"error": f"Unexpected error: {e!s}"}
 
     @staticmethod
-    async def check_file_size_limit(url: str, max_size_gb: float) -> tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
+    async def check_file_size_limit(url: str, max_size_gb: float) -> tuple[bool, str | None, dict[str, Any] | None]:
         """
         Check if file size is within the allowed limit
 
