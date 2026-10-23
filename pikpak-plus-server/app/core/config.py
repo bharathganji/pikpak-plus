@@ -1,4 +1,5 @@
 import os
+import secrets
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -54,7 +55,19 @@ class AppConfig:
     ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
     # JWT Configuration
-    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", os.urandom(64).hex())
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+    if not JWT_SECRET_KEY:
+        _secret_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.jwt_secret')
+        try:
+            with open(_secret_path, 'r') as _f:
+                JWT_SECRET_KEY = _f.read().strip()
+        except FileNotFoundError:
+            JWT_SECRET_KEY = secrets.token_hex(64)
+            try:
+                with open(_secret_path, 'w') as _f:
+                    _f.write(JWT_SECRET_KEY)
+            except IOError:
+                pass
     JWT_EXPIRATION_HOURS = int(os.getenv("JWT_EXPIRATION_HOURS", "24"))
 
     # Password Reset Configuration
