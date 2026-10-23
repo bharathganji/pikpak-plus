@@ -1,4 +1,4 @@
-version: "3.9"
+# PikPak Plus Docker Compose Configuration
 services:
   web:
     build:
@@ -9,7 +9,7 @@ services:
     depends_on:
       - server
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "${HOST_IP:+${HOST_IP}:}${APP_PORT:-${PORT:-${WEB_PORT:-3000}}}:3000"
     volumes:
       - ./pikpak-plus-client:/user/src/app
     environment:
@@ -39,7 +39,7 @@ services:
     depends_on:
       - redis
     # ports:
-    # - '5000:5000'
+    #   - "${HOST_IP:+${HOST_IP}:}${SERVER_PORT:-${API_PORT:-5000}}:5000"
     # volumes:
     #   - ./pikpak-plus-server:/app
     environment:
@@ -140,7 +140,7 @@ services:
   redis:
     image: redis:7-alpine
     # ports:
-    #   - "6379:6379"
+    #   - "${HOST_IP:+${HOST_IP}:}${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
 
