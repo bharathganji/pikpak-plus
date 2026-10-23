@@ -1,17 +1,18 @@
 """PikPak Service Module"""
+import asyncio
 import logging
 import time
-import os
-import json
-import asyncio
+from collections.abc import Callable
 from random import uniform
-from typing import Optional, Dict, Any, Callable, Tuple
-from PikPakAPI import PikPakApi
-from app.core.config import AppConfig
-from app.core.client import get_or_create_client
+from typing import Any
+
 from pybreaker import CircuitBreaker
+
+from app.core.client import get_or_create_client
+from app.core.config import AppConfig
+from app.utils.jwt_utils import decode_token, is_token_expired
 from app.utils.redis_lock import get_login_lock
-from app.utils.jwt_utils import is_token_expired, decode_token
+from PikPakAPI import PikPakApi
 
 logger = logging.getLogger(__name__)
 
@@ -27,14 +28,15 @@ pikpak_breaker = CircuitBreaker(
 
 class RateLimitError(Exception):
     """Raised when PikPak rate limits the login attempt."""
-    pass
 
 
 class PikPakService:
     """Service for PikPak operations"""
 
     def __init__(self, username: str, password: str):
-        self.client: Optional[PikPakApi] = None
+        self.username = username
+        self.password = password
+        self.client: PikPakApi | None = None
         self._last_login_time: float = 0
         self._login_lock = asyncio.Lock()
         try:
@@ -44,6 +46,30 @@ class PikPakService:
             logger.info("PikPak client initialized successfully")
         except Exception as e:
             logger.error(f"PikPak client init failed: {e}")
+
+    async def aclose(self) -> None:
+        """Gracefully close the underlying PikPakApi HTTPX client session."""
+        if self.client and hasattr(self.client, "aclose"):
+            await self.client.aclose()
+            logger.debug("Closed PikPakApi HTTP client session")
+
+    def close(self) -> None:
+        """Synchronous close helper for non-async cleanup."""
+        if self.client and not getattr(self.client, "_is_closed", False):
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    asyncio.create_task(self.client.aclose())
+                else:
+                    loop.run_until_complete(self.client.aclose())
+            except Exception:
+                pass
+
+    async def __aenter__(self) -> "PikPakService":
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        await self.aclose()
 
     async def ensure_logged_in(self, force_refresh: bool = False) -> PikPakApi:
         """
@@ -154,7 +180,7 @@ class PikPakService:
             login_lock.release()
 
     async def _reload_tokens_from_supabase(self) -> None:
-        """Reload tokens from Supabase into the client."""
+        """Reload tokens from Supabase into the client and synchronize expiration state."""
         try:
             from app.core.token_manager import get_token_manager
             token_mgr = get_token_manager()
@@ -170,10 +196,31 @@ class PikPakService:
                 else:
                     self._extract_user_id_from_token()
 
-                # Note: Captcha tokens are managed locally (short-lived, ~5 mins)
-                # No need to persist/reload from Supabase
+                # Synchronize expires_at so ensure_authenticated recognizes token validity
+                if hasattr(self.client, '_extract_exp_from_jwt'):
+                    try:
+                        self.client.expires_at = self.client._extract_exp_from_jwt(self.client.access_token)
+                    except Exception:
+                        pass
+                elif tokens.get('access_token_expires_at'):
+                    try:
+                        from datetime import datetime
+                        iso_exp = tokens['access_token_expires_at']
+                        if isinstance(iso_exp, str):
+                            dt = datetime.fromisoformat(iso_exp)
+                            self.client.expires_at = dt.timestamp()
+                        elif isinstance(iso_exp, (int, float)):
+                            self.client.expires_at = float(iso_exp)
+                    except (ValueError, TypeError, OverflowError) as exp_err:
+                        logger.debug(f"Could not parse access_token_expires_at: {exp_err}")
 
-                logger.debug("Reloaded tokens from Supabase")
+                if hasattr(self.client, 'encode_token'):
+                    try:
+                        self.client.encode_token()
+                    except (AttributeError, TypeError) as enc_err:
+                        logger.debug(f"encode_token skipped: {enc_err}")
+
+                logger.debug("Reloaded and synchronized tokens from Supabase")
         except Exception as e:
             logger.warning(f"Failed to reload tokens from Supabase: {e}")
 
@@ -187,7 +234,6 @@ class PikPakService:
         Args:
             action: The specific action for which captcha is needed
         """
-        import time
 
         # Check if we have a valid captcha token for this specific action
         if action in self.client.captcha_tokens:
@@ -242,7 +288,6 @@ class PikPakService:
         if not self.client.access_token:
             return False
 
-        from app.utils.jwt_utils import is_token_expired
 
         # Check if access token (JWT) is expired or expiring soon (within 5 minutes)
         if not is_token_expired(self.client.access_token, buffer_seconds=300):
@@ -365,7 +410,7 @@ class PikPakService:
             "Unauthorized" in error_str
         )
 
-    async def _try_recover_auth(self, operation: Callable, *args, **kwargs) -> Tuple[bool, Any, Optional[Exception]]:
+    async def _try_recover_auth(self, operation: Callable, *args, **kwargs) -> tuple[bool, Any, Exception | None]:
         """
         Attempts to recover from auth error.
         Returns: (success, result, exception_if_failed)
@@ -377,7 +422,7 @@ class PikPakService:
         except Exception as e:
             return False, None, e
 
-    async def _handle_attempt_exception(self, e: Exception, attempt: int, max_retries: int, operation, *args, **kwargs) -> Tuple[bool, Any, str]:
+    async def _handle_attempt_exception(self, e: Exception, attempt: int, max_retries: int, operation, *args, **kwargs) -> tuple[bool, Any, str]:
         error_str = str(e)
         is_last_attempt = (attempt == max_retries - 1)
 
@@ -496,7 +541,7 @@ class PikPakService:
 
         return await self._execute_with_retry(_do_delete)
 
-    async def modify_webdav_application(self, username: str, password: str, modify_props: Dict[str, Any]) -> dict:
+    async def modify_webdav_application(self, username: str, password: str, modify_props: dict[str, Any]) -> dict:
         """Modify WebDAV application properties"""
         if not self.client:
             raise RuntimeError(PIKPAK_CLIENT_NOT_INITIALIZED)
@@ -588,3 +633,116 @@ class PikPakService:
             logger.info(f"Deleted PikPak file permanently: {file_id}")
 
         await self._execute_with_retry(_do_delete)
+
+    async def vip_info(self) -> dict:
+        """Get VIP status and privilege information from PikPak."""
+        if not self.client:
+            raise RuntimeError(PIKPAK_CLIENT_NOT_INITIALIZED)
+
+        async def _do_vip():
+            return await self.client.vip_info()
+
+        return await self._execute_with_retry(_do_vip)
+
+    async def list_files(
+        self,
+        size: int = 100,
+        parent_id: str | None = None,
+        next_page_token: str | None = None,
+        kind: str | None = None,
+    ) -> dict:
+        """List files and folders in directory."""
+        if not self.client:
+            raise RuntimeError(PIKPAK_CLIENT_NOT_INITIALIZED)
+
+        async def _do_list():
+            return await self.client.file_list(
+                size=size,
+                parent_id=parent_id,
+                next_page_token=next_page_token,
+                kind=kind,
+            )
+
+        return await self._execute_with_retry(_do_list)
+
+    async def get_file(self, file_id: str, url_type: str = "all", raw: bool = False) -> dict:
+        """Get detailed metadata and download URLs for a file."""
+        if not self.client:
+            raise RuntimeError(PIKPAK_CLIENT_NOT_INITIALIZED)
+
+        async def _do_get():
+            return await self.client.get_file(file_id=file_id, url_type=url_type, raw=raw)
+
+        return await self._execute_with_retry(_do_get)
+
+    async def get_download_url(self, file_id: str) -> dict:
+        """Get direct download link for a file."""
+        if not self.client:
+            raise RuntimeError(PIKPAK_CLIENT_NOT_INITIALIZED)
+
+        async def _do_get_dl():
+            return await self.client.get_download_url(file_id=file_id)
+
+        return await self._execute_with_retry(_do_get_dl)
+
+    async def create_folder(self, name: str, parent_id: str | None = None) -> dict:
+        """Create a new folder."""
+        if not self.client:
+            raise RuntimeError(PIKPAK_CLIENT_NOT_INITIALIZED)
+
+        async def _do_mkdir():
+            return await self.client.create_folder(name=name, parent_id=parent_id)
+
+        return await self._execute_with_retry(_do_mkdir)
+
+    async def delete_to_trash(self, ids: list) -> dict:
+        """Move files or folders to trash."""
+        if not self.client:
+            raise RuntimeError(PIKPAK_CLIENT_NOT_INITIALIZED)
+
+        async def _do_trash():
+            return await self.client.delete_to_trash(ids=ids)
+
+        return await self._execute_with_retry(_do_trash)
+
+    async def get_share_info(self, share_link_or_id: str, pass_code: str | None = None) -> dict:
+        """Get share link metadata and contents."""
+        if not self.client:
+            raise RuntimeError(PIKPAK_CLIENT_NOT_INITIALIZED)
+
+        async def _do_get_share():
+            return await self.client.get_share_info(share_link_or_id=share_link_or_id, pass_code=pass_code)
+
+        return await self._execute_with_retry(_do_get_share)
+
+    async def restore_share(
+        self,
+        share_id: str,
+        file_ids: list | None = None,
+        to_parent_id: str | None = None,
+        password: str | None = None,
+    ) -> dict:
+        """Restore shared files to drive."""
+        if not self.client:
+            raise RuntimeError(PIKPAK_CLIENT_NOT_INITIALIZED)
+
+        async def _do_restore():
+            return await self.client.restore(
+                share_id=share_id,
+                file_ids=file_ids,
+                to_parent_id=to_parent_id,
+                password=password,
+            )
+
+        return await self._execute_with_retry(_do_restore)
+
+    async def list_shares(self, limit: int = 20, next_page_token: str | None = None) -> dict:
+        """List active shares created by user."""
+        if not self.client:
+            raise RuntimeError(PIKPAK_CLIENT_NOT_INITIALIZED)
+
+        async def _do_list_shares():
+            return await self.client.share_list(limit=limit, next_page_token=next_page_token)
+
+        return await self._execute_with_retry(_do_list_shares)
+

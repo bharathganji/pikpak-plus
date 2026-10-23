@@ -1,6 +1,7 @@
 """Supabase Service Module"""
 import logging
-from typing import Optional, Dict, Any
+from typing import Any
+
 from supabase import Client
 
 logger = logging.getLogger(__name__)
@@ -440,8 +441,9 @@ class SupabaseService:
                 float(d.get('downstream_traffic', 0)) for d in data]
 
             # Predict next 7 days
-            from app.utils.prediction import predict_next_values
             from datetime import datetime, timedelta
+
+            from app.utils.prediction import predict_next_values
 
             predicted_tasks = predict_next_values(tasks_added_series, 7)
             predicted_storage = predict_next_values(storage_used_series, 7)
@@ -482,7 +484,7 @@ class SupabaseService:
     # User Management Methods
     # ========================================
 
-    def create_user(self, email: str, password_hash: str, is_admin: bool = False) -> Dict[str, Any]:
+    def create_user(self, email: str, password_hash: str, is_admin: bool = False) -> dict[str, Any]:
         """Insert new user into database
 
         Args:
@@ -513,7 +515,7 @@ class SupabaseService:
             logger.error(f"Error creating user {email}: {e}")
             raise
 
-    def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+    def get_user_by_email(self, email: str) -> dict[str, Any] | None:
         """Query user by email address
 
         Args:
@@ -594,7 +596,7 @@ class SupabaseService:
             logger.error(f"Error storing reset token for {email}: {e}")
             raise
 
-    def get_user_by_reset_token(self, token: str) -> Optional[Dict[str, Any]]:
+    def get_user_by_reset_token(self, token: str) -> dict[str, Any] | None:
         """Retrieve user by valid reset token
 
         Args:
@@ -742,7 +744,7 @@ class SupabaseService:
             logger.error(f"Error updating blocked status for {email}: {e}")
             raise
 
-    def get_users_list(self, offset: int, limit: int, blocked_filter: Optional[bool] = None) -> Dict[str, Any]:
+    def get_users_list(self, offset: int, limit: int, blocked_filter: bool | None = None) -> dict[str, Any]:
         """Get filtered and paginated user list
 
         Args:
@@ -777,7 +779,7 @@ class SupabaseService:
             logger.error(f"Error fetching users list: {e}")
             raise
 
-    def get_user_tasks(self, email: str, offset: int, limit: int) -> Dict[str, Any]:
+    def get_user_tasks(self, email: str, offset: int, limit: int) -> dict[str, Any]:
         """Get user's tasks from public_actions (filtered by user_email)
 
         Args:
@@ -832,7 +834,7 @@ class SupabaseService:
             logger.error(f"Error deleting action {action_id}: {e}")
             raise
 
-    def get_admin_statistics(self) -> Dict[str, Any]:
+    def get_admin_statistics(self) -> dict[str, Any]:
         """Aggregate counts for admin dashboard
 
         Returns:

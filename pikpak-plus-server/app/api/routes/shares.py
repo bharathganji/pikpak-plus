@@ -1,13 +1,13 @@
 """Share Link Management Routes"""
 import logging
-from flask import Blueprint, request, jsonify
+
+from flask import Blueprint, jsonify, request
+
 from app.api.utils.async_helpers import run_async
-from app.api.utils.dependencies import (
-    get_pikpak_service,
-    get_supabase_service
-)
-from app.core.auth import require_auth, get_current_user
+from app.api.utils.dependencies import get_pikpak_service, get_supabase_service
+from app.core.auth import get_current_user, require_auth
 from app.services.user_service import UserService
+from app.utils.validators import get_json_body, sanitize_identifier
 
 logger = logging.getLogger(__name__)
 
@@ -17,10 +17,20 @@ bp = Blueprint('shares', __name__)
 
 def _validate_share_request(data):
     """Validate share request data and return file_id or error response."""
-    file_id = data.get('id')
-    if not file_id:
+    if not isinstance(data, dict):
         return None, (jsonify({"error": "Missing 'id' parameter"}), 400)
-    return file_id, None
+    file_id = data.get('id')
+    if not file_id or not isinstance(file_id, str) or not file_id.strip():
+        return None, (jsonify({"error": "Missing 'id' parameter"}), 400)
+
+    is_valid, sanitized_id, error_msg = sanitize_identifier(file_id, "id")
+    if not is_valid:
+        return None, (jsonify({
+            "error": "Invalid identifier",
+            "message": error_msg or "Path traversal or illegal characters detected in identifier"
+        }), 400)
+
+    return sanitized_id, None
 
 
 def _check_existing_share(file_id):
@@ -87,7 +97,9 @@ def create_share():
                     "message": "Your account has been blocked. You cannot perform this action."
                 }), 403
 
-            data = request.json
+            data, err = get_json_body(request)
+            if err:
+                return jsonify({"error": "Missing 'id' parameter"}), 400
 
             # Validate request
             file_id, error_response = _validate_share_request(data)
@@ -107,7 +119,13 @@ def create_share():
 
             # Create new share
             need_password = data.get('need_password', False)
+            if not isinstance(need_password, bool):
+                return jsonify({"error": "Invalid parameter", "message": "need_password must be a boolean"}), 400
+
             expiration_days = data.get('expiration_days', -1)
+            if not isinstance(expiration_days, int) or expiration_days < -1 or expiration_days > 365:
+                return jsonify({"error": "Invalid parameter", "message": "expiration_days must be an integer between -1 and 365"}), 400
+
             result = await _create_new_share(file_id, need_password, expiration_days)
 
             # Store share globally with user email

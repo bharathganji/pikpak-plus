@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import List, Tuple, Set, Optional
+
 from supabase import Client
 
 logger = logging.getLogger(__name__)
@@ -11,7 +11,7 @@ PIKPAK_MAX_BATCH_SIZE = 100
 SUPABASE_PAGE_SIZE = 1000
 
 
-def get_task_and_file_ids_from_supabase(supabase: Client) -> Tuple[List[str], List[str]]:
+def get_task_and_file_ids_from_supabase(supabase: Client) -> tuple[list[str], list[str]]:
     """
     Retrieve all task IDs and file IDs from the public_actions table.
 
@@ -21,8 +21,8 @@ def get_task_and_file_ids_from_supabase(supabase: Client) -> Tuple[List[str], Li
     logger.info(
         "Fetching task and file IDs from Supabase public_actions table...")
 
-    task_ids: Set[str] = set()
-    file_ids: Set[str] = set()
+    task_ids: set[str] = set()
+    file_ids: set[str] = set()
 
     try:
         # Paginate through all "add" actions from public_actions table
@@ -46,7 +46,11 @@ def get_task_and_file_ids_from_supabase(supabase: Client) -> Tuple[List[str], Li
             missing_file_ids = 0
 
             for record in records:
+                if not isinstance(record, dict):
+                    continue
                 data = record.get("data", {})
+                if not isinstance(data, dict):
+                    continue
                 task_wrapper = data.get("task", {})
 
                 if isinstance(task_wrapper, dict) and "task" in task_wrapper:
@@ -65,12 +69,12 @@ def get_task_and_file_ids_from_supabase(supabase: Client) -> Tuple[List[str], Li
                     file_id = task_info.get("file_id")
 
                 if task_id:
-                    task_ids.add(task_id)
+                    task_ids.add(str(task_id))
                 else:
                     missing_task_ids += 1
 
                 if file_id:
-                    file_ids.add(file_id)
+                    file_ids.add(str(file_id))
                 else:
                     missing_file_ids += 1
 
@@ -107,7 +111,7 @@ def get_task_and_file_ids_from_supabase(supabase: Client) -> Tuple[List[str], Li
         raise
 
 
-async def delete_pikpak_tasks_in_batches(service, task_ids: List[str]) -> Tuple[Set[str], Set[str]]:
+async def delete_pikpak_tasks_in_batches(service, task_ids: list[str]) -> tuple[set[str], set[str]]:
     """
     Delete PikPak tasks in batches of PIKPAK_MAX_BATCH_SIZE.
     Adds 5-second delay between batches to avoid rate limiting.
@@ -124,8 +128,8 @@ async def delete_pikpak_tasks_in_batches(service, task_ids: List[str]) -> Tuple[
     logger.info(
         f"Deleting {len(task_ids)} tasks from PikPak in {num_batches} batch(es)")
 
-    successfully_deleted: Set[str] = set()
-    failed_to_delete: Set[str] = set()
+    successfully_deleted: set[str] = set()
+    failed_to_delete: set[str] = set()
 
     try:
         for i in range(0, len(task_ids), PIKPAK_MAX_BATCH_SIZE):
@@ -164,7 +168,7 @@ async def delete_pikpak_tasks_in_batches(service, task_ids: List[str]) -> Tuple[
         return successfully_deleted, failed_to_delete
 
 
-async def delete_pikpak_files_permanently(service, file_ids: List[str]) -> Tuple[Set[str], Set[str]]:
+async def delete_pikpak_files_permanently(service, file_ids: list[str]) -> tuple[set[str], set[str]]:
     """
     Delete PikPak files permanently (not to trash).
     Uses batchDelete endpoint. Adds 5-second delay between batches.
@@ -181,8 +185,8 @@ async def delete_pikpak_files_permanently(service, file_ids: List[str]) -> Tuple
     logger.info(
         f"Deleting {len(file_ids)} files permanently from PikPak in {num_batches} batch(es)")
 
-    successfully_deleted: Set[str] = set()
-    failed_to_delete: Set[str] = set()
+    successfully_deleted: set[str] = set()
+    failed_to_delete: set[str] = set()
 
     try:
         for i in range(0, len(file_ids), PIKPAK_MAX_BATCH_SIZE):
@@ -254,7 +258,7 @@ async def delete_single_id_with_retry(service, record_id: str, item_type: str) -
     return False
 
 
-def delete_supabase_records_for_ids(supabase: Client, ids: List[str]) -> int:
+def delete_supabase_records_for_ids(supabase: Client, ids: list[str]) -> int:
     """
     Delete rows from the Supabase public_actions table where the PikPak task_id
     or file_id matches one of the given IDs.
@@ -286,7 +290,11 @@ def delete_supabase_records_for_ids(supabase: Client, ids: List[str]) -> int:
 
             ids_to_delete = []
             for record in records:
+                if not isinstance(record, dict):
+                    continue
                 data = record.get("data", {})
+                if not isinstance(data, dict):
+                    continue
                 task_wrapper = data.get("task", {})
 
                 if isinstance(task_wrapper, dict) and "task" in task_wrapper:
@@ -304,8 +312,8 @@ def delete_supabase_records_for_ids(supabase: Client, ids: List[str]) -> int:
                 if not record_file_id and isinstance(task_info, dict):
                     record_file_id = task_info.get("file_id")
 
-                if record_task_id in ids or record_file_id in ids:
-                    ids_to_delete.append(record.get("id"))
+                if (record_task_id in ids or record_file_id in ids) and record.get("id"):
+                    ids_to_delete.append(record["id"])
 
             if ids_to_delete:
                 result = (
@@ -342,7 +350,7 @@ async def _ensure_logged_in(pikpak_service, cleanup_results: dict) -> bool:
         return False
 
 
-def _fetch_ids_from_supabase(supabase_client: Client, cleanup_results: dict) -> Tuple[Optional[List[str]], Optional[List[str]]]:
+def _fetch_ids_from_supabase(supabase_client: Client, cleanup_results: dict) -> tuple[list[str] | None, list[str] | None]:
     logger.info("-" * 40)
     logger.info("Step 1: Retrieving task and file IDs from Supabase...")
     try:
@@ -356,14 +364,14 @@ def _fetch_ids_from_supabase(supabase_client: Client, cleanup_results: dict) -> 
         return None, None
 
 
-async def _retry_failed_deletions(pikpak_service, tasks_failed: Set[str], files_failed: Set[str],
-                                  tasks_succeeded: Set[str], files_succeeded: Set[str],
+async def _retry_failed_deletions(pikpak_service, tasks_failed: set[str], files_failed: set[str],
+                                  tasks_succeeded: set[str], files_succeeded: set[str],
                                   cleanup_results: dict):
     logger.info("-" * 40)
     logger.info("Step 3.5: Retrying failed IDs individually...")
 
-    retried_tasks: Set[str] = set()
-    retried_files: Set[str] = set()
+    retried_tasks: set[str] = set()
+    retried_files: set[str] = set()
 
     if tasks_failed:
         retried_tasks = set(tasks_failed)
@@ -396,8 +404,8 @@ async def _retry_failed_deletions(pikpak_service, tasks_failed: Set[str], files_
         )
 
 
-def _cleanup_supabase_records(supabase_client: Client, all_succeeded_ids: Set[str],
-                              all_failed_ids: Set[str], cleanup_results: dict) -> bool:
+def _cleanup_supabase_records(supabase_client: Client, all_succeeded_ids: set[str],
+                              all_failed_ids: set[str], cleanup_results: dict) -> bool:
     logger.info("-" * 40)
     logger.info(f"Step 4: Cleaning up {len(all_succeeded_ids)} successfully deleted records from Supabase...")
     try:
@@ -461,7 +469,7 @@ async def run_cleanup(pikpak_service, supabase_client: Client):
     logger.info("-" * 40)
     logger.info("Step 2: Deleting tasks from PikPak...")
     tasks_succeeded, tasks_failed = await delete_pikpak_tasks_in_batches(
-        pikpak_service, task_ids
+        pikpak_service, list(task_ids)
     )
     cleanup_results["tasks_succeeded"] = len(tasks_succeeded)
     cleanup_results["tasks_failed"] = len(tasks_failed)
@@ -469,7 +477,7 @@ async def run_cleanup(pikpak_service, supabase_client: Client):
     logger.info("-" * 40)
     logger.info("Step 3: Deleting files permanently from PikPak...")
     files_succeeded, files_failed = await delete_pikpak_files_permanently(
-        pikpak_service, file_ids
+        pikpak_service, list(file_ids)
     )
     cleanup_results["files_succeeded"] = len(files_succeeded)
     cleanup_results["files_failed"] = len(files_failed)

@@ -2,11 +2,12 @@
 Distributed Lock for PikPak Login Coordination
 Prevents multiple workers from attempting login simultaneously
 """
-import redis
-import time
 import asyncio
 import logging
-from typing import Optional
+import time
+
+import redis
+
 from app.core.config import AppConfig
 
 logger = logging.getLogger(__name__)
@@ -27,10 +28,10 @@ class DistributedLoginLock:
     COOLDOWN_SECONDS = 120  # 2 minutes cooldown between logins
     POLL_INTERVAL = 0.5  # Check lock status every 0.5 seconds
 
-    def __init__(self, redis_url: Optional[str] = None):
+    def __init__(self, redis_url: str | None = None):
         """Initialize with Redis connection."""
         self._redis_url = redis_url or AppConfig.REDIS_URL
-        self._redis: Optional[redis.Redis] = None
+        self._redis: redis.Redis | None = None
         self._lock_acquired = False
 
     @property
@@ -206,7 +207,7 @@ class DistributedLoginLock:
                 result = await _wait_loop()
                 logger.info("Lock released, proceeding")
                 return result
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning(
                 f"Timeout waiting for login lock after {timeout_seconds}s")
             return False
@@ -231,7 +232,7 @@ class DistributedLoginLock:
 
 
 # Global singleton instance
-_login_lock: Optional[DistributedLoginLock] = None
+_login_lock: DistributedLoginLock | None = None
 
 
 def get_login_lock() -> DistributedLoginLock:

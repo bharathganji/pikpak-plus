@@ -1,10 +1,13 @@
 """Authentication API Routes"""
 import logging
-from flask import Blueprint, request, jsonify
+
+from flask import Blueprint, jsonify, request
+
+from app.api.utils.dependencies import get_supabase_service
 from app.core.auth import create_access_token, get_current_user, require_auth
 from app.core.config import AppConfig
-from app.api.utils.dependencies import get_supabase_service
 from app.services.user_service import UserService
+from app.utils.validators import get_json_body, validate_email, validate_password
 
 logger = logging.getLogger(__name__)
 
@@ -23,28 +26,38 @@ def register():
         }
     """
     try:
-        data = request.json
-        email = data.get('email')
+        data, err = get_json_body(request)
+        if err:
+            return err[0], err[1]
+
+        email_raw = data.get('email')
         password = data.get('password')
 
-        if not email or not password:
+        if not email_raw or not password:
             return jsonify({
                 "error": "Missing required fields",
                 "message": "Email and password are required"
             }), 400
 
-        # Basic email validation
-        if '@' not in email or '.' not in email:
+        # Email validation
+        is_valid_email, email, _ = validate_email(email_raw)
+        if not is_valid_email:
             return jsonify({
                 "error": "Invalid email",
                 "message": "Please provide a valid email address"
             }), 400
 
-        # Basic password validation
-        if len(password) < 6:
+        # Password validation
+        is_valid_pass, pass_err = validate_password(password, min_len=6, max_len=128)
+        if not is_valid_pass:
+            if len(str(password)) < 6:
+                return jsonify({
+                    "error": "Weak password",
+                    "message": "Password must be at least 6 characters long"
+                }), 400
             return jsonify({
-                "error": "Weak password",
-                "message": "Password must be at least 6 characters long"
+                "error": "Invalid password",
+                "message": pass_err or "Invalid password"
             }), 400
 
         # Create user
@@ -91,15 +104,22 @@ def login():
         }
     """
     try:
-        data = request.json
-        email = data.get('email')
+        data, err = get_json_body(request)
+        if err:
+            return err[0], err[1]
+
+        email_raw = data.get('email')
         password = data.get('password')
 
-        if not email or not password:
+        if not email_raw or not password:
             return jsonify({
                 "error": "Missing credentials",
                 "message": "Email and password are required"
             }), 400
+
+        is_valid_email, email, _ = validate_email(email_raw)
+        if not is_valid_email:
+            email = str(email_raw).strip().lower()
 
         # Authenticate user
         supabase_service = get_supabase_service()
@@ -208,13 +228,25 @@ def forgot_password():
         }
     """
     try:
-        data = request.json
-        email = data.get('email')
-
-        if not email:
+        data, err = get_json_body(request)
+        if err:
             return jsonify({
                 "error": "Missing email",
                 "message": "Email is required"
+            }), 400
+
+        email_raw = data.get('email')
+        if not email_raw:
+            return jsonify({
+                "error": "Missing email",
+                "message": "Email is required"
+            }), 400
+
+        is_valid_email, email, _ = validate_email(email_raw)
+        if not is_valid_email:
+            return jsonify({
+                "error": "Invalid email",
+                "message": "Please provide a valid email address"
             }), 400
 
         supabase_service = get_supabase_service()
@@ -247,7 +279,10 @@ def reset_password():
         }
     """
     try:
-        data = request.json
+        data, err = get_json_body(request)
+        if err:
+            return err[0], err[1]
+
         token = data.get('token')
         new_password = data.get('new_password')
 
@@ -258,10 +293,16 @@ def reset_password():
             }), 400
 
         # Password validation
-        if len(new_password) < 6:
+        is_valid_pass, pass_err = validate_password(new_password, min_len=6, max_len=128)
+        if not is_valid_pass:
+            if len(str(new_password)) < 6:
+                return jsonify({
+                    "error": "Weak password",
+                    "message": "Password must be at least 6 characters long"
+                }), 400
             return jsonify({
-                "error": "Weak password",
-                "message": "Password must be at least 6 characters long"
+                "error": "Invalid password",
+                "message": pass_err or "Invalid password"
             }), 400
 
         supabase_service = get_supabase_service()

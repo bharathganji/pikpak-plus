@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import withPWA from "@ducanh2912/next-pwa";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";

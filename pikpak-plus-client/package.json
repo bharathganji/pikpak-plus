@@ -8,7 +8,7 @@
     "build": "next build",
     "preview": "next build && next start",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "lint-staged": "lint-staged",
     "release": "semantic-release",
     "prettier:check": "prettier --check .",
@@ -28,6 +28,7 @@
     "@tailwindcss/postcss": "^4.1.17",
     "axios": "^1.13.2",
     "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "copy-to-clipboard": "^3.3.3",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.556.0",
@@ -44,7 +45,7 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.22",
-    "baseline-browser-mapping": "^2.9.6",
+    "baseline-browser-mapping": "^2.11.31",
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.0.8",
     "husky": "^9.1.7",
@@ -58,5 +59,8 @@
       "eslint --fix",
       "prettier --write"
     ]
+  },
+  "allowScripts": {
+    "sharp@0.34.5": true
   }
 }

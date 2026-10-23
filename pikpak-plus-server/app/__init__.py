@@ -1,26 +1,25 @@
 """Application Factory"""
-import threading
-import os
+import json
 import logging
+import os
+import threading
+import uuid
+from contextvars import ContextVar
+
 import redis
-from flask import Flask
-from flask_cors import CORS
+from flask import Flask, g, request
 from flask_compress import Compress
+from flask_cors import CORS
 from supabase import create_client
 
+from app.api.routes import api_bp, init_routes
+from app.celery_app import celery_app
 from app.core.config import AppConfig
 from app.services import PikPakService, SupabaseService, WebDAVManager
 from app.services.user_service import UserService
 from app.utils.common import CacheManager
-from app.api.routes import init_routes, api_bp
-from app.celery_app import celery_app
 
-import json
-import uuid
-from contextvars import ContextVar
-from flask import request, g
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+__all__ = ["create_app", "celery_app", "correlation_id"]
 
 # Context variable for correlation ID
 correlation_id: ContextVar[str] = ContextVar('correlation_id', default='')
@@ -145,8 +144,9 @@ def create_app():
     init_routes(pikpak_service, supabase_service,
                 cache_manager, None, webdav_manager, redis_client)
 
-    # Register blueprints
+    # Register blueprints (both at root and /api for client/proxy compatibility)
     app.register_blueprint(api_bp, url_prefix='/')
+    app.register_blueprint(api_bp, url_prefix='/api', name='api_prefix')
 
     # Rate Limiter disabled
     # Limiter(

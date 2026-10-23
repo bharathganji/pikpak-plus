@@ -1,15 +1,14 @@
 """Quota and Status Routes"""
-import logging
 import json
-from datetime import datetime, timedelta, timezone
+import logging
+from datetime import UTC, datetime, timedelta
+
 import redis
 from flask import Blueprint, jsonify
-from app.core.config import AppConfig
+
 from app.api.utils.async_helpers import run_async
-from app.api.utils.dependencies import (
-    get_pikpak_service,
-    get_cache_manager
-)
+from app.api.utils.dependencies import get_cache_manager, get_pikpak_service
+from app.core.config import AppConfig
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +49,7 @@ def _is_scheduler_running(scheduler_info):
         # Check if heartbeat is recent (within last 3 minutes)
         heartbeat_time = datetime.fromisoformat(
             last_heartbeat.replace(UTC_ZULU_FORMAT, UTC_TIMEZONE_OFFSET))
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return (now - heartbeat_time).total_seconds() < 180
     except Exception:
         return False
@@ -64,7 +63,7 @@ def _calculate_next_refresh_time(cached_at_str, remaining_ttl):
         try:
             cached_at = datetime.fromisoformat(cached_at_str)
             if cached_at.tzinfo is None:
-                cached_at = cached_at.replace(tzinfo=timezone.utc)
+                cached_at = cached_at.replace(tzinfo=UTC)
 
             next_refresh_dt = cached_at + \
                 timedelta(seconds=AppConfig.QUOTA_CACHE_TTL)
@@ -77,7 +76,7 @@ def _calculate_next_refresh_time(cached_at_str, remaining_ttl):
 
     if not next_refresh_utc:
         next_refresh_utc = (
-            datetime.now(timezone.utc) +
+            datetime.now(UTC) +
             timedelta(seconds=remaining_ttl)
         ).isoformat() + UTC_ZULU_FORMAT
 
@@ -95,7 +94,7 @@ def _add_refresh_info(quota_data, remaining_ttl):
     next_cleanup = scheduler_info.get("next_cleanup")
 
     # Fallback calculation if missing (startup scenario)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     if not webdav_next:
         if scheduler_info.get("status") == "running":
@@ -162,7 +161,7 @@ async def _handle_cache_miss(cache_key, cache_manager):
     quota_data_to_cache = {
         "storage": storage_quota,
         "transfer": transfer_quota,
-        "cached_at": datetime.now(timezone.utc).isoformat()
+        "cached_at": datetime.now(UTC).isoformat()
     }
 
     # Cache the result for 3 hours (without refresh_info)

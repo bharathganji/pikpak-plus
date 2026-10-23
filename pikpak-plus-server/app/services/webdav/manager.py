@@ -1,9 +1,9 @@
 """WebDAV Manager Facade"""
 import logging
-from typing import Dict, Any
+from typing import Any
 
-from .traffic import TrafficChecker
 from .clients import ClientManager
+from .traffic import TrafficChecker
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class WebDAVManager:
         """
         return await self.traffic_checker.is_downstream_traffic_available()
 
-    async def create_daily_webdav_clients(self) -> Dict[str, Any]:
+    async def create_daily_webdav_clients(self) -> dict[str, Any]:
         """
         Create 8 WebDAV clients with planet names, delete old ones
 
@@ -61,7 +61,7 @@ class WebDAVManager:
         """
         return await self.client_manager.cleanup_expired_clients()
 
-    async def get_active_clients(self) -> Dict[str, Any]:
+    async def get_active_clients(self) -> dict[str, Any]:
         """
         Get list of active WebDAV clients with TTL info
 

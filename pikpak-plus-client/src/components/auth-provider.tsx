@@ -72,15 +72,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const isAuthPage =
         pathname?.startsWith("/login") ||
         pathname?.startsWith("/register") ||
-        pathname?.startsWith("/forgot-password");
+        pathname?.startsWith("/forgot-password") ||
+        pathname?.startsWith("/reset-password");
       const isAdminPage = pathname?.startsWith("/admin");
-
-      const isPublicPage = pathname?.startsWith("/faq");
+      const isPublicPage =
+        pathname?.startsWith("/faq") ||
+        pathname?.startsWith("/maintenance");
 
       if (!user && !isAuthPage && !isPublicPage) {
         // Not logged in and trying to access protected page
         router.push("/login");
-      } else if (user && isAuthPage) {
+      } else if (user && isAuthPage && !pathname?.startsWith("/reset-password")) {
         // Logged in and trying to access auth page
         router.push("/");
       } else if (user && isAdminPage && !user.is_admin) {
@@ -126,6 +128,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const isAuthPage =
+    pathname?.startsWith("/login") ||
+    pathname?.startsWith("/register") ||
+    pathname?.startsWith("/forgot-password") ||
+    pathname?.startsWith("/reset-password");
+  const isPublicPage =
+    pathname?.startsWith("/faq") ||
+    pathname?.startsWith("/maintenance");
+  const isUnprotected = isAuthPage || isPublicPage;
+
   return (
     <AuthContext.Provider
       value={{
@@ -138,7 +150,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         checkAuth,
       }}
     >
-      {children}
+      {loading && !isUnprotected ? (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <p className="text-sm text-muted-foreground animate-pulse">Loading application...</p>
+          </div>
+        </div>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 }

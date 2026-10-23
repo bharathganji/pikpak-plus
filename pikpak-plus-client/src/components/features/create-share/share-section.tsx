@@ -69,6 +69,8 @@ export function ShareSection({
     is_existing?: boolean;
   } | null>(null);
   const [shareError, setShareError] = useState<string | null>(null);
+  const [needPassword, setNeedPassword] = useState(false);
+  const [expirationDays, setExpirationDays] = useState(-1);
   const [shares, setShares] = useLocalStorage<LocalShare[]>(
     [],
     LOCAL_SHARES_STORAGE_KEY,
@@ -109,7 +111,11 @@ export function ShareSection({
       const apiUrl = getApiUrl();
       const response = await axios.post(
         `${apiUrl}/share`,
-        { id: taskData.file_id },
+        {
+          id: taskData.file_id,
+          need_password: needPassword,
+          expiration_days: expirationDays,
+        },
         { headers: getAuthHeaders() },
       );
 
@@ -245,6 +251,34 @@ export function ShareSection({
               </span>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Share Options */}
+      {hasFileId && !shareData && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3 p-3 bg-muted/30 rounded-md border text-xs">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={needPassword}
+              onChange={(e) => setNeedPassword(e.target.checked)}
+              className="h-3.5 w-3.5 rounded border-gray-300"
+            />
+            <span>Require Passcode</span>
+          </label>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground whitespace-nowrap">Expires:</span>
+            <select
+              value={expirationDays}
+              onChange={(e) => setExpirationDays(Number(e.target.value))}
+              className="h-7 w-full rounded border border-input bg-background px-2 text-xs"
+            >
+              <option value={-1}>Permanent</option>
+              <option value={1}>1 Day</option>
+              <option value={7}>7 Days</option>
+              <option value={30}>30 Days</option>
+            </select>
+          </div>
         </div>
       )}
 

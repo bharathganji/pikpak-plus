@@ -1,10 +1,11 @@
 """WebDAV Client Manager"""
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import List, Dict, Optional, Any
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from app.core.config import AppConfig
-from .constants import PLANET_NAMES, PLANET_EMOJIS
+
+from .constants import PLANET_EMOJIS, PLANET_NAMES
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +18,8 @@ class ClientManager:
         self.traffic_checker = traffic_checker
         self.ttl_hours = ttl_hours
         self.cache_manager = cache_manager
-        self.active_clients: List[Dict[str, Any]] = []
-        self.creation_timestamp: Optional[datetime] = None
+        self.active_clients: list[dict[str, Any]] = []
+        self.creation_timestamp: datetime | None = None
 
     def is_client_refresh_needed(self) -> bool:
         """
@@ -32,10 +33,10 @@ class ClientManager:
             return True
 
         # Check if the time since creation exceeds the TTL (in hours)
-        elapsed_time = datetime.now(timezone.utc) - self.creation_timestamp
+        elapsed_time = datetime.now(UTC) - self.creation_timestamp
         return elapsed_time.total_seconds() > (self.ttl_hours * 3600)
 
-    async def create_daily_webdav_clients(self) -> Dict[str, Any]:
+    async def create_daily_webdav_clients(self) -> dict[str, Any]:
         """
         Create 8 WebDAV clients with planet names, delete old ones
 
@@ -81,7 +82,7 @@ class ClientManager:
                             f"Failed to set read-only for {planet_name}, but client creation succeeded: {e}")
 
                     # Build client info
-                    created_at = datetime.now(timezone.utc)
+                    created_at = datetime.now(UTC)
                     expires_at = created_at + timedelta(hours=self.ttl_hours)
 
                     client_info = {
@@ -106,7 +107,7 @@ class ClientManager:
 
             # Store active clients and timestamp
             self.active_clients = created_clients
-            self.creation_timestamp = datetime.now(timezone.utc)
+            self.creation_timestamp = datetime.now(UTC)
 
             # Cache the active clients in Redis as well for immediate access
             if self.cache_manager:
@@ -136,7 +137,7 @@ class ClientManager:
             logger.error(f"Failed to create daily WebDAV clients: {e}")
             return {
                 "success": False,
-                "message": f"Error: {str(e)}",
+                "message": f"Error: {e!s}",
                 "clients": []
             }
 
@@ -188,7 +189,7 @@ class ClientManager:
             logger.error(f"Failed to cleanup WebDAV clients: {e}")
             return 0
 
-    def _get_cached_clients(self) -> Optional[Dict[str, Any]]:
+    def _get_cached_clients(self) -> dict[str, Any] | None:
         """
         Get existing WebDAV clients from cache or memory.
         """
@@ -224,8 +225,8 @@ class ClientManager:
         return cached_result
 
     async def _resolve_client_availability(
-        self, cached_result: Optional[Dict[str, Any]], traffic_available: bool
-    ) -> Dict[str, Any]:
+        self, cached_result: dict[str, Any] | None, traffic_available: bool
+    ) -> dict[str, Any]:
         """
         Resolve client availability based on cache and traffic status.
         Creates new clients if necessary.
@@ -285,7 +286,7 @@ class ClientManager:
                     "clients": []
                 }
 
-    async def get_active_clients(self) -> Dict[str, Any]:
+    async def get_active_clients(self) -> dict[str, Any]:
         """
         Get list of active WebDAV clients with TTL info
 
@@ -308,6 +309,6 @@ class ClientManager:
             logger.error(f"Failed to get active clients: {e}")
             return {
                 "available": False,
-                "message": f"Error: {str(e)}",
+                "message": f"Error: {e!s}",
                 "clients": []
             }
