@@ -39,14 +39,20 @@ export default function GlobalError({
               Critical System Error
             </h1>
             <p className="text-sm text-slate-400">
-              The application encountered a fatal initialization error and could not load the layout.
+              The application encountered a fatal initialization error and could
+              not load the layout.
             </p>
           </div>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-lg p-3 text-left font-mono text-xs text-red-300 break-words">
-            <p className="font-semibold">{error.name || "FatalError"}: {error.message || "An unhandled exception occurred"}</p>
+            <p className="font-semibold">
+              {error.name || "FatalError"}:{" "}
+              {error.message || "An unhandled exception occurred"}
+            </p>
             {error.digest && (
-              <p className="text-[11px] text-slate-500 mt-1">Digest: {error.digest}</p>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Digest: {error.digest}
+              </p>
             )}
           </div>
 

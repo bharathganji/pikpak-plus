@@ -267,7 +267,9 @@ export function ShareSection({
             <span>Require Passcode</span>
           </label>
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground whitespace-nowrap">Expires:</span>
+            <span className="text-muted-foreground whitespace-nowrap">
+              Expires:
+            </span>
             <select
               value={expirationDays}
               onChange={(e) => setExpirationDays(Number(e.target.value))}

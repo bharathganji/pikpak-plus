@@ -1,5 +1,10 @@
 import apiClient from "./api-client";
-import { FileItem, FileListResponse, DownloadResponse, CreateFolderResponse } from "@/types/api";
+import {
+  FileItem,
+  FileListResponse,
+  DownloadResponse,
+  CreateFolderResponse,
+} from "@/types/api";
 
 export interface DownloadUrlResult {
   url: string;
@@ -10,7 +15,10 @@ export const fileService = {
   /**
    * List files and folders with optional parent directory ID and pagination token
    */
-  async listFiles(parentId?: string, pageToken?: string): Promise<FileListResponse> {
+  async listFiles(
+    parentId?: string,
+    pageToken?: string,
+  ): Promise<FileListResponse> {
     const params = new URLSearchParams();
     if (parentId) params.append("parent_id", parentId);
     if (pageToken) params.append("page_token", pageToken);
@@ -37,18 +45,21 @@ export const fileService = {
       // 1. Try dedicated download-url endpoint
       const res = await apiClient.post<{ url?: string; download_url?: string }>(
         "/file/download-url",
-        { id }
+        { id },
       );
       if (res.data?.url || res.data?.download_url) {
         return { url: res.data.url || res.data.download_url || "" };
       }
-    } catch {
+    } catch (err) {
+      console.error(err);
       // Fallback to resolving via getFile
     }
 
     // 2. Fallback to getFile metadata
     const file = await fileService.getFile(id);
-    const octetStream = (file as DownloadResponse).links?.["application/octet-stream"]?.url;
+    const octetStream = (file as DownloadResponse).links?.[
+      "application/octet-stream"
+    ]?.url;
     const webLink = file.web_content_link;
     const directUrl = octetStream || webLink || "";
 
@@ -87,7 +98,10 @@ export const fileService = {
   /**
    * Create a new folder inside parent directory
    */
-  async createFolder(name: string, parentId?: string): Promise<CreateFolderResponse> {
+  async createFolder(
+    name: string,
+    parentId?: string,
+  ): Promise<CreateFolderResponse> {
     const res = await apiClient.post<CreateFolderResponse>("/files/folder", {
       name,
       parent_id: parentId || "",
@@ -98,8 +112,12 @@ export const fileService = {
   /**
    * Delete or move a file to trash
    */
-  async deleteFile(id: string): Promise<{ success: boolean; message?: string }> {
-    const res = await apiClient.delete<{ success: boolean; message?: string }>(`/file/${id}`);
+  async deleteFile(
+    id: string,
+  ): Promise<{ success: boolean; message?: string }> {
+    const res = await apiClient.delete<{ success: boolean; message?: string }>(
+      `/file/${id}`,
+    );
     return res.data;
   },
 };

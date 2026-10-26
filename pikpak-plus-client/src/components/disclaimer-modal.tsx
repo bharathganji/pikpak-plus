@@ -27,7 +27,11 @@ function getServerSnapshot() {
 
 export function DisclaimerModal() {
   const router = useRouter();
-  const consent = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const consent = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
   const open = !consent;
 
   const handleAgree = () => {

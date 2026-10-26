@@ -15,7 +15,7 @@ export const shareService = {
   async createShare(
     fileId: string,
     needPassword: boolean = false,
-    expirationDays: number = -1
+    expirationDays: number = -1,
   ): Promise<ShareData> {
     const res = await apiClient.post<ShareData>("/share", {
       id: fileId,
@@ -30,7 +30,9 @@ export const shareService = {
    */
   async getShares(): Promise<RemoteShareItem[]> {
     try {
-      const res = await apiClient.get<RemoteShareItem[] | { shares: RemoteShareItem[] }>("/shares");
+      const res = await apiClient.get<
+        RemoteShareItem[] | { shares: RemoteShareItem[] }
+      >("/shares");
       if (Array.isArray(res.data)) {
         return res.data;
       }
@@ -38,7 +40,8 @@ export const shareService = {
         return (res.data as any).shares;
       }
       return [];
-    } catch {
+    } catch (err) {
+      console.error(err);
       return [];
     }
   },
@@ -46,9 +49,11 @@ export const shareService = {
   /**
    * Revoke or delete a remote share link
    */
-  async revokeShare(shareId: string): Promise<{ success: boolean; message?: string }> {
+  async revokeShare(
+    shareId: string,
+  ): Promise<{ success: boolean; message?: string }> {
     const res = await apiClient.delete<{ success: boolean; message?: string }>(
-      `/shares/${shareId}`
+      `/shares/${shareId}`,
     );
     return res.data;
   },
