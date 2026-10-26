@@ -1,5 +1,9 @@
 "use client";
 
+import { CreateFolderDialog } from "./create-folder-dialog";
+import { CreateShareDialog } from "./create-share-dialog";
+import { ManageSharesDialog } from "./manage-shares-dialog";
+
 import { useState, useEffect, useCallback } from "react";
 import {
   Folder,
@@ -561,264 +565,44 @@ export function FileExplorer() {
         )}
       </CardContent>
 
-      {/* Dialog: Create Folder */}
-      <Dialog open={newFolderOpen} onOpenChange={setNewFolderOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Create New Folder</DialogTitle>
-            <DialogDescription>
-              Create a directory inside{" "}
-              {breadcrumbs[breadcrumbs.length - 1].name}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleCreateFolder}>
-            <div className="py-4">
-              <Input
-                placeholder="Folder name"
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setNewFolderOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={creatingFolder || !newFolderName.trim()}
-              >
-                {creatingFolder ? "Creating..." : "Create"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <CreateFolderDialog
+        open={newFolderOpen}
+        onOpenChange={setNewFolderOpen}
+        folderName={newFolderName}
+        setFolderName={setNewFolderName}
+        creatingFolder={creatingFolder}
+        onCreateFolder={handleCreateFolder}
+        parentFolderName={breadcrumbs[breadcrumbs.length - 1].name}
+      />
 
-      {/* Dialog: Create Remote Share */}
-      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Share2 className="h-5 w-5 text-primary" />
-              Create Share Link
-            </DialogTitle>
-            <DialogDescription className="truncate">
-              {selectedFileForShare?.name}
-            </DialogDescription>
-          </DialogHeader>
+      <CreateShareDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        fileName={selectedFileForShare?.name}
+        generatedShare={generatedShare}
+        shareCopied={shareCopied}
+        onCopyShare={(url: string) => {
+          copy(url);
+          setShareCopied(true);
+          setTimeout(() => setShareCopied(false), 2000);
+        }}
+        shareNeedPassword={shareNeedPassword}
+        setShareNeedPassword={setShareNeedPassword}
+        shareExpirationDays={shareExpirationDays}
+        setShareExpirationDays={setShareExpirationDays}
+        creatingShare={creatingShare}
+        onCreateShare={handleCreateShare}
+      />
 
-          {generatedShare ? (
-            <div className="space-y-4 py-2">
-              <div className="p-3 bg-muted rounded-md space-y-2 text-xs">
-                <div>
-                  <span className="text-muted-foreground block mb-1">
-                    Share URL:
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      readOnly
-                      value={generatedShare.share_url}
-                      className="font-mono text-xs h-8"
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        copy(generatedShare.share_url);
-                        setShareCopied(true);
-                        setTimeout(() => setShareCopied(false), 2000);
-                      }}
-                      className="h-8 px-2.5 shrink-0"
-                    >
-                      {shareCopied ? (
-                        <Check className="h-3.5 w-3.5 text-emerald-500" />
-                      ) : (
-                        <Copy className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-
-                {generatedShare.pass_code && (
-                  <div className="pt-2">
-                    <span className="text-muted-foreground block mb-1">
-                      Access Passcode:
-                    </span>
-                    <Badge
-                      variant="secondary"
-                      className="font-mono text-xs tracking-wider"
-                    >
-                      {generatedShare.pass_code}
-                    </Badge>
-                  </div>
-                )}
-              </div>
-              <DialogFooter>
-                <Button
-                  onClick={() => setShareDialogOpen(false)}
-                  className="w-full"
-                >
-                  Done
-                </Button>
-              </DialogFooter>
-            </div>
-          ) : (
-            <div className="space-y-4 py-2 text-sm">
-              <div className="flex items-center justify-between border p-3 rounded-md">
-                <div className="space-y-0.5">
-                  <div className="font-medium text-xs flex items-center gap-1.5">
-                    <Lock className="h-3.5 w-3.5 text-primary" />
-                    Require Passcode
-                  </div>
-                  <div className="text-[11px] text-muted-foreground">
-                    Generate an access code for protected sharing
-                  </div>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={shareNeedPassword}
-                  onChange={(e) => setShareNeedPassword(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-primary cursor-pointer"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-primary" />
-                  Expiration Period
-                </label>
-                <select
-                  value={shareExpirationDays}
-                  onChange={(e) =>
-                    setShareExpirationDays(Number(e.target.value))
-                  }
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <option value={-1}>Permanent (Never Expires)</option>
-                  <option value={1}>1 Day</option>
-                  <option value={7}>7 Days</option>
-                  <option value={30}>30 Days</option>
-                </select>
-              </div>
-
-              <DialogFooter className="pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShareDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleCreateShare} disabled={creatingShare}>
-                  {creatingShare ? "Creating..." : "Generate Share Link"}
-                </Button>
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog: Manage Remote Shares */}
-      <Dialog open={manageSharesOpen} onOpenChange={setManageSharesOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Share2 className="h-5 w-5 text-primary" />
-              Active Remote Shares
-            </DialogTitle>
-            <DialogDescription>
-              View and revoke active share links generated on your PikPak
-              storage
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="overflow-y-auto flex-1 pr-1 space-y-3 py-2">
-            {loadingShares ? (
-              <div className="space-y-2">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-16 w-full rounded-md" />
-                ))}
-              </div>
-            ) : remoteShares.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground text-xs">
-                No active remote shares found.
-              </div>
-            ) : (
-              remoteShares.map((share) => {
-                const shareId = share.share_id || share.id || "";
-                const isRevoking = revokingShareId === shareId;
-
-                return (
-                  <div
-                    key={shareId || share.share_url}
-                    className="p-3 border rounded-md bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
-                  >
-                    <div className="space-y-1 min-w-0 flex-1">
-                      <div className="font-medium truncate text-foreground">
-                        {share.file_name || "Shared Content"}
-                      </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <a
-                          href={share.share_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-mono text-primary hover:underline flex items-center gap-1 text-[11px] truncate max-w-xs"
-                        >
-                          {share.share_url}
-                          <ExternalLink className="h-3 w-3 inline shrink-0" />
-                        </a>
-                        {share.pass_code && (
-                          <Badge variant="secondary" className="text-[10px]">
-                            Code: {share.pass_code}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          copy(share.share_url);
-                        }}
-                        className="h-7 px-2 text-[11px] gap-1"
-                      >
-                        <Copy className="h-3 w-3" />
-                        Copy
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleRevokeShare(shareId)}
-                        disabled={isRevoking || !shareId}
-                        className="h-7 px-2 text-[11px] gap-1"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                        {isRevoking ? "Revoking..." : "Revoke"}
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          <DialogFooter className="pt-2">
-            <Button
-              variant="outline"
-              onClick={() => setManageSharesOpen(false)}
-            >
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ManageSharesDialog
+        open={manageSharesOpen}
+        onOpenChange={setManageSharesOpen}
+        loadingShares={loadingShares}
+        remoteShares={remoteShares}
+        revokingShareId={revokingShareId}
+        onRevokeShare={handleRevokeShare}
+        onCopyShare={copy}
+      />
     </Card>
   );
 }
