@@ -61,6 +61,14 @@ def update_redis_status(redis_client, run_time, next_run_time, job_name):
                 '+')[0] + 'Z'
             scheduler_info[f"last_{job_name}"] = run_time.isoformat().split(
                 '+')[0] + 'Z'
+            logger.info(
+                f"Updated next {job_name} time in Redis: {next_run_time.isoformat()}Z "
+                f"(based on run time {run_time.isoformat()}Z)"
+            )
+        else:
+            logger.debug(
+                f"Updated heartbeat in Redis at {run_time.isoformat()}Z"
+            )
 
         # Always update heartbeat/status
         scheduler_info["status"] = "running"
@@ -68,10 +76,6 @@ def update_redis_status(redis_client, run_time, next_run_time, job_name):
 
         redis_client.set("pikpak_scheduler_status",
                          json.dumps(scheduler_info), ex=3600)
-
-        logger.info(
-            f"Updated next {job_name} time in Redis: {next_run_time.isoformat()}Z "
-            f"(based on run time {run_time.isoformat()}Z)"
-        )
     except Exception as e:
-        logger.error(f"Failed to update next {job_name} time in Redis: {e}")
+        job_desc = job_name or "heartbeat"
+        logger.error(f"Failed to update next {job_desc} time in Redis: {e}")

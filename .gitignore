@@ -53,7 +53,7 @@ pikpak_login_state.json
 .agents/
 
 # Editor & OS files
-.vscode/*
+.vscode
 !.vscode/extensions.json
 !.vscode/settings.json
 .idea/

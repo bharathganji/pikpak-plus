@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocalStorage } from "primereact/hooks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,10 @@ export function MyActivityTab() {
     [],
     LOCAL_SHARES_STORAGE_KEY,
   );
+  const sharesRef = useRef(shares);
+  sharesRef.current = shares;
+  const setSharesRef = useRef(setShares);
+  setSharesRef.current = setShares;
   const [serverTasks, setServerTasks] = useState<LocalTask[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,12 +103,12 @@ export function MyActivityTab() {
           // Merge with local shares
           const shareMap = new Map<string, LocalShare>();
           mappedShares.forEach((ms) => shareMap.set(ms.share_url, ms));
-          shares.forEach((ls) => {
+          (sharesRef.current || []).forEach((ls) => {
             if (!shareMap.has(ls.share_url)) {
               shareMap.set(ls.share_url, ls);
             }
           });
-          setShares(Array.from(shareMap.values()));
+          setSharesRef.current(Array.from(shareMap.values()));
         }
       } catch (err) {
         console.error(err);
@@ -115,7 +119,7 @@ export function MyActivityTab() {
     } finally {
       setLoading(false);
     }
-  }, [setShares, shares]);
+  }, []);
 
   useEffect(() => {
     syncServerTasks();

@@ -6,6 +6,7 @@ from flask import Blueprint
 from app.api.routes import (
     admin,
     auth,
+    files,
     health,
     quota,
     shares,
@@ -22,6 +23,7 @@ api_bp = Blueprint('api', __name__)
 
 # Register all route blueprints
 api_bp.register_blueprint(auth.bp, url_prefix='/')
+api_bp.register_blueprint(files.bp, url_prefix='/')
 api_bp.register_blueprint(admin.bp, url_prefix='/admin')
 api_bp.register_blueprint(tasks.bp, url_prefix='/')
 api_bp.register_blueprint(quota.bp, url_prefix='/')

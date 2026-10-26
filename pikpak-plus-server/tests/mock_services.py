@@ -442,6 +442,9 @@ class MockPikPakService:
     async def list_shares(self, **kwargs) -> dict[str, Any]:
         return {"shares": []}
 
+    async def delete_share(self, share_id: str, **kwargs) -> dict[str, Any]:
+        return {"success": True}
+
     async def get_webdav_applications(self) -> dict[str, Any]:
         return {
             "status": "ok",

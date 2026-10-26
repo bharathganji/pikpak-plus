@@ -69,3 +69,29 @@ def test_create_share_global_deduplication(test_client, auth_headers, memory_sup
     data = res.get_json()
     assert data.get("share_id") == "share_existing_111"
 
+
+def test_list_shares_success(test_client, auth_headers):
+    """Test GET /shares returns 200 with list of shares."""
+    res = test_client.get("/shares", headers=auth_headers)
+    assert res.status_code == 200
+    data = res.get_json()
+    assert "shares" in data
+
+
+def test_list_shares_unauthenticated(test_client):
+    """Test GET /shares without auth returns 401."""
+    res = test_client.get("/shares")
+    assert res.status_code == 401
+
+
+def test_delete_share_success(test_client, auth_headers):
+    """Test DELETE /shares/<id> returns 200."""
+    res = test_client.delete("/shares/share_12345", headers=auth_headers)
+    assert res.status_code == 200
+    assert res.get_json()["success"] is True
+
+
+def test_delete_share_invalid_id(test_client, auth_headers):
+    """Test DELETE /shares/<id> with path traversal returns 400."""
+    res = test_client.delete("/shares/..%2Fetc%2Fpasswd", headers=auth_headers)
+    assert res.status_code in (400, 404)
