@@ -4,7 +4,14 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default function ErrorBoundary({
   error,
@@ -29,14 +36,16 @@ export default function ErrorBoundary({
             Something went wrong
           </CardTitle>
           <CardDescription className="text-muted-foreground text-sm mt-1">
-            An unexpected error occurred while loading this view. You can try recovering or return to the main dashboard.
+            An unexpected error occurred while loading this view. You can try
+            recovering or return to the main dashboard.
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4 pt-2">
           <div className="rounded-md bg-muted/60 p-3 text-xs text-muted-foreground font-mono break-words border border-border/50">
             <p className="font-semibold text-destructive mb-1">
-              {error.name || "Error"}: {error.message || "Unknown error occurred"}
+              {error.name || "Error"}:{" "}
+              {error.message || "Unknown error occurred"}
             </p>
             {error.digest && (
               <p className="text-[11px] opacity-75">

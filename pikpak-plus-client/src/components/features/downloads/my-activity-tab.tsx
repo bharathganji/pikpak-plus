@@ -51,7 +51,7 @@ export function MyActivityTab() {
       const response = await taskService.getTasks(1, 100);
       const records: SupabaseTaskRecord[] = response.data || [];
 
-      const mapped: LocalTask[] = records.map((record) => {
+      const mapped: LocalTask[] = (records || []).map((record) => {
         const taskData = record.data.task?.task;
         const whatslink = record.data.whatslink;
         const phase = taskData?.phase;
@@ -66,8 +66,14 @@ export function MyActivityTab() {
           url: record.data.url,
           status,
           timestamp: new Date(record.created_at).getTime(),
-          name: taskData?.file_name || whatslink?.name || record.data.meta?.title || "Download Task",
-          file_size: taskData?.file_size || (whatslink?.size ? String(whatslink.size) : undefined),
+          name:
+            taskData?.file_name ||
+            whatslink?.name ||
+            record.data.meta?.title ||
+            "Download Task",
+          file_size:
+            taskData?.file_size ||
+            (whatslink?.size ? String(whatslink.size) : undefined),
           file_type: whatslink?.file_type,
           file_id: taskData?.file_id,
         };
@@ -79,12 +85,14 @@ export function MyActivityTab() {
       try {
         const remoteShares = await shareService.getShares();
         if (remoteShares.length > 0) {
-          const mappedShares: LocalShare[] = remoteShares.map((s) => ({
+          const mappedShares: LocalShare[] = (remoteShares || []).map((s) => ({
             id: s.share_id || s.id || `share-${Date.now()}`,
             file_name: s.file_name || "Shared Content",
             share_url: s.share_url,
             pass_code: s.pass_code,
-            timestamp: s.created_at ? new Date(s.created_at).getTime() : Date.now(),
+            timestamp: s.created_at
+              ? new Date(s.created_at).getTime()
+              : Date.now(),
             file_id: s.id || "",
           }));
 
@@ -98,7 +106,8 @@ export function MyActivityTab() {
           });
           setShares(Array.from(shareMap.values()));
         }
-      } catch {
+      } catch (err) {
+        console.error(err);
         // Non-blocking for shares
       }
     } catch (err: any) {
@@ -122,7 +131,7 @@ export function MyActivityTab() {
     }
   });
   const allTasks = Array.from(taskMap.values()).sort(
-    (a, b) => b.timestamp - a.timestamp
+    (a, b) => b.timestamp - a.timestamp,
   );
 
   const handleDeleteClick = (taskId: string) => {
@@ -135,7 +144,8 @@ export function MyActivityTab() {
       if (/^\d+$/.test(taskToDelete)) {
         try {
           await taskService.deleteTask(taskToDelete);
-        } catch {
+        } catch (err) {
+          console.error(err);
           // If server delete fails, still clear locally
         }
       }
@@ -159,7 +169,8 @@ export function MyActivityTab() {
   const handleDeleteShare = async (shareId: string) => {
     try {
       await shareService.revokeShare(shareId);
-    } catch {
+    } catch (err) {
+      console.error(err);
       // Continue local cleanup
     }
     const updatedShares = shares.filter((s) => s.id !== shareId);
@@ -179,7 +190,10 @@ export function MyActivityTab() {
     <Card className="border-primary/20 shadow-lg shadow-primary/5 w-full max-w-full">
       <CardContent className="pl-2 pr-2 w-full pt-4">
         {error && (
-          <Alert variant="destructive" className="mb-4 mx-3 sm:mx-4 md:mx-6 text-xs">
+          <Alert
+            variant="destructive"
+            className="mb-4 mx-3 sm:mx-4 md:mx-6 text-xs"
+          >
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="flex items-center justify-between">
               <span>{error}</span>
@@ -214,7 +228,9 @@ export function MyActivityTab() {
                 title="Sync from server"
                 className="h-8 w-8"
               >
-                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                <RefreshCw
+                  className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+                />
               </Button>
 
               {allTasks.length > 0 && (
@@ -243,7 +259,7 @@ export function MyActivityTab() {
             </div>
           ) : (
             <div className="space-y-2 px-3 sm:px-4 md:px-6 w-full max-w-full">
-              {allTasks.map((task) => (
+              {(allTasks || []).map((task) => (
                 <TaskItem
                   key={task.id}
                   task={task}
@@ -273,14 +289,16 @@ export function MyActivityTab() {
 
           {shares.length === 0 ? (
             <div className="px-3 sm:px-4 md:px-6 flex flex-col items-center justify-center py-8 text-center">
-              <p className="text-muted-foreground mb-2 text-sm">No share links yet</p>
+              <p className="text-muted-foreground mb-2 text-sm">
+                No share links yet
+              </p>
               <p className="text-xs text-muted-foreground">
                 Create share links from the File Explorer or task details dialog
               </p>
             </div>
           ) : (
             <div className="space-y-2 px-3 sm:px-4 md:px-6 w-full max-w-full">
-              {shares.map((share) => (
+              {(shares || []).map((share) => (
                 <ShareItem
                   key={share.id}
                   share={share}

@@ -3,7 +3,13 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export interface ErrorBoundaryProps {
   children: ReactNode;
@@ -19,7 +25,10 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = {
@@ -39,7 +48,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     } else {
-      console.error("ErrorBoundary caught an unhandled component error:", error, errorInfo);
+      console.error(
+        "ErrorBoundary caught an unhandled component error:",
+        error,
+        errorInfo,
+      );
     }
   }
 
@@ -49,7 +62,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     // Auto-reset when any of resetKeys change
     if (this.props.resetKeys && prevProps.resetKeys) {
       const hasChanged = this.props.resetKeys.some(
-        (key, index) => key !== prevProps.resetKeys?.[index]
+        (key, index) => key !== prevProps.resetKeys?.[index],
       );
       if (hasChanged) {
         this.reset();
@@ -116,7 +129,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
  */
 export function withErrorBoundary<P extends object>(
   WrappedComponent: React.ComponentType<P>,
-  errorBoundaryProps?: Omit<ErrorBoundaryProps, "children">
+  errorBoundaryProps?: Omit<ErrorBoundaryProps, "children">,
 ): React.FC<P> {
   const ComponentWithErrorBoundary: React.FC<P> = (props: P) => (
     <ErrorBoundary {...errorBoundaryProps}>
@@ -124,7 +137,8 @@ export function withErrorBoundary<P extends object>(
     </ErrorBoundary>
   );
 
-  const displayName = WrappedComponent.displayName || WrappedComponent.name || "Component";
+  const displayName =
+    WrappedComponent.displayName || WrappedComponent.name || "Component";
   ComponentWithErrorBoundary.displayName = `WithErrorBoundary(${displayName})`;
 
   return ComponentWithErrorBoundary;

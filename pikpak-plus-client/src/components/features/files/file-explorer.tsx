@@ -61,7 +61,9 @@ export function FileExplorer() {
 
   // Direct download state
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [downloadSuccessMessage, setDownloadSuccessMessage] = useState<string | null>(null);
+  const [downloadSuccessMessage, setDownloadSuccessMessage] = useState<
+    string | null
+  >(null);
 
   // New folder dialog
   const [newFolderOpen, setNewFolderOpen] = useState<boolean>(false);
@@ -70,7 +72,8 @@ export function FileExplorer() {
 
   // Share dialog state
   const [shareDialogOpen, setShareDialogOpen] = useState<boolean>(false);
-  const [selectedFileForShare, setSelectedFileForShare] = useState<FileItem | null>(null);
+  const [selectedFileForShare, setSelectedFileForShare] =
+    useState<FileItem | null>(null);
   const [shareNeedPassword, setShareNeedPassword] = useState<boolean>(false);
   const [shareExpirationDays, setShareExpirationDays] = useState<number>(-1);
   const [creatingShare, setCreatingShare] = useState<boolean>(false);
@@ -136,7 +139,10 @@ export function FileExplorer() {
 
     setCreatingFolder(true);
     try {
-      await fileService.createFolder(newFolderName.trim(), currentFolderId || undefined);
+      await fileService.createFolder(
+        newFolderName.trim(),
+        currentFolderId || undefined,
+      );
       setNewFolderName("");
       setNewFolderOpen(false);
       loadFiles(currentFolderId);
@@ -178,7 +184,7 @@ export function FileExplorer() {
       const result = await shareService.createShare(
         selectedFileForShare.id,
         shareNeedPassword,
-        shareExpirationDays
+        shareExpirationDays,
       );
       setGeneratedShare(result);
     } catch (err: any) {
@@ -194,7 +200,7 @@ export function FileExplorer() {
     try {
       const shares = await shareService.getShares();
       setRemoteShares(shares);
-    } catch {
+    } catch (err) {
       setRemoteShares([]);
     } finally {
       setLoadingShares(false);
@@ -211,7 +217,9 @@ export function FileExplorer() {
     setRevokingShareId(shareId);
     try {
       await shareService.revokeShare(shareId);
-      setRemoteShares((prev) => prev.filter((s) => (s.share_id || s.id) !== shareId));
+      setRemoteShares((prev) =>
+        prev.filter((s) => (s.share_id || s.id) !== shareId),
+      );
     } catch (err: any) {
       setError(err.message || "Failed to revoke share");
     } finally {
@@ -243,7 +251,7 @@ export function FileExplorer() {
         month: "short",
         day: "numeric",
       });
-    } catch {
+    } catch (err) {
       return dateStr;
     }
   };
@@ -263,16 +271,25 @@ export function FileExplorer() {
     const ext = (file.file_extension || "").toLowerCase();
     const mime = (file.mime_type || "").toLowerCase();
 
-    if (["mp4", "mkv", "avi", "mov", "webm"].includes(ext) || mime.startsWith("video/")) {
+    if (
+      ["mp4", "mkv", "avi", "mov", "webm"].includes(ext) ||
+      mime.startsWith("video/")
+    ) {
       return <Video className="h-5 w-5 text-purple-500" />;
     }
-    if (["mp3", "flac", "wav", "aac", "ogg"].includes(ext) || mime.startsWith("audio/")) {
+    if (
+      ["mp3", "flac", "wav", "aac", "ogg"].includes(ext) ||
+      mime.startsWith("audio/")
+    ) {
       return <Music className="h-5 w-5 text-emerald-500" />;
     }
     if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) {
       return <Archive className="h-5 w-5 text-orange-500" />;
     }
-    if (["jpg", "jpeg", "png", "webp", "gif", "svg"].includes(ext) || mime.startsWith("image/")) {
+    if (
+      ["jpg", "jpeg", "png", "webp", "gif", "svg"].includes(ext) ||
+      mime.startsWith("image/")
+    ) {
       return <ImageIcon className="h-5 w-5 text-pink-500" />;
     }
     if (["pdf", "txt", "doc", "docx", "md"].includes(ext)) {
@@ -289,7 +306,7 @@ export function FileExplorer() {
 
   // Filter files by search
   const filteredFiles = files.filter((f) =>
-    f.name.toLowerCase().includes(searchQuery.toLowerCase())
+    f.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const renderFileRow = (file: FileItem) => {
@@ -341,7 +358,9 @@ export function FileExplorer() {
                   title="Direct Download"
                   className="h-8 px-2 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10"
                 >
-                  <Download className={`h-3.5 w-3.5 ${isDownloading ? "animate-bounce" : ""}`} />
+                  <Download
+                    className={`h-3.5 w-3.5 ${isDownloading ? "animate-bounce" : ""}`}
+                  />
                   <span className="hidden sm:inline">Download</span>
                 </Button>
 
@@ -383,7 +402,8 @@ export function FileExplorer() {
               File Explorer
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Browse cloud drive, navigate folders, and initiate direct downloads
+              Browse cloud drive, navigate folders, and initiate direct
+              downloads
             </p>
           </div>
 
@@ -414,7 +434,9 @@ export function FileExplorer() {
               title="Refresh files"
               className="h-8 w-8"
             >
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+              />
             </Button>
           </div>
         </div>
@@ -422,7 +444,10 @@ export function FileExplorer() {
         {/* Directory Breadcrumbs */}
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-3 overflow-x-auto py-1 scrollbar-none">
           {breadcrumbs.map((crumb, idx) => (
-            <div key={crumb.id || "root"} className="flex items-center gap-1 shrink-0">
+            <div
+              key={crumb.id || "root"}
+              className="flex items-center gap-1 shrink-0"
+            >
               {idx > 0 && <ChevronRight className="h-3.5 w-3.5 opacity-50" />}
               <button
                 type="button"
@@ -456,7 +481,9 @@ export function FileExplorer() {
         {downloadSuccessMessage && (
           <Alert className="mb-4 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
             <Check className="h-4 w-4" />
-            <AlertDescription className="text-xs">{downloadSuccessMessage}</AlertDescription>
+            <AlertDescription className="text-xs">
+              {downloadSuccessMessage}
+            </AlertDescription>
           </Alert>
         )}
 
@@ -540,7 +567,8 @@ export function FileExplorer() {
           <DialogHeader>
             <DialogTitle>Create New Folder</DialogTitle>
             <DialogDescription>
-              Create a directory inside {breadcrumbs[breadcrumbs.length - 1].name}
+              Create a directory inside{" "}
+              {breadcrumbs[breadcrumbs.length - 1].name}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateFolder}>
@@ -560,7 +588,10 @@ export function FileExplorer() {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={creatingFolder || !newFolderName.trim()}>
+              <Button
+                type="submit"
+                disabled={creatingFolder || !newFolderName.trim()}
+              >
                 {creatingFolder ? "Creating..." : "Create"}
               </Button>
             </DialogFooter>
@@ -585,7 +616,9 @@ export function FileExplorer() {
             <div className="space-y-4 py-2">
               <div className="p-3 bg-muted rounded-md space-y-2 text-xs">
                 <div>
-                  <span className="text-muted-foreground block mb-1">Share URL:</span>
+                  <span className="text-muted-foreground block mb-1">
+                    Share URL:
+                  </span>
                   <div className="flex items-center gap-2">
                     <Input
                       readOnly
@@ -602,22 +635,34 @@ export function FileExplorer() {
                       }}
                       className="h-8 px-2.5 shrink-0"
                     >
-                      {shareCopied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                      {shareCopied ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-500" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
                     </Button>
                   </div>
                 </div>
 
                 {generatedShare.pass_code && (
                   <div className="pt-2">
-                    <span className="text-muted-foreground block mb-1">Access Passcode:</span>
-                    <Badge variant="secondary" className="font-mono text-xs tracking-wider">
+                    <span className="text-muted-foreground block mb-1">
+                      Access Passcode:
+                    </span>
+                    <Badge
+                      variant="secondary"
+                      className="font-mono text-xs tracking-wider"
+                    >
                       {generatedShare.pass_code}
                     </Badge>
                   </div>
                 )}
               </div>
               <DialogFooter>
-                <Button onClick={() => setShareDialogOpen(false)} className="w-full">
+                <Button
+                  onClick={() => setShareDialogOpen(false)}
+                  className="w-full"
+                >
                   Done
                 </Button>
               </DialogFooter>
@@ -649,7 +694,9 @@ export function FileExplorer() {
                 </label>
                 <select
                   value={shareExpirationDays}
-                  onChange={(e) => setShareExpirationDays(Number(e.target.value))}
+                  onChange={(e) =>
+                    setShareExpirationDays(Number(e.target.value))
+                  }
                   className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
                   <option value={-1}>Permanent (Never Expires)</option>
@@ -685,7 +732,8 @@ export function FileExplorer() {
               Active Remote Shares
             </DialogTitle>
             <DialogDescription>
-              View and revoke active share links generated on your PikPak storage
+              View and revoke active share links generated on your PikPak
+              storage
             </DialogDescription>
           </DialogHeader>
 
@@ -762,7 +810,10 @@ export function FileExplorer() {
           </div>
 
           <DialogFooter className="pt-2">
-            <Button variant="outline" onClick={() => setManageSharesOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setManageSharesOpen(false)}
+            >
               Close
             </Button>
           </DialogFooter>

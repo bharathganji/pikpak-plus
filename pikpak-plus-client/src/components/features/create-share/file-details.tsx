@@ -46,7 +46,9 @@ export function FileDetails({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => fileService.downloadFile(taskData.file_id, taskData.file_name)}
+              onClick={() =>
+                fileService.downloadFile(taskData.file_id, taskData.file_name)
+              }
               className="h-7 text-xs gap-1.5 text-primary hover:text-primary hover:bg-primary/10"
             >
               <Download className="h-3.5 w-3.5" />

@@ -37,9 +37,9 @@ export const quotaService = {
    * Get currently active WebDAV client sessions
    */
   async getWebDAVClients(): Promise<WebDAVClient[]> {
-    const res = await apiClient.get<WebDAVClient[] | { clients: WebDAVClient[] }>(
-      "/webdav/active-clients"
-    );
+    const res = await apiClient.get<
+      WebDAVClient[] | { clients: WebDAVClient[] }
+    >("/webdav/active-clients");
     if (Array.isArray(res.data)) {
       return res.data;
     }

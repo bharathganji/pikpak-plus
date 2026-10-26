@@ -85,7 +85,7 @@ export function VirtualList<T>({
         }
       });
     },
-    [onScroll]
+    [onScroll],
   );
 
   useEffect(() => {
@@ -123,24 +123,77 @@ export function VirtualList<T>({
   }, [items, itemHeight, isFixed]);
 
   // Calculate visible range
-  const { startIndex, endIndex, topSpacerHeight, bottomSpacerHeight } = useMemo(() => {
-    if (items.length === 0) {
-      return {
-        startIndex: 0,
-        endIndex: 0,
-        topSpacerHeight: 0,
-        bottomSpacerHeight: 0,
-      };
-    }
+  const { startIndex, endIndex, topSpacerHeight, bottomSpacerHeight } =
+    useMemo(() => {
+      if (items.length === 0) {
+        return {
+          startIndex: 0,
+          endIndex: 0,
+          topSpacerHeight: 0,
+          bottomSpacerHeight: 0,
+        };
+      }
 
-    if (isFixed) {
-      const fixedH = itemHeight as number;
-      const start = Math.max(0, Math.floor(scrollTop / fixedH) - overscan);
-      const visibleCount = Math.ceil(containerHeight / fixedH);
-      const end = Math.min(items.length, start + visibleCount + overscan * 2);
+      if (isFixed) {
+        const fixedH = itemHeight as number;
+        const start = Math.max(0, Math.floor(scrollTop / fixedH) - overscan);
+        const visibleCount = Math.ceil(containerHeight / fixedH);
+        const end = Math.min(items.length, start + visibleCount + overscan * 2);
 
-      const topHeight = start * fixedH;
-      const bottomHeight = Math.max(0, (items.length - end) * fixedH);
+        const topHeight = start * fixedH;
+        const bottomHeight = Math.max(0, (items.length - end) * fixedH);
+
+        return {
+          startIndex: start,
+          endIndex: end,
+          topSpacerHeight: topHeight,
+          bottomSpacerHeight: bottomHeight,
+        };
+      }
+
+      // Binary search for variable heights
+      const offsetArray = offsets || [];
+
+      // Find start index
+      let low = 0;
+      let high = items.length - 1;
+      let start = 0;
+
+      while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        if (offsetArray[mid] <= scrollTop) {
+          start = mid;
+          low = mid + 1;
+        } else {
+          high = mid - 1;
+        }
+      }
+
+      start = Math.max(0, start - overscan);
+
+      // Find end index
+      const targetBottom = scrollTop + containerHeight;
+      low = start;
+      high = items.length - 1;
+      let end = items.length;
+
+      while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        if (offsetArray[mid] >= targetBottom) {
+          end = mid;
+          high = mid - 1;
+        } else {
+          low = mid + 1;
+        }
+      }
+
+      end = Math.min(items.length, end + overscan);
+
+      const topHeight = offsetArray[start] || 0;
+      const bottomHeight = Math.max(
+        0,
+        totalHeight - (offsetArray[end] || totalHeight),
+      );
 
       return {
         startIndex: start,
@@ -148,56 +201,16 @@ export function VirtualList<T>({
         topSpacerHeight: topHeight,
         bottomSpacerHeight: bottomHeight,
       };
-    }
-
-    // Binary search for variable heights
-    const offsetArray = offsets || [];
-
-    // Find start index
-    let low = 0;
-    let high = items.length - 1;
-    let start = 0;
-
-    while (low <= high) {
-      const mid = Math.floor((low + high) / 2);
-      if (offsetArray[mid] <= scrollTop) {
-        start = mid;
-        low = mid + 1;
-      } else {
-        high = mid - 1;
-      }
-    }
-
-    start = Math.max(0, start - overscan);
-
-    // Find end index
-    const targetBottom = scrollTop + containerHeight;
-    low = start;
-    high = items.length - 1;
-    let end = items.length;
-
-    while (low <= high) {
-      const mid = Math.floor((low + high) / 2);
-      if (offsetArray[mid] >= targetBottom) {
-        end = mid;
-        high = mid - 1;
-      } else {
-        low = mid + 1;
-      }
-    }
-
-    end = Math.min(items.length, end + overscan);
-
-    const topHeight = offsetArray[start] || 0;
-    const bottomHeight = Math.max(0, totalHeight - (offsetArray[end] || totalHeight));
-
-    return {
-      startIndex: start,
-      endIndex: end,
-      topSpacerHeight: topHeight,
-      bottomSpacerHeight: bottomHeight,
-    };
-  }, [items.length, isFixed, itemHeight, offsets, scrollTop, overscan, containerHeight, totalHeight]);
+    }, [
+      items.length,
+      isFixed,
+      itemHeight,
+      offsets,
+      scrollTop,
+      overscan,
+      containerHeight,
+      totalHeight,
+    ]);
 
   if (items.length === 0 && emptyComponent) {
     return <>{emptyComponent}</>;
@@ -211,7 +224,7 @@ export function VirtualList<T>({
       onScroll={handleScroll}
       className={cn(
         "overflow-y-auto overflow-x-hidden relative scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40",
-        className
+        className,
       )}
       style={{
         height: typeof height === "number" ? `${height}px` : height,
@@ -223,10 +236,7 @@ export function VirtualList<T>({
       >
         {/* Top spacer preserves scroll offset without rendering DOM elements */}
         {topSpacerHeight > 0 && (
-          <div
-            style={{ height: `${topSpacerHeight}px` }}
-            aria-hidden="true"
-          />
+          <div style={{ height: `${topSpacerHeight}px` }} aria-hidden="true" />
         )}
 
         {/* Windowed items */}

@@ -13,10 +13,10 @@ export const taskService = {
    */
   async getTasks(
     page: number = 1,
-    limit: number = 25
+    limit: number = 25,
   ): Promise<PaginatedResponse<SupabaseTaskRecord>> {
     const res = await apiClient.get<PaginatedResponse<SupabaseTaskRecord>>(
-      `/tasks?page=${page}&limit=${limit}`
+      `/tasks?page=${page}&limit=${limit}`,
     );
     return res.data;
   },
@@ -40,9 +40,11 @@ export const taskService = {
   /**
    * Delete a task by ID
    */
-  async deleteTask(id: number | string): Promise<{ success: boolean; message?: string }> {
+  async deleteTask(
+    id: number | string,
+  ): Promise<{ success: boolean; message?: string }> {
     const res = await apiClient.delete<{ success: boolean; message?: string }>(
-      `/tasks/${id}`
+      `/tasks/${id}`,
     );
     return res.data;
   },

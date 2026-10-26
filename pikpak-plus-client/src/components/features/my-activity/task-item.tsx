@@ -81,7 +81,9 @@ export function TaskItem({ task, onDelete }: Readonly<TaskItemProps>) {
                   disabled={downloading}
                   title="Direct Download"
                 >
-                  <Download className={`h-3.5 w-3.5 ${downloading ? "animate-bounce" : ""}`} />
+                  <Download
+                    className={`h-3.5 w-3.5 ${downloading ? "animate-bounce" : ""}`}
+                  />
                 </Button>
               )}
               <Button

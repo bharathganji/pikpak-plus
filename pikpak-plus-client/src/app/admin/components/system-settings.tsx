@@ -119,7 +119,7 @@ export function SystemSettings() {
     if (!value) return "Never";
     try {
       return new Date(value).toLocaleString();
-    } catch {
+    } catch (err) {
       return value;
     }
   };
