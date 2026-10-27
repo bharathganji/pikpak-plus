@@ -15,7 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import Image from "next/image";
+import { BrandLogo } from "@/components/brand-logo";
 import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
@@ -52,13 +52,9 @@ export default function LoginPage() {
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-primary/5 pointer-events-none" />
 
       <div className="w-full max-w-md flex flex-col items-center gap-8 relative z-10 animate-fade-in">
-        <Image
-          src="/pikpak-plus.png"
-          alt="PikPak Plus"
-          width={280}
-          height={70}
-          className="h-14 sm:h-16 w-auto drop-shadow-2xl transition-transform duration-500 hover:scale-105"
-          priority
+        <BrandLogo
+          size="lg"
+          className="drop-shadow-2xl transition-transform duration-500 hover:scale-105"
         />
 
         <Card className="w-full glass-card shadow-2xl transition-all hover:shadow-primary/10 border-white/10">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { getApiUrl } from "@/lib/api-utils";
+import { getApiUrl, getAuthHeaders } from "@/lib/api-utils";
 import { WebDAVClientCard } from "./webdav-client-card";
 import { WebDAVClient, WebDAVResponse } from "./webdav-types";
 import { WebDAVServerUrl } from "./webdav-server-url";
@@ -30,7 +30,12 @@ export function WebDAVClientsGrid() {
       setError(null);
 
       const apiUrl = getApiUrl();
-      const response = await axios.get(`${apiUrl}/webdav/active-clients`);
+      const headers = getAuthHeaders();
+      const response = await axios.get(`${apiUrl}/webdav/active-clients`, {
+        headers: headers.Authorization
+          ? { Authorization: headers.Authorization }
+          : {},
+      });
       const data: WebDAVResponse = response.data;
       setWebdavData(data);
     } catch (err: any) {

@@ -2,14 +2,15 @@ import { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "PikPak Plus - Web-based Clone of PikPak Service",
-    short_name: "PikPak Plus",
+    id: "/",
+    name: "Tordroid Plus",
+    short_name: "Tordroid Plus",
     description:
-      "A web-based clone of the popular PikPak service that allows users to experience PikPak's features and functionality in a web environment for educational purposes.",
+      "Private family portal for the shared PikPak storage over WebDAV.",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
-    theme_color: "#5b8ef4",
+    theme_color: "#5b5ef0",
     icons: [
       {
         src: "/pwa-192x192.png",
@@ -23,7 +24,7 @@ export default function manifest(): MetadataRoute.Manifest {
       },
       {
         src: "/maskable_icon.png",
-        sizes: "192x192",
+        sizes: "512x512",
         type: "image/png",
         purpose: "maskable",
       },

@@ -18,6 +18,7 @@ services:
       - IS_DEVELOPMENT=${IS_DEVELOPMENT:-false}
       - API_URL_INTERNAL=${API_URL_INTERNAL:-http://server:5000}
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api}
+      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-}
       - USER=${USER:-${user}}
       - PASSWD=${PASSWD:-${passwd}}
       - SUPABASE_URL=${SUPABASE_URL}
@@ -67,6 +68,7 @@ services:
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - PASSWORD_RESET_TOKEN_EXPIRATION_HOURS=${PASSWORD_RESET_TOKEN_EXPIRATION_HOURS:-1}
+      - FAMILY_INVITE_CODE=${FAMILY_INVITE_CODE:-}
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health/ready"]
@@ -105,6 +107,7 @@ services:
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - PASSWORD_RESET_TOKEN_EXPIRATION_HOURS=${PASSWORD_RESET_TOKEN_EXPIRATION_HOURS:-1}
+      - FAMILY_INVITE_CODE=${FAMILY_INVITE_CODE:-}
 
   beat:
     build: ./pikpak-plus-server
@@ -136,6 +139,7 @@ services:
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - PASSWORD_RESET_TOKEN_EXPIRATION_HOURS=${PASSWORD_RESET_TOKEN_EXPIRATION_HOURS:-1}
+      - FAMILY_INVITE_CODE=${FAMILY_INVITE_CODE:-}
 
   redis:
     image: redis:7-alpine

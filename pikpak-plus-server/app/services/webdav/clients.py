@@ -69,7 +69,7 @@ class ClientManager:
                     username = result.get('username', '')
                     password = result.get('password', '')
 
-                    # Set client as read-only by default
+                    # Clients must be read-only; never hand out a writable one
                     try:
                         read_only_result = await self.pikpak_service.modify_webdav_application(
                             username, password, {"read_only": True}
@@ -77,8 +77,14 @@ class ClientManager:
                         logger.info(
                             f"Set WebDAV client {planet_name} as read-only: {read_only_result}")
                     except Exception as e:
-                        logger.warning(
-                            f"Failed to set read-only for {planet_name}, but client creation succeeded: {e}")
+                        logger.error(
+                            f"Failed to set read-only for {planet_name}, deleting client: {e}")
+                        try:
+                            await self.pikpak_service.delete_webdav_application(username, password)
+                        except Exception as delete_error:
+                            logger.error(
+                                f"Failed to delete writable WebDAV client {planet_name}: {delete_error}")
+                        continue
 
                     # Build client info
                     created_at = datetime.now(timezone.utc)

@@ -22,7 +22,7 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   login: (email: string, pass: string) => Promise<void>;
-  register: (email: string, pass: string) => Promise<void>;
+  register: (email: string, pass: string, inviteCode: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
@@ -103,9 +103,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (email: string, pass: string) => {
+  const register = async (email: string, pass: string, inviteCode: string) => {
     try {
-      const res = await apiRegister(email, pass);
+      const res = await apiRegister(email, pass, inviteCode);
       if (res.token && res.user) {
         localStorage.setItem("token", res.token);
         setUser(res.user);

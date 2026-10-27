@@ -1,12 +1,11 @@
 import { MetadataRoute } from "next";
 
+// Private family site: ask all crawlers to stay out
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      allow: "/",
-      disallow: ["/api/", "/admin/"],
+      disallow: "/",
     },
-    sitemap: "https://pikpak-plus.com/sitemap.xml",
   };
 }

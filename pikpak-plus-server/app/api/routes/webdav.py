@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import redis
 from flask import Blueprint, request, jsonify
 from app.core.config import AppConfig
-from app.core.auth import internal_only
+from app.core.auth import require_admin, require_auth
 from app.api.utils.async_helpers import run_async
 from app.api.utils.dependencies import (
     get_pikpak_service,
@@ -20,12 +20,12 @@ bp = Blueprint('webdav', __name__)
 
 
 @bp.route('/webdav/applications', methods=['GET'])
-@internal_only
+@require_admin
 def get_webdav_applications():
     """
     Get WebDAV configuration and application list
 
-    INTERNAL ONLY - Not accessible from external systems
+    ADMIN ONLY - requires an admin JWT
     """
     async def _async_get_webdav_applications():
         try:
@@ -40,12 +40,12 @@ def get_webdav_applications():
 
 
 @bp.route('/webdav/toggle', methods=['POST'])
-@internal_only
+@require_admin
 def toggle_webdav():
     """
     Toggle WebDAV status
 
-    INTERNAL ONLY - Not accessible from external systems
+    ADMIN ONLY - requires an admin JWT
     """
     async def _async_toggle_webdav():
         try:
@@ -66,12 +66,12 @@ def toggle_webdav():
 
 
 @bp.route('/webdav/application', methods=['POST'])
-@internal_only
+@require_admin
 def create_webdav_application():
     """
     Create a new WebDAV application
 
-    INTERNAL ONLY - Not accessible from external systems
+    ADMIN ONLY - requires an admin JWT
     Used by scheduled job to generate planet-named clients
     """
     async def _async_create_webdav_application():
@@ -93,12 +93,12 @@ def create_webdav_application():
 
 
 @bp.route('/webdav/application', methods=['DELETE'])
-@internal_only
+@require_admin
 def delete_webdav_application():
     """
     Delete a WebDAV application
 
-    INTERNAL ONLY - Not accessible from external systems
+    ADMIN ONLY - requires an admin JWT
     Used by scheduled job to cleanup expired clients
     """
     async def _async_delete_webdav_application():
@@ -121,12 +121,12 @@ def delete_webdav_application():
 
 
 @bp.route('/webdav/application', methods=['PATCH'])
-@internal_only
+@require_admin
 def modify_webdav_application():
     """
     Modify WebDAV application properties (e.g., set read_only)
 
-    INTERNAL ONLY - Not accessible from external systems
+    ADMIN ONLY - requires an admin JWT
     """
     async def _async_modify_webdav_application():
         try:
@@ -149,11 +149,12 @@ def modify_webdav_application():
 
 
 @bp.route('/webdav/active-clients', methods=['GET'])
+@require_auth
 def get_active_webdav_clients():
     """
     Get list of active WebDAV clients with TTL info
 
-    EXTERNAL ENDPOINT - Accessible from frontend
+    Requires a logged-in user (returns WebDAV credentials)
     """
     async def _async_get_active_webdav_clients():
         try:

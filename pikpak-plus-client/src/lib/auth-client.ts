@@ -37,10 +37,12 @@ export const login = async (
 export const register = async (
   email: string,
   password: string,
+  inviteCode: string,
 ): Promise<AuthResponse> => {
   const res = await axios.post(`${getApiUrl()}/register`, {
     email,
     password,
+    invite_code: inviteCode,
   });
   return res.data;
 };

@@ -1,64 +1,52 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Frequently Asked Questions - PikPak Plus",
+  title: "Help & FAQ",
   description:
-    "Find answers to common questions about using PikPak Plus for torrent management and file sharing.",
-  openGraph: {
-    title: "Frequently Asked Questions - PikPak Plus",
-    description:
-      "Find answers to common questions about using PikPak Plus for torrent management and file sharing.",
-    type: "website",
-  },
-  twitter: {
-    card: "summary",
-    title: "Frequently Asked Questions - PikPak Plus",
-    description:
-      "Find answers to common questions about using PikPak Plus for torrent management and file sharing.",
-  },
+    "How family members connect to the shared PikPak storage with Tordroid Plus and WebDAV.",
 };
 
 export default function FAQPage() {
   const faqs = [
     {
-      question: "What is PikPak Plus?",
+      question: "What is Tordroid Plus?",
       answer:
-        "PikPak Plus is a web-based clone of the popular PikPak service that allows users to experience PikPak's features and services in a web environment. It's designed to provide similar functionality to the original service for educational and personal use.",
+        "Tordroid Plus is our private family portal for the shared PikPak Premium storage. Sign in to get a WebDAV login, then open the files in any WebDAV app to stream or download them.",
     },
     {
-      question: "How does PikPak Plus work?",
+      question: "How do I join?",
       answer:
-        "PikPak Plus replicates the core functionality of the original PikPak service in a web-based interface. Users can access similar features and services to experience how PikPak works.",
+        "Ask Tordroid for the family invite code, then open the Sign Up page and enter it together with your email and a password.",
     },
     {
-      question: "Is PikPak Plus an official service?",
+      question: "Where do I find my WebDAV login?",
       answer:
-        "No, PikPak Plus is not an official service. It's an independent web-based clone designed to let users experience the functionality of PikPak's services.",
+        "After signing in, open the WebDAV tab. Pick any client card and copy its username and password. The server address is always https://dav.mypikpak.com. Logins are refreshed automatically, so come back here for a new one if yours stops working.",
     },
     {
-      question: "What is the purpose of PikPak Plus?",
+      question: "How do I connect on Android?",
       answer:
-        "The purpose of PikPak Plus is to provide users with a way to experience PikPak's service features in a web-based environment. It's designed for educational purposes and to allow users to understand how the original service works.",
+        "Install a WebDAV-capable file manager such as Solid Explorer, CX File Explorer or Material Files, or a player such as VLC, nPlayer or Kodi. Add a new WebDAV connection with server dav.mypikpak.com, port 443, HTTPS/SSL on, and the username and password from the WebDAV tab.",
     },
     {
-      question: "Is my data safe on PikPak Plus?",
+      question: "How do I connect on Windows?",
       answer:
-        "PikPak Plus is a web-based clone for educational purposes. For actual file storage and management, please use the official PikPak service. This clone is intended for experiencing the interface and functionality only.",
+        "Use a WebDAV app such as RaiDrive or WinSCP for the best experience, or open File Explorer, choose 'Map network drive' and enter https://dav.mypikpak.com with your WebDAV username and password.",
     },
     {
-      question: "How can I get support for PikPak Plus?",
+      question: "How do I connect on iPhone, iPad or Mac?",
       answer:
-        "PikPak Plus is an independent project for educational purposes. For support with the actual PikPak service, please contact the official PikPak support team. This clone is provided as-is for learning purposes.",
+        "On iPhone/iPad use the Files app (Connect to Server) or apps like FE File Explorer, Infuse or VLC. On a Mac, open Finder, choose Go → Connect to Server and enter https://dav.mypikpak.com.",
     },
     {
-      question: "What are the limitations of PikPak Plus?",
+      question: "Can I delete or change files?",
       answer:
-        "PikPak Plus is a web-based clone designed for educational purposes. It may not have all the features of the original service and should not be used for actual file storage or management. It's intended to demonstrate how the original service works.",
+        "No. Family WebDAV logins are read-only, so you can browse, stream and download, but nothing in the shared storage can be deleted or changed by accident.",
     },
     {
-      question: "Where can I find the official PikPak service?",
+      question: "Streaming suddenly stopped working. Why?",
       answer:
-        "For the official PikPak service, please visit the official website or use their official applications. This clone is only intended to help users understand how the service works.",
+        "Either your WebDAV login was refreshed (grab a new one from the WebDAV tab) or the account's daily download traffic is used up. Check the Quota tab and try again later.",
     },
   ];
 
@@ -67,10 +55,10 @@ export default function FAQPage() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-12 text-center">
           <h1 className="text-4xl font-bold mb-4 text-foreground">
-            Frequently Asked Questions
+            Help &amp; FAQ
           </h1>
           <p className="text-lg text-muted-foreground">
-            Find answers to common questions about using PikPak Plus
+            Everything the family needs to get connected to Tordroid Plus
           </p>
         </div>
 

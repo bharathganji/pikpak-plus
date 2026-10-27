@@ -12,22 +12,6 @@ export function Footer() {
           >
             FAQ
           </Link>
-          <a
-            href="https://github.com/bharathganji/pikpak-plus"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-primary hover:underline transition-colors"
-          >
-            GitHub
-          </a>
-          <a
-            href="https://t.me/pikpak_plus"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-primary hover:underline transition-colors"
-          >
-            Telegram
-          </a>
         </div>
         <p className="flex items-center gap-1 flex-wrap justify-center">
           File information powered by{" "}
@@ -42,7 +26,8 @@ export function Footer() {
           </a>
         </p>
         <p className="text-xs max-w-md">
-          As a free public welfare project, please refrain from abuse.
+          Tordroid Plus is private and for family only. Built on the
+          open-source PikPak Plus project (GPL-3.0).
         </p>
       </div>
     </footer>

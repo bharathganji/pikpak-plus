@@ -17,7 +17,7 @@ export function DisclaimerModal() {
   const router = useRouter();
   const [consent, setConsent] = useLocalStorage<boolean>(
     false,
-    "pikpak-plus-consent",
+    "tordroid-plus-consent",
   );
   const [open, setOpen] = useState(false);
 
@@ -50,22 +50,22 @@ export function DisclaimerModal() {
           <p>
             <strong>1. User Responsibility:</strong> You acknowledge that you
             are solely responsible for any content you add, upload, or share on
-            this platform. PikPak Plus does not monitor or control
+            this platform. Tordroid Plus does not monitor or control
             user-generated content.
           </p>
           <p>
-            <strong>2. No Liability:</strong> PikPak Plus and its operators are
+            <strong>2. No Liability:</strong> Tordroid Plus and its operators are
             not liable for any damages, legal issues, or data loss resulting
             from the use of this service or the content hosted herein.
           </p>
           <p>
             <strong>3. Content Ownership:</strong> You retain ownership of your
-            content but grant PikPak Plus a license to host and display it as
+            content but grant Tordroid Plus a license to host and display it as
             part of the service.
           </p>
           <p>
             <strong>4. Indemnification:</strong> You agree to indemnify and hold
-            harmless PikPak Plus from any claims arising out of your use of the
+            harmless Tordroid Plus from any claims arising out of your use of the
             service or violation of these terms.
           </p>
           <p>

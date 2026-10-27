@@ -1,4 +1,5 @@
 """Authentication API Routes"""
+import hmac
 import logging
 from flask import Blueprint, request, jsonify
 from app.core.auth import create_access_token, get_current_user, require_auth
@@ -19,13 +20,27 @@ def register():
     Request body:
         {
             "email": "user@example.com",
-            "password": "securePassword123"
+            "password": "securePassword123",
+            "invite_code": "family-invite-code"
         }
     """
     try:
         data = request.json
         email = data.get('email')
         password = data.get('password')
+        invite_code = (data.get('invite_code') or '').strip()
+
+        if not AppConfig.FAMILY_INVITE_CODE:
+            return jsonify({
+                "error": "Registration closed",
+                "message": "New sign-ups are disabled. Ask the admin for an account."
+            }), 403
+
+        if not hmac.compare_digest(invite_code, AppConfig.FAMILY_INVITE_CODE):
+            return jsonify({
+                "error": "Invalid invite code",
+                "message": "That family invite code is not correct"
+            }), 403
 
         if not email or not password:
             return jsonify({

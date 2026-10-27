@@ -7,63 +7,31 @@ import { AuthProvider } from "@/components/auth-provider";
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-sans" });
 
+const description =
+  "Tordroid Plus is a private family portal for streaming and downloading from the shared PikPak storage over WebDAV.";
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://pikpak-plus.com"),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+  ),
   title: {
-    default: "PikPak Plus - Web-based Clone of PikPak Service",
-    template: "%s | PikPak Plus",
+    default: "Tordroid Plus",
+    template: "%s | Tordroid Plus",
   },
-  description:
-    "PikPak Plus is a web-based clone of the popular PikPak service that allows users to experience PikPak's features and functionality in a web environment for educational purposes.",
-  keywords: [
-    "pikpak",
-    "pikpak clone",
-    "webdav",
-    "file management",
-    "cloud storage",
-    "file sharing",
-    "file transfer",
-    "pikpak web",
-    "pikpak alternative",
-    "pikpak experience",
-  ],
-  authors: [{ name: "PikPak Plus Team" }],
-  creator: "PikPak Plus Team",
-  publisher: "PikPak Plus Team",
+  description,
+  applicationName: "Tordroid Plus",
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://pikpak-plus.com",
-    title: "PikPak Plus - Web-based Clone of PikPak Service",
-    description:
-      "A web-based clone of the popular PikPak service that allows users to experience PikPak's features and functionality in a web environment for educational purposes.",
-    siteName: "PikPak Plus",
-    images: [
-      {
-        url: "/pikpak-plus.png",
-        width: 1200,
-        height: 630,
-        alt: "PikPak Plus - Web-based Clone of PikPak Service",
-      },
-    ],
+    title: "Tordroid Plus",
+    description,
+    siteName: "Tordroid Plus",
+    images: [{ url: "/pwa-512x512.png", width: 512, height: 512 }],
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "PikPak Plus - Web-based Clone of PikPak Service",
-    description:
-      "A web-based clone of the popular PikPak service that allows users to experience PikPak's features and functionality in a web environment for educational purposes.",
-    images: ["/pikpak-plus.png"],
-  },
+  // Private family site: keep it out of search engines
   robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
+    index: false,
+    follow: false,
   },
   icons: {
     icon: "/favicon.ico",
@@ -74,7 +42,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "PikPak Plus",
+    title: "Tordroid Plus",
   },
 };
 

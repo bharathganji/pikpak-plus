@@ -15,13 +15,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import Image from "next/image";
+import { BrandLogo } from "@/components/brand-logo";
 import { Loader2 } from "lucide-react";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
@@ -44,7 +45,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await register(email, password);
+      await register(email, password, inviteCode);
       // Redirect handled by AuthProvider/Router
     } catch (err: any) {
       if (err.response?.data?.message) {
@@ -64,13 +65,9 @@ export default function RegisterPage() {
       <div className="absolute inset-0 bg-gradient-to-bl from-background via-background to-primary/5 pointer-events-none" />
 
       <div className="w-full max-w-md flex flex-col items-center gap-8 relative z-10 animate-fade-in">
-        <Image
-          src="/pikpak-plus.png"
-          alt="PikPak Plus"
-          width={280}
-          height={70}
-          className="h-14 sm:h-16 w-auto drop-shadow-2xl transition-transform duration-500 hover:scale-105"
-          priority
+        <BrandLogo
+          size="lg"
+          className="drop-shadow-2xl transition-transform duration-500 hover:scale-105"
         />
 
         <Card className="w-full glass-card shadow-2xl transition-all hover:shadow-primary/10 border-white/10">
@@ -79,7 +76,7 @@ export default function RegisterPage() {
               Create Account
             </CardTitle>
             <CardDescription className="text-center">
-              Enter your email below to create your account
+              Family only — you need the invite code to sign up
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -92,6 +89,23 @@ export default function RegisterPage() {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
+              <div className="space-y-2">
+                <label
+                  htmlFor="inviteCode"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Family Invite Code
+                </label>
+                <Input
+                  id="inviteCode"
+                  type="text"
+                  autoComplete="off"
+                  value={inviteCode}
+                  onChange={(e) => setInviteCode(e.target.value)}
+                  required
+                  className="bg-background/50 focus:bg-background transition-colors"
+                />
+              </div>
               <div className="space-y-2">
                 <label
                   htmlFor="email"

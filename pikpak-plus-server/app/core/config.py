@@ -53,6 +53,9 @@ class AppConfig:
     ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
     ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
+    # Family invite code required to register (registration is closed if unset)
+    FAMILY_INVITE_CODE = os.getenv("FAMILY_INVITE_CODE", "").strip()
+
     # JWT Configuration
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", os.urandom(64).hex())
     JWT_EXPIRATION_HOURS = int(os.getenv("JWT_EXPIRATION_HOURS", "24"))
