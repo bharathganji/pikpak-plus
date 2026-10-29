@@ -76,7 +76,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         pathname?.startsWith("/reset-password");
       const isAdminPage = pathname?.startsWith("/admin");
       const isPublicPage =
-        pathname?.startsWith("/faq") || pathname?.startsWith("/maintenance");
+        pathname === "/" ||
+        pathname?.startsWith("/faq") ||
+        pathname?.startsWith("/maintenance") ||
+        pathname?.startsWith("/statistics");
 
       if (!user && !isAuthPage && !isPublicPage) {
         // Not logged in and trying to access protected page
@@ -87,10 +90,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         !pathname?.startsWith("/reset-password")
       ) {
         // Logged in and trying to access auth page
-        router.push("/");
+        router.push("/dashboard");
+      } else if (user && pathname === "/") {
+        // Logged in and visiting root landing page -> take to dashboard
+        router.push("/dashboard");
       } else if (user && isAdminPage && !user.is_admin) {
         // Non-admin trying to access admin page
-        router.push("/");
+        router.push("/dashboard");
       }
     }
   }, [user, loading, pathname, router]);
@@ -101,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.token && res.user) {
         localStorage.setItem("token", res.token);
         setUser(res.user);
-        router.push("/");
+        router.push("/dashboard");
       }
     } catch (error) {
       throw error;
@@ -114,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.token && res.user) {
         localStorage.setItem("token", res.token);
         setUser(res.user);
-        router.push("/");
+        router.push("/dashboard");
       }
     } catch (error) {
       throw error;
@@ -137,7 +143,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     pathname?.startsWith("/forgot-password") ||
     pathname?.startsWith("/reset-password");
   const isPublicPage =
-    pathname?.startsWith("/faq") || pathname?.startsWith("/maintenance");
+    pathname === "/" ||
+    pathname?.startsWith("/faq") ||
+    pathname?.startsWith("/maintenance") ||
+    pathname?.startsWith("/statistics");
   const isUnprotected = isAuthPage || isPublicPage;
 
   return (

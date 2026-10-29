@@ -282,35 +282,38 @@ async function runAll() {
   });
 
   // =========================================================================
-  // SECTION 4: Layout Grid Symmetry & Tabs Index Validation
+  // SECTION 4: Layout Grid Symmetry & Dashboard Routing Architecture Validation
   // =========================================================================
 
-  runTest("Layout: page.tsx TabsList grid matches exact 3-column configuration", () => {
-    const pagePath = path.join(CLIENT_DIR, "src", "app", "page.tsx");
-    const content = fs.readFileSync(pagePath, "utf-8");
+  runTest("Layout: DashboardNav matches exact 3-column configuration and routed URLs", () => {
+    const navPath = path.join(CLIENT_DIR, "src", "components", "layout", "dashboard-nav.tsx");
+    assert.strictEqual(fs.existsSync(navPath), true, "dashboard-nav.tsx must exist");
+    const content = fs.readFileSync(navPath, "utf-8");
 
-    // 1. Check TabsList class
-    assert.ok(content.includes('grid-cols-3'), "TabsList must use grid-cols-3 for symmetric 3-column layout");
-    assert.ok(!content.includes('grid-cols-4'), "TabsList must NOT use grid-cols-4");
+    // 1. Check grid class
+    assert.ok(content.includes('grid-cols-3'), "DashboardNav must use grid-cols-3 for symmetric 3-column layout");
+    assert.ok(!content.includes('grid-cols-4'), "DashboardNav must NOT use grid-cols-4");
 
-    // 2. Count TabsTrigger instances
-    const triggerMatches = content.match(/<TabsTrigger\s+value="([^"]+)"/g) || [];
-    assert.strictEqual(triggerMatches.length, 3, "Exactly 3 TabsTrigger elements must exist");
-    assert.deepStrictEqual(
-      triggerMatches.map((m) => m.match(/value="([^"]+)"/)?.[1]),
-      ["create", "downloads", "my-activity"]
-    );
+    // 2. Count DASHBOARD_NAV_ITEMS links
+    assert.ok(content.includes('href: "/dashboard"'), "Must include /dashboard route");
+    assert.ok(content.includes('href: "/dashboard/downloads"'), "Must include /dashboard/downloads route");
+    assert.ok(content.includes('href: "/dashboard/activity"'), "Must include /dashboard/activity route");
+    assert.ok(!content.includes('/files'), "Must not contain /files route");
+  });
 
-    // 3. Count TabsContent instances
-    const contentMatches = content.match(/<TabsContent\s+value="([^"]+)"/g) || [];
-    assert.strictEqual(contentMatches.length, 3, "Exactly 3 TabsContent elements must exist");
-    assert.deepStrictEqual(
-      contentMatches.map((m) => m.match(/value="([^"]+)"/)?.[1]),
-      ["create", "downloads", "my-activity"]
-    );
+  runTest("Layout: Dedicated Dashboard route files exist and isolate views", () => {
+    const dashPage = path.join(CLIENT_DIR, "src", "app", "dashboard", "page.tsx");
+    const downloadsPage = path.join(CLIENT_DIR, "src", "app", "dashboard", "downloads", "page.tsx");
+    const activityPage = path.join(CLIENT_DIR, "src", "app", "dashboard", "activity", "page.tsx");
+    const rootPage = path.join(CLIENT_DIR, "src", "app", "page.tsx");
 
-    // 4. Confirm default tab value is 'create'
-    assert.ok(content.includes('defaultValue="create"'), "Default active tab must be 'create'");
+    assert.strictEqual(fs.existsSync(dashPage), true, "dashboard/page.tsx must exist");
+    assert.strictEqual(fs.existsSync(downloadsPage), true, "dashboard/downloads/page.tsx must exist");
+    assert.strictEqual(fs.existsSync(activityPage), true, "dashboard/activity/page.tsx must exist");
+    assert.strictEqual(fs.existsSync(rootPage), true, "src/app/page.tsx must exist as landing page");
+
+    const rootContent = fs.readFileSync(rootPage, "utf-8");
+    assert.ok(!rootContent.includes("Tabs defaultValue="), "Landing page must not cram operational tabs");
   });
 
   runTest("Layout: my-activity-tab.tsx empty-state copy has no references to File Explorer", () => {
