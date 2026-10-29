@@ -59,5 +59,8 @@
       "eslint --fix",
       "prettier --write"
     ]
+  },
+  "allowScripts": {
+    "unrs-resolver@1.11.1": true
   }
 }
