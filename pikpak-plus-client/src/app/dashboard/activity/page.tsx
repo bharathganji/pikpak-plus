@@ -1,7 +1,12 @@
-"use client";
-
+import type { Metadata } from "next";
 import { MyActivityTab } from "@/components/features/my-activity";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+
+export const metadata: Metadata = {
+  title: "My Activity",
+  description:
+    "View personal task history, active share links, and direct download files.",
+};
 
 export default function ActivityPage() {
   return (
@@ -12,4 +17,3 @@ export default function ActivityPage() {
     </div>
   );
 }
-

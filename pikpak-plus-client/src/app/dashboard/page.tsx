@@ -1,7 +1,11 @@
-"use client";
-
+import type { Metadata } from "next";
 import { CreateShareTab } from "@/components/features/create-share/create-share-tab";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+
+export const metadata: Metadata = {
+  title: "Create & Share",
+  description: "Create and monitor cloud download tasks and share links.",
+};
 
 export default function CreateSharePage() {
   return (
@@ -12,4 +16,3 @@ export default function CreateSharePage() {
     </div>
   );
 }
-

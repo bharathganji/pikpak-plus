@@ -1,7 +1,12 @@
-"use client";
-
+import type { Metadata } from "next";
 import { DownloadsTab } from "@/components/features/downloads/downloads-tab";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+
+export const metadata: Metadata = {
+  title: "Downloads & WebDAV",
+  description:
+    "View storage quota, WebDAV connection details, and media streaming setups.",
+};
 
 export default function DownloadsPage() {
   return (
@@ -12,4 +17,3 @@ export default function DownloadsPage() {
     </div>
   );
 }
-

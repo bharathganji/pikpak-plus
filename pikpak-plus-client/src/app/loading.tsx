@@ -25,8 +25,7 @@ export default function Loading() {
 
       {/* Responsive Tabs Skeleton */}
       <div className="w-full max-w-6xl space-y-4">
-        <div className="grid w-full grid-cols-4 gap-2 mb-4 p-1 rounded-lg bg-muted/40">
-          <Skeleton className="h-9 rounded-md" />
+        <div className="grid w-full grid-cols-3 max-w-2xl mx-auto gap-2 mb-4 p-1 rounded-xl bg-muted/40">
           <Skeleton className="h-9 rounded-md" />
           <Skeleton className="h-9 rounded-md" />
           <Skeleton className="h-9 rounded-md" />
@@ -57,26 +56,9 @@ export default function Loading() {
           </CardHeader>
 
           <CardContent className="pt-4 space-y-3">
-            {/* List Item Skeletons */}
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between p-3 rounded-lg border border-border/40 bg-card/50"
-              >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <Skeleton className="h-5 w-5 rounded shrink-0" />
-                  <div className="space-y-1.5 flex-1 max-w-md">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-3 w-2/3" />
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4 shrink-0 pl-2">
-                  <Skeleton className="h-4 w-16 hidden sm:block" />
-                  <Skeleton className="h-7 w-20 rounded-md" />
-                </div>
-              </div>
-            ))}
+            <Skeleton className="h-12 w-full rounded-lg" />
+            <Skeleton className="h-12 w-full rounded-lg" />
+            <Skeleton className="h-12 w-full rounded-lg" />
           </CardContent>
         </Card>
       </div>
