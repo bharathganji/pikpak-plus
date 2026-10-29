@@ -16,7 +16,7 @@ import { format } from "date-fns";
 import { tooltipStyle } from "./utils";
 
 interface TasksAddedChartProps {
-  chartData: any[];
+  chartData: Array<Record<string, unknown>>;
 }
 
 export function TasksAddedChart({ chartData }: Readonly<TasksAddedChartProps>) {
@@ -68,7 +68,7 @@ export function TasksAddedChart({ chartData }: Readonly<TasksAddedChartProps>) {
                 dx={-10}
               />
               <Tooltip
-                labelFormatter={(date) => format(new Date(date), "PPP")}
+                labelFormatter={(date: unknown) => format(new Date(date as string | number | Date), "PPP")}
                 contentStyle={tooltipStyle}
                 cursor={{ fill: "rgba(0,0,0,0.05)" }}
               />

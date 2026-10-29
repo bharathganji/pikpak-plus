@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { MagnetInputCard } from "./magnet-input-card";
 import { GlobalActivityCard } from "./global-activity-card";
 import { fetchConfig, fetchCleanupStatus, fetchGlobalTasks } from "./api-utils";
-import { useLocalStorage } from "primereact/hooks";
+import { useLocalStorage } from "@uidotdev/usehooks";
 import { LocalTask, LOCAL_TASKS_STORAGE_KEY } from "../my-activity/types";
 
 export function CreateShareTab() {
@@ -19,8 +19,8 @@ export function CreateShareTab() {
 
   // Local activity state (for permanent retention)
   const [, setLocalTasks] = useLocalStorage<LocalTask[]>(
-    [],
     LOCAL_TASKS_STORAGE_KEY,
+    [],
   );
 
   // Cleanup status state

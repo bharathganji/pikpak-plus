@@ -10,8 +10,6 @@ import {
   UserCheck,
   UserX,
   FileText,
-  Activity,
-  Loader2,
 } from "lucide-react";
 import {
   LineChart,
@@ -214,7 +212,7 @@ export function DashboardOverview() {
                       border: "none",
                       boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                     }}
-                    formatter={(val: number) => formatBytes(val)}
+                    formatter={(val: unknown) => formatBytes(typeof val === "number" ? val : 0)}
                   />
                   <Legend />
                   <Line

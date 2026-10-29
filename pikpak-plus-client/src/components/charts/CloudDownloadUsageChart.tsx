@@ -16,7 +16,7 @@ import { format } from "date-fns";
 import { tooltipStyle, formatBytes } from "./utils";
 
 interface CloudDownloadUsageChartProps {
-  chartData: any[];
+  chartData: Array<Record<string, unknown>>;
 }
 
 export function CloudDownloadUsageChart({
@@ -59,9 +59,9 @@ export function CloudDownloadUsageChart({
                 dx={-10}
               />
               <Tooltip
-                labelFormatter={(date) => format(new Date(date), "PPP")}
-                formatter={(value: number, name: string) => [
-                  formatBytes(value),
+                labelFormatter={(date: unknown) => format(new Date(date as string | number | Date), "PPP")}
+                formatter={(value: unknown, name: unknown) => [
+                  formatBytes(typeof value === "number" ? value : 0),
                   name === "transfer_used_predicted"
                     ? "Predicted Transfer"
                     : "Transfer Used",

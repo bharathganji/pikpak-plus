@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useLocalStorage } from "primereact/hooks";
+import { useLocalStorage } from "@uidotdev/usehooks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2, RefreshCw, AlertCircle } from "lucide-react";
@@ -25,8 +25,8 @@ import { SupabaseTaskRecord } from "@/types/api";
 
 export function MyActivityTab() {
   const [tasks, setTasks] = useLocalStorage<LocalTask[]>(
-    [],
     LOCAL_TASKS_STORAGE_KEY,
+    [],
   );
   const [shares, setShares] = useState<LocalShare[]>([]);
   const [serverTasks, setServerTasks] = useState<LocalTask[]>([]);

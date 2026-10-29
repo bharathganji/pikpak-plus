@@ -1,7 +1,9 @@
 import nextConfig from "eslint-config-next";
+import tseslint from "typescript-eslint";
 
 const eslintConfig = [
   ...nextConfig,
+  ...tseslint.configs.recommended,
   {
     ignores: [
       ".next/**",
@@ -11,6 +13,11 @@ const eslintConfig = [
       "public/**",
       "next-env.d.ts",
     ],
+  },
+  {
+    rules: {
+      "@typescript-eslint/no-explicit-any": "error",
+    },
   },
 ];
 
