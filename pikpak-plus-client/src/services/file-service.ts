@@ -1,10 +1,5 @@
 import apiClient from "./api-client";
-import {
-  FileItem,
-  FileListResponse,
-  DownloadResponse,
-  CreateFolderResponse,
-} from "@/types/api";
+import { FileItem, DownloadResponse } from "@/types/api";
 
 export interface DownloadUrlResult {
   url: string;
@@ -12,22 +7,6 @@ export interface DownloadUrlResult {
 }
 
 export const fileService = {
-  /**
-   * List files and folders with optional parent directory ID and pagination token
-   */
-  async listFiles(
-    parentId?: string,
-    pageToken?: string,
-  ): Promise<FileListResponse> {
-    const params = new URLSearchParams();
-    if (parentId) params.append("parent_id", parentId);
-    if (pageToken) params.append("page_token", pageToken);
-
-    const queryString = params.toString();
-    const endpoint = queryString ? `/files?${queryString}` : "/files";
-    const res = await apiClient.get<FileListResponse>(endpoint);
-    return res.data;
-  },
 
   /**
    * Get file metadata and download links by file ID
@@ -93,32 +72,6 @@ export const fileService = {
     }
 
     return url;
-  },
-
-  /**
-   * Create a new folder inside parent directory
-   */
-  async createFolder(
-    name: string,
-    parentId?: string,
-  ): Promise<CreateFolderResponse> {
-    const res = await apiClient.post<CreateFolderResponse>("/files/folder", {
-      name,
-      parent_id: parentId || "",
-    });
-    return res.data;
-  },
-
-  /**
-   * Delete or move a file to trash
-   */
-  async deleteFile(
-    id: string,
-  ): Promise<{ success: boolean; message?: string }> {
-    const res = await apiClient.delete<{ success: boolean; message?: string }>(
-      `/file/${id}`,
-    );
-    return res.data;
   },
 };
 

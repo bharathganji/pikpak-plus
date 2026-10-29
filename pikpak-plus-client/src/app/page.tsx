@@ -8,9 +8,8 @@ import { Fab } from "@/components/layout/fab";
 import { CreateShareTab } from "@/components/features/create-share/create-share-tab";
 import { DownloadsTab } from "@/components/features/downloads/downloads-tab";
 import { DisclaimerModal } from "@/components/disclaimer-modal";
-import { Share2, Download, Loader2, History, Folder } from "lucide-react";
+import { Share2, Download, Loader2, History } from "lucide-react";
 import { MyActivityTab } from "@/components/features/my-activity";
-import { FileExplorer } from "@/components/features/files";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 export default function Home() {
@@ -37,15 +36,11 @@ export default function Home() {
       <Header />
 
       <Tabs defaultValue="create" className="w-full max-w-6xl">
-        <TabsList className="grid w-full grid-cols-4 mb-4">
+        <TabsList className="grid w-full grid-cols-3 mb-4">
           <TabsTrigger value="create" className="gap-2">
             <Share2 className="h-4 w-4" />
             <span className="hidden sm:inline">Create & Share</span>
             <span className="sm:hidden">Create</span>
-          </TabsTrigger>
-          <TabsTrigger value="files" className="gap-2">
-            <Folder className="h-4 w-4" />
-            <span>Files</span>
           </TabsTrigger>
           <TabsTrigger value="downloads" className="gap-2">
             <Download className="h-4 w-4" />
@@ -61,12 +56,6 @@ export default function Home() {
         <TabsContent value="create" className="w-full max-w-full">
           <ErrorBoundary title="Failed to load Create & Share">
             <CreateShareTab />
-          </ErrorBoundary>
-        </TabsContent>
-
-        <TabsContent value="files" className="w-full max-w-full">
-          <ErrorBoundary title="Failed to load File Explorer">
-            <FileExplorer />
           </ErrorBoundary>
         </TabsContent>
 

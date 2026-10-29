@@ -297,7 +297,7 @@ export function MyActivityTab() {
                 No share links yet
               </p>
               <p className="text-xs text-muted-foreground">
-                Create share links from the File Explorer or task details dialog
+                Create share links from the task details dialog
               </p>
             </div>
           ) : (

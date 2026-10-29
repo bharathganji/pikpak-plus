@@ -66,6 +66,7 @@ Thumbs.db
 *.sw?
 *.swp
 *~
+pyrightconfig.json
 
 # Temporary / Run files
 run
