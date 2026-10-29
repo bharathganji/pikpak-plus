@@ -1,5 +1,6 @@
 """Share Link Management Routes"""
 import logging
+from typing import Any
 
 from flask import Blueprint, jsonify, request
 
@@ -7,7 +8,7 @@ from app.api.utils.async_helpers import run_async
 from app.api.utils.dependencies import get_pikpak_service, get_supabase_service
 from app.core.auth import get_current_user, require_auth
 from app.services.user_service import UserService
-from app.utils.validators import get_json_body, sanitize_identifier
+from app.utils.validators import get_json_body, sanitize_identifier, validate_pagination
 
 logger = logging.getLogger(__name__)
 
@@ -62,14 +63,14 @@ async def _create_new_share(file_id, need_password, expiration_days):
     return result
 
 
-def _store_share_globally(file_id, share_data, user_email=None):
+def _store_share_globally(file_id: str, share_data: dict[str, Any], user_email: str | None = None, file_name: str | None = None):
     """Store share in Supabase for global deduplication and user tracking."""
     supabase_service = get_supabase_service()
     if not supabase_service:
         return
 
     try:
-        supabase_service.store_share(file_id, share_data, user_email or "")
+        supabase_service.store_share(file_id, share_data, user_email or "", file_name=file_name)
         logger.info(
             f"Stored share in public_actions for file: {file_id} (user: {user_email})")
     except Exception as e:
@@ -105,14 +106,17 @@ def create_share():
 
             # Validate request
             file_id, error_response = _validate_share_request(data)
-            if error_response:
-                return error_response
+            if error_response or not file_id:
+                return error_response or (jsonify({"error": "Missing 'id' parameter"}), 400)
 
-            logger.info(f"Share request for file: {file_id}")
+            file_name = data.get('file_name')
+            logger.info(f"Share request for file: {file_id} (file_name: {file_name})")
 
             # Check for existing share (global deduplication)
             existing_share = _check_existing_share(file_id)
             if existing_share:
+                # Ensure the user's activity log records this share
+                _store_share_globally(file_id, existing_share, user_email, file_name=file_name)
                 return jsonify(existing_share)
 
             # Create new share
@@ -126,8 +130,8 @@ def create_share():
 
             result = await _create_new_share(file_id, need_password, expiration_days)
 
-            # Store share globally with user email
-            _store_share_globally(file_id, result, user_email)
+            # Store share globally with user email and file_name
+            _store_share_globally(file_id, result, user_email, file_name=file_name)
 
             return jsonify(result)
         except Exception as e:
@@ -140,80 +144,71 @@ def create_share():
 @bp.route('/shares', methods=['GET'])
 @require_auth
 def list_shares():
-    """List active shares created by the authenticated user"""
-    async def _async_list_shares():
-        try:
-            user_data = get_current_user()
-            if not user_data:
-                return jsonify({"error": "Authentication required"}), 401
+    """List active shares created by the authenticated user from Supabase"""
+    try:
+        user_data = get_current_user()
+        if not user_data:
+            return jsonify({"error": "Authentication required"}), 401
 
-            user_email = user_data['email']
-            supabase_service = get_supabase_service()
-            user_service = UserService(supabase_service)
+        user_email = user_data['email']
+        supabase_service = get_supabase_service()
+        if not supabase_service:
+            return jsonify({"error": "Database service unavailable"}), 503
+        user_service = UserService(supabase_service)
 
-            if user_service.is_user_blocked(user_email):
-                return jsonify({
-                    "error": "Account blocked",
-                    "message": "Your account has been blocked. You cannot perform this action."
-                }), 403
+        if user_service.is_user_blocked(user_email):
+            return jsonify({
+                "error": "Account blocked",
+                "message": "Your account has been blocked. You cannot perform this action."
+            }), 403
 
-            limit = request.args.get('limit', default=20, type=int)
-            if limit < 1 or limit > 100:
-                limit = 20
+        page, limit, err = validate_pagination(
+            request.args,
+            default_page=1,
+            default_limit=20,
+            max_limit=100
+        )
+        if err:
+            return err[0], err[1]
 
-            page_token = request.args.get('page_token', default=None, type=str)
-            if page_token:
-                is_valid, sanitized_token, _ = sanitize_identifier(page_token, "page_token")
-                page_token = sanitized_token if is_valid else None
-
-            pikpak_service = get_pikpak_service()
-            if not pikpak_service:
-                return jsonify({"error": "Service unavailable"}), 503
-
-            result = await pikpak_service.list_shares(limit=limit, next_page_token=page_token)
-            return jsonify(result), 200
-        except Exception as e:
-            logger.error(f"Failed to list shares: {e}")
-            return jsonify({"error": str(e)}), 500
-
-    return run_async(_async_list_shares())
+        offset = (page - 1) * limit
+        result = supabase_service.get_user_shares(user_email, offset=offset, limit=limit)
+        return jsonify(result), 200
+    except Exception as e:
+        logger.error(f"Failed to list shares: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @bp.route('/shares/<share_id>', methods=['DELETE'])
 @require_auth
 def delete_share(share_id: str):
-    """Delete or revoke a share link"""
-    async def _async_delete_share():
-        try:
-            user_data = get_current_user()
-            if not user_data:
-                return jsonify({"error": "Authentication required"}), 401
+    """Delete or revoke a share link from user's Supabase activity"""
+    try:
+        user_data = get_current_user()
+        if not user_data:
+            return jsonify({"error": "Authentication required"}), 401
 
-            user_email = user_data['email']
-            supabase_service = get_supabase_service()
-            user_service = UserService(supabase_service)
+        user_email = user_data['email']
+        supabase_service = get_supabase_service()
+        if not supabase_service:
+            return jsonify({"error": "Database service unavailable"}), 503
+        user_service = UserService(supabase_service)
 
-            if user_service.is_user_blocked(user_email):
-                return jsonify({
-                    "error": "Account blocked",
-                    "message": "Your account has been blocked. You cannot perform this action."
-                }), 403
+        if user_service.is_user_blocked(user_email):
+            return jsonify({
+                "error": "Account blocked",
+                "message": "Your account has been blocked. You cannot perform this action."
+            }), 403
 
-            is_valid, sanitized_id, error_msg = sanitize_identifier(share_id, "share_id")
-            if not is_valid:
-                return jsonify({
-                    "error": "Invalid identifier",
-                    "message": error_msg or "Path traversal or illegal characters detected in identifier"
-                }), 400
+        is_valid, sanitized_id, error_msg = sanitize_identifier(share_id, "share_id")
+        if not is_valid:
+            return jsonify({
+                "error": "Invalid identifier",
+                "message": error_msg or "Path traversal or illegal characters detected in identifier"
+            }), 400
 
-            pikpak_service = get_pikpak_service()
-            if not pikpak_service:
-                return jsonify({"error": "Service unavailable"}), 503
-
-            await pikpak_service.delete_share(sanitized_id)
-            return jsonify({"success": True, "message": "Share link deleted successfully"}), 200
-        except Exception as e:
-            logger.error(f"Failed to delete share {share_id}: {e}")
-            return jsonify({"error": str(e)}), 500
-
-    return run_async(_async_delete_share())
+        supabase_service.delete_user_share(user_email, sanitized_id)
+        return jsonify({"success": True, "message": "Share link deleted successfully"}), 200
+    except Exception as e:
+        logger.error(f"Failed to delete share {share_id}: {e}")
+        return jsonify({"error": str(e)}), 500

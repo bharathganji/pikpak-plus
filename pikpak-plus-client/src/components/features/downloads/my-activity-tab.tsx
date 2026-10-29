@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocalStorage } from "primereact/hooks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,6 @@ import {
   LocalTask,
   LocalShare,
   LOCAL_TASKS_STORAGE_KEY,
-  LOCAL_SHARES_STORAGE_KEY,
 } from "../my-activity/types";
 import { EmptyState } from "../my-activity/empty-state";
 import { TaskItem } from "../my-activity/task-item";
@@ -29,14 +28,7 @@ export function MyActivityTab() {
     [],
     LOCAL_TASKS_STORAGE_KEY,
   );
-  const [shares, setShares] = useLocalStorage<LocalShare[]>(
-    [],
-    LOCAL_SHARES_STORAGE_KEY,
-  );
-  const sharesRef = useRef(shares);
-  sharesRef.current = shares;
-  const setSharesRef = useRef(setShares);
-  setSharesRef.current = setShares;
+  const [shares, setShares] = useState<LocalShare[]>([]);
   const [serverTasks, setServerTasks] = useState<LocalTask[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,15 +39,18 @@ export function MyActivityTab() {
   const [clearAllSharesDialogOpen, setClearAllSharesDialogOpen] =
     useState(false);
 
-  // Sync tasks from backend GET /tasks
-  const syncServerTasks = useCallback(async () => {
+  // Sync tasks and shares from backend Supabase
+  const syncServerActivity = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await taskService.getTasks(1, 100);
-      const records: SupabaseTaskRecord[] = response.data || [];
+      const [taskResponse, shareResponse] = await Promise.all([
+        taskService.getTasks(1, 100),
+        shareService.getShares(1, 100),
+      ]);
 
-      const mapped: LocalTask[] = (records || []).map((record) => {
+      const records: SupabaseTaskRecord[] = taskResponse?.data || [];
+      const mappedTasks: LocalTask[] = (records || []).map((record) => {
         const taskData = record.data.task?.task;
         const whatslink = record.data.whatslink;
         const phase = taskData?.phase;
@@ -83,47 +78,34 @@ export function MyActivityTab() {
         };
       });
 
-      setServerTasks(mapped);
+      setServerTasks(mappedTasks);
 
-      // Also try syncing remote shares
-      try {
-        const remoteShares = await shareService.getShares();
-        if (remoteShares.length > 0) {
-          const mappedShares: LocalShare[] = (remoteShares || []).map((s) => ({
-            id: s.share_id || s.id || `share-${Date.now()}`,
-            file_name: s.file_name || "Shared Content",
-            share_url: s.share_url,
-            pass_code: s.pass_code,
-            timestamp: s.created_at
-              ? new Date(s.created_at).getTime()
-              : Date.now(),
-            file_id: s.id || "",
-          }));
+      const shareRecords = shareResponse?.data || [];
+      const mappedShares: LocalShare[] = (shareRecords || []).map((record) => {
+        const sData = record.data || {};
+        return {
+          id: String(record.id),
+          file_name: sData.file_name || sData.title || "Shared Content",
+          share_url: sData.share_url || "",
+          pass_code: sData.pass_code,
+          timestamp: record.created_at
+            ? new Date(record.created_at).getTime()
+            : Date.now(),
+          file_id: sData.file_id || "",
+        };
+      });
 
-          // Merge with local shares
-          const shareMap = new Map<string, LocalShare>();
-          mappedShares.forEach((ms) => shareMap.set(ms.share_url, ms));
-          (sharesRef.current || []).forEach((ls) => {
-            if (!shareMap.has(ls.share_url)) {
-              shareMap.set(ls.share_url, ls);
-            }
-          });
-          setSharesRef.current(Array.from(shareMap.values()));
-        }
-      } catch (err) {
-        console.error(err);
-        // Non-blocking for shares
-      }
+      setShares(mappedShares);
     } catch (err: any) {
-      setError(err.message || "Failed to sync tasks from server");
+      setError(err.message || "Failed to sync activity from server");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    syncServerTasks();
-  }, [syncServerTasks]);
+    syncServerActivity();
+  }, [syncServerActivity]);
 
   // Combine server tasks and local tasks without duplicates
   const taskMap = new Map<string, LocalTask>();
@@ -171,21 +153,30 @@ export function MyActivityTab() {
   };
 
   const handleDeleteShare = async (shareId: string) => {
-    try {
-      await shareService.revokeShare(shareId);
-    } catch (err) {
-      console.error(err);
-      // Continue local cleanup
+    if (/^\d+$/.test(shareId)) {
+      try {
+        await shareService.deleteShare(shareId);
+      } catch (err) {
+        console.error("Failed to delete share from server:", err);
+      }
     }
-    const updatedShares = shares.filter((s) => s.id !== shareId);
-    setShares(updatedShares);
+    setShares((prev) => prev.filter((s) => s.id !== shareId));
   };
 
   const handleClearAllSharesClick = () => {
     setClearAllSharesDialogOpen(true);
   };
 
-  const confirmClearAllShares = () => {
+  const confirmClearAllShares = async () => {
+    for (const s of shares) {
+      if (/^\d+$/.test(s.id)) {
+        try {
+          await shareService.deleteShare(s.id);
+        } catch (err) {
+          console.error("Failed to delete share on server:", err);
+        }
+      }
+    }
     setShares([]);
     setClearAllSharesDialogOpen(false);
   };
@@ -204,7 +195,7 @@ export function MyActivityTab() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={syncServerTasks}
+                onClick={syncServerActivity}
                 className="h-6 text-[11px] ml-2"
               >
                 Retry
@@ -227,7 +218,7 @@ export function MyActivityTab() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={syncServerTasks}
+                onClick={syncServerActivity}
                 disabled={loading}
                 title="Sync from server"
                 className="h-8 w-8"
@@ -277,7 +268,13 @@ export function MyActivityTab() {
         {/* Shares Section */}
         <div className="w-full">
           <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 mb-4">
-            <h2 className="text-xl font-semibold">Shares Created</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-semibold">Shares Created</h2>
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                (Server Synced)
+              </span>
+            </div>
+
             {shares.length > 0 && (
               <Button
                 variant="outline"

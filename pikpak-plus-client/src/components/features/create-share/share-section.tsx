@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useLocalStorage } from "primereact/hooks";
 import { Button } from "@/components/ui/button";
 import {
   Copy,
@@ -17,7 +16,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getApiUrl, getAuthHeaders } from "@/lib/api-utils";
 import axios from "axios";
 import type { SupabaseTaskRecord } from "@/types";
-import { LocalShare, LOCAL_SHARES_STORAGE_KEY } from "../my-activity/types";
 
 interface ShareSectionProps {
   task: SupabaseTaskRecord;
@@ -71,32 +69,11 @@ export function ShareSection({
   const [shareError, setShareError] = useState<string | null>(null);
   const [needPassword, setNeedPassword] = useState(false);
   const [expirationDays, setExpirationDays] = useState(-1);
-  const [shares, setShares] = useLocalStorage<LocalShare[]>(
-    [],
-    LOCAL_SHARES_STORAGE_KEY,
-  );
 
   const taskData = task.data.task?.task;
   const hasFileId = !!taskData?.file_id;
   const taskProgress = taskData?.progress || 0;
   const isError = taskData?.phase === "PHASE_TYPE_ERROR";
-
-  const saveToLocalStorage = (shareResult: any, fileId: string) => {
-    const newShare: LocalShare = {
-      id: shareResult.share_id || `share-${Date.now()}`,
-      file_name: taskData?.file_name || "Unknown File",
-      share_url: shareResult.share_url,
-      pass_code: shareResult.pass_code,
-      timestamp: Date.now(),
-      file_id: fileId,
-    };
-
-    // Check if share already exists
-    const alreadyExists = shares.some((s) => s.file_id === fileId);
-    if (!alreadyExists) {
-      setShares([newShare, ...shares]);
-    }
-  };
 
   const handleShare = async () => {
     if (!taskData?.file_id) {
@@ -113,6 +90,7 @@ export function ShareSection({
         `${apiUrl}/share`,
         {
           id: taskData.file_id,
+          file_name: taskData?.file_name,
           need_password: needPassword,
           expiration_days: expirationDays,
         },
@@ -121,11 +99,6 @@ export function ShareSection({
 
       const shareResult = response.data;
       setShareData(shareResult);
-
-      // Save to localStorage if it's a new share
-      if (!shareResult.is_existing) {
-        saveToLocalStorage(shareResult, taskData.file_id);
-      }
     } catch (error: any) {
       const friendlyError = getUserFriendlyError(error);
       setShareError(friendlyError);

@@ -188,17 +188,20 @@ class MemorySupabaseService:
         return None
 
     # Shares
-    def store_share(self, url: str, share_result: dict, file_info: dict | None = None, user_email: str | None = None) -> dict[str, Any]:
+    def store_share(self, url: str = "", share_result: dict[str, Any] | None = None, file_info: dict | None = None, user_email: str | None = None, file_name: str | None = None, **kwargs) -> dict[str, Any]:
         share_id = len(self.shares) + 1
+        data_meta = dict(share_result or {})
+        data_meta["file_id"] = url or data_meta.get("file_id", "")
+        if file_name:
+            data_meta["file_name"] = file_name
+        elif file_info and "file_name" in file_info:
+            data_meta["file_name"] = file_info["file_name"]
+
         record = {
             "id": share_id,
             "action": "share",
             "url": url,
-            "data": {
-                "url": url,
-                "share": share_result,
-                "file_info": file_info,
-            },
+            "data": data_meta,
             "user_email": user_email.strip().lower() if user_email else None,
             "created_at": datetime.now(UTC).isoformat(),
         }
@@ -208,10 +211,49 @@ class MemorySupabaseService:
     def get_existing_share_by_file_id(self, file_id: str) -> dict[str, Any] | None:
         for s in self.shares:
             data = s.get("data", {})
+            if data.get("file_id") == file_id or data.get("id") == file_id:
+                return data
             share = data.get("share", {})
-            if share.get("file_id") == file_id or share.get("id") == file_id:
+            if isinstance(share, dict) and (share.get("file_id") == file_id or share.get("id") == file_id):
                 return share
         return None
+
+    def get_user_shares(self, email: str, offset: int = 0, limit: int = 50) -> dict[str, Any]:
+        normalized = email.strip().lower() if email else ""
+        user_shares = [
+            s for s in self.shares
+            if s.get("action") == "share" and (s.get("user_email") == normalized or not s.get("user_email"))
+        ]
+        paged = user_shares[offset:offset + limit]
+        shares_list = []
+        for s in paged:
+            data = s.get("data", {})
+            shares_list.append({**data, "action_id": s.get("id"), "created_at": s.get("created_at")})
+        return {
+            "data": paged,
+            "shares": shares_list,
+            "count": len(user_shares),
+        }
+
+    def delete_user_share(self, email: str, action_id_or_share_id: str) -> bool:
+        normalized = email.strip().lower() if email else ""
+        target_str = str(action_id_or_share_id).strip()
+        before = len(self.shares)
+        if target_str.isdigit():
+            self.shares = [
+                s for s in self.shares
+                if not (s.get("id") == int(target_str))
+            ]
+        else:
+            self.shares = [
+                s for s in self.shares
+                if not (
+                    s.get("data", {}).get("share_id") == target_str or
+                    s.get("data", {}).get("id") == target_str or
+                    (isinstance(s.get("data", {}).get("share"), dict) and s.get("data", {}).get("share", {}).get("share_id") == target_str)
+                )
+            ]
+        return len(self.shares) < before
 
     # Statistics & Health
     def get_admin_statistics(self) -> dict[str, Any]:

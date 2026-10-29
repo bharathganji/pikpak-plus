@@ -95,3 +95,34 @@ def test_delete_share_invalid_id(test_client, auth_headers):
     """Test DELETE /shares/<id> with path traversal returns 400."""
     res = test_client.delete("/shares/..%2Fetc%2Fpasswd", headers=auth_headers)
     assert res.status_code in (400, 404)
+
+
+def test_supabase_shares_crud_flow(test_client, auth_headers):
+    """Test end-to-end flow: create share with file_name, retrieve from Supabase, delete from Supabase."""
+    # 1. Create a share
+    create_res = test_client.post(
+        "/share",
+        headers=auth_headers,
+        json={"id": "file_flow_999", "file_name": "SampleMovie.mp4", "need_password": False},
+    )
+    assert create_res.status_code == 200
+    created_data = create_res.get_json()
+    assert "share_url" in created_data
+
+    # 2. Retrieve shares from Supabase
+    list_res = test_client.get("/shares", headers=auth_headers)
+    assert list_res.status_code == 200
+    list_data = list_res.get_json()
+    assert "data" in list_data or "shares" in list_data
+
+    shares = list_data.get("shares", [])
+    matching = [s for s in shares if s.get("file_id") == "file_flow_999" or s.get("file_name") == "SampleMovie.mp4"]
+    assert len(matching) > 0
+    target_share = matching[0]
+    assert target_share.get("file_name") == "SampleMovie.mp4"
+
+    # 3. Delete share
+    action_id = target_share.get("action_id") or target_share.get("share_id") or "file_flow_999"
+    del_res = test_client.delete(f"/shares/{action_id}", headers=auth_headers)
+    assert del_res.status_code == 200
+    assert del_res.get_json()["success"] is True
