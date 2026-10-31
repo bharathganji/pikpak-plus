@@ -79,12 +79,14 @@ export function TaskCard({ task, isLocal, onClick }: Readonly<TaskCardProps>) {
       <div className="shrink-0">{getFileIcon(task, isFolderType)}</div>
       <div className="flex-1 min-w-0 overflow-hidden">
         <div className="w-full">
-          <h4
-            className="font-medium text-sm truncate leading-tight"
-            title={name}
-          >
-            {name}
-          </h4>
+          <div className="flex items-center justify-between gap-2">
+            <h4
+              className="font-medium text-sm truncate leading-tight flex-1"
+              title={name}
+            >
+              {name}
+            </h4>
+          </div>
           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
             <span className="text-[11px] text-muted-foreground whitespace-nowrap">
               {fileSize}

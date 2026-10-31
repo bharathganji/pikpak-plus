@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AdminStats, DailyStats } from "@/types/api";
 import { getOverviewStats, getDailyStats } from "@/lib/admin-client";
 import {
@@ -9,8 +10,6 @@ import {
   UserCheck,
   UserX,
   FileText,
-  Activity,
-  Loader2,
 } from "lucide-react";
 import {
   LineChart,
@@ -31,34 +30,66 @@ const formatBytes = (bytes: number) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
+interface DashboardData {
+  stats: AdminStats;
+  dailyStats: DailyStats[];
+}
+
 export function DashboardOverview() {
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading } = useQuery<DashboardData>({
+    queryKey: ["admin", "dashboard-stats"],
+    queryFn: async () => {
+      const [overviewData, dailyData] = await Promise.all([
+        getOverviewStats(),
+        getDailyStats(14), // Last 14 days
+      ]);
+      return {
+        stats: overviewData,
+        dailyStats: dailyData.data || [],
+      };
+    },
+  });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [overviewData, dailyData] = await Promise.all([
-          getOverviewStats(),
-          getDailyStats(14), // Last 14 days
-        ]);
-        setStats(overviewData);
-        setDailyStats(dailyData.data || []);
-      } catch (error) {
-        console.error("Failed to fetch admin stats", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const stats = data?.stats ?? null;
+  const dailyStats = data?.dailyStats ?? [];
 
-    fetchData();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-4 rounded-full" />
+              </CardHeader>
+              <CardContent className="space-y-1">
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-3 w-28" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-5 w-32" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-[300px] w-full rounded-lg" />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-5 w-36" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-[300px] w-full rounded-lg" />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -180,7 +211,7 @@ export function DashboardOverview() {
                       border: "none",
                       boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                     }}
-                    formatter={(val: number) => formatBytes(val)}
+                    formatter={(val: unknown) => formatBytes(typeof val === "number" ? val : 0)}
                   />
                   <Legend />
                   <Line
@@ -213,3 +244,5 @@ export function DashboardOverview() {
     </div>
   );
 }
+
+export { DashboardOverview as AdminOverview };

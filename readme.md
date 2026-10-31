@@ -179,6 +179,9 @@ This project is designed to run in a containerized environment using Docker Comp
 
    # Redis Configuration (automatically configured in Docker)
    REDIS_URL=redis://redis:6379/0
+
+   # Optional: Web Application Port (use 0 for dynamic automatic allocation to prevent port conflicts)
+   APP_PORT=3000
    ```
 
 3. **Set up Supabase database**
@@ -202,7 +205,7 @@ This project is designed to run in a containerized environment using Docker Comp
    ```
 
    This will start five services:
-   - **web**: Next.js frontend (accessible at `http://localhost:3000`)
+   - **web**: Next.js frontend (accessible at `http://localhost:3000` or your configured `APP_PORT`)
    - **server**: Flask backend (internal only, proxied through Next.js)
    - **worker**: Celery worker for background task processing
    - **beat**: Celery beat for task scheduling
@@ -210,7 +213,7 @@ This project is designed to run in a containerized environment using Docker Comp
 
 5. **Access the application**
 
-   Open your browser and navigate to `http://localhost:3000`
+   Open your browser and navigate to `http://localhost:3000` (or your configured `APP_PORT`)
 
 ### Development Setup
 

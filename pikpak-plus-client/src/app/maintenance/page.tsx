@@ -1,17 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ServerCrash, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function MaintenancePage() {
   const [isRetrying, setIsRetrying] = useState(false);
+  const router = useRouter();
 
   const handleRetry = () => {
     setIsRetrying(true);
     // Add a small delay to show feedback before actual reload
     setTimeout(() => {
-      globalThis.location.href = "/"; // Try to go back home
+      router.push("/");
     }, 500);
   };
 

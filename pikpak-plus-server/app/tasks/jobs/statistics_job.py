@@ -1,16 +1,14 @@
 """Statistics Collection Job - Collect and store daily usage statistics."""
-import logging
-import json
 import asyncio
-from datetime import datetime, timedelta, timezone
+import logging
+from datetime import UTC, datetime, timedelta
+
+import redis
+from celery import shared_task
 
 from app.core.config import AppConfig
-from celery import shared_task
 from app.services import PikPakService, SupabaseService
-from app.core.config import AppConfig
 from app.tasks.utils import update_redis_status
-import redis
-import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -64,10 +62,11 @@ def collect_daily_statistics(self):
     """
     Collect daily statistics and store in Supabase.
     """
-    run_time = datetime.now(timezone.utc)
+    run_time = datetime.now(UTC)
     logger.info(
         f"Running daily statistics collection at {run_time.isoformat()}Z...")
 
+    redis_client = None
     try:
         # Initialize services locally
         redis_client = redis.from_url(
@@ -75,83 +74,80 @@ def collect_daily_statistics(self):
 
         # Initialize Supabase
         from supabase import create_client
-        supabase_client = create_client(
-            AppConfig.SUPABASE_URL, AppConfig.SUPABASE_KEY)
+        supabase_url = AppConfig.SUPABASE_URL or ""
+        supabase_key = AppConfig.SUPABASE_KEY or ""
+        supabase_client = create_client(supabase_url, supabase_key)
         supabase_service = SupabaseService(supabase_client)
 
-        # Initialize PikPak
-        pikpak_service = PikPakService(
-            AppConfig.PIKPAK_USER, AppConfig.PIKPAK_PASS)
+        # Initialize PikPak and collect statistics with clean socket teardown
+        from app.tasks.utils import run_job_async
 
-        # Run async logic in sync context
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        pikpak_user = AppConfig.PIKPAK_USER or ""
+        pikpak_pass = AppConfig.PIKPAK_PASS or ""
 
-        try:
-            loop.run_until_complete(pikpak_service.ensure_logged_in())
+        async def _do_stats():
+            pikpak_service = PikPakService(pikpak_user, pikpak_pass)
+            try:
+                await pikpak_service.ensure_logged_in()
 
-            # Determine target date (yesterday)
-            target_date = (run_time - timedelta(days=1)).date()
-            target_date_str = target_date.isoformat()
+                # Determine target date (yesterday)
+                target_date = (run_time - timedelta(days=1)).date()
+                target_date_str = target_date.isoformat()
 
-            # Check if stats already exist for this date
-            existing_stats = loop.run_until_complete(
-                asyncio.to_thread(supabase_service.get_daily_stats, limit=1)
-            )
+                # Check if stats already exist for this date
+                existing_stats = await asyncio.to_thread(supabase_service.get_daily_stats, limit=1)
 
-            # Simple check: if the latest stat is for our target date, skip
-            if existing_stats and existing_stats[0].get('date') == target_date_str:
+                # Simple check: if the latest stat is for our target date, skip
+                if existing_stats and isinstance(existing_stats[0], dict) and existing_stats[0].get('date') == target_date_str:
+                    logger.info(
+                        f"Statistics for {target_date_str} already exist. Skipping.")
+                    _schedule_next_run(redis_client, run_time)
+                    return
+
+                logger.info(f"Collecting statistics for {target_date_str}...")
+
+                # Parallelize independent API calls for faster collection
+                quota_info, transfer_info, vip_info = await asyncio.gather(
+                    pikpak_service.get_quota_info(),
+                    pikpak_service.get_transfer_quota(),
+                    pikpak_service.vip_info()
+                )
+
+                storage_used, transfer_used, downstream_traffic, premium_expiration = _extract_pikpak_metrics(
+                    quota_info, transfer_info, vip_info)
+
+                # 4. Count Tasks Added (Target Day 00:00 to 23:59:59)
+                start_of_day = datetime.combine(
+                    target_date, datetime.min.time()).replace(tzinfo=UTC)
+                end_of_day = start_of_day + timedelta(days=1)
+
+                tasks_added = supabase_service.count_tasks_added_between(
+                    start_of_day.isoformat(),
+                    end_of_day.isoformat()
+                )
+
+                # Prepare stats data
+                stats_data = {
+                    "date": target_date_str,
+                    "tasks_added": tasks_added,
+                    "storage_used": storage_used,
+                    "transfer_used": transfer_used,
+                    "downstream_traffic": downstream_traffic,
+                    "premium_expiration": premium_expiration,
+                    "created_at": run_time.isoformat()
+                }
+
+                # Log to Supabase
+                supabase_service.log_daily_stats(stats_data)
+
                 logger.info(
-                    f"Statistics for {target_date_str} already exist. Skipping.")
+                    f"Daily statistics collected successfully for {stats_data['date']}")
 
                 _schedule_next_run(redis_client, run_time)
-                return
+            finally:
+                await pikpak_service.aclose()
 
-            logger.info(f"Collecting statistics for {target_date_str}...")
-
-            # Parallelize independent API calls for faster collection
-            # We need to access the client directly from the service
-            quota_info, transfer_info, vip_info = loop.run_until_complete(asyncio.gather(
-                pikpak_service.client.get_quota_info(),
-                pikpak_service.client.get_transfer_quota(),
-                pikpak_service.client.vip_info()
-            ))
-
-            storage_used, transfer_used, downstream_traffic, premium_expiration = _extract_pikpak_metrics(
-                quota_info, transfer_info, vip_info)
-
-            # 4. Count Tasks Added (Target Day 00:00 to 23:59:59)
-            start_of_day = datetime.combine(
-                target_date, datetime.min.time()).replace(tzinfo=timezone.utc)
-            end_of_day = start_of_day + timedelta(days=1)
-
-            tasks_added = supabase_service.count_tasks_added_between(
-                start_of_day.isoformat(),
-                end_of_day.isoformat()
-            )
-
-            # Prepare stats data
-            stats_data = {
-                "date": target_date_str,
-                "tasks_added": tasks_added,
-                "storage_used": storage_used,
-                "transfer_used": transfer_used,
-                "downstream_traffic": downstream_traffic,
-                "premium_expiration": premium_expiration,
-                "created_at": run_time.isoformat()
-            }
-
-            # Log to Supabase
-            supabase_service.log_daily_stats(stats_data)
-
-            logger.info(
-                f"Daily statistics collected successfully for {stats_data['date']}")
-
-            _schedule_next_run(redis_client, run_time)
-
-        finally:
-            loop.close()
-            redis_client.close()
+        run_job_async(_do_stats)
 
     except Exception as e:
         from app.services.pikpak_service import RateLimitError
@@ -164,3 +160,6 @@ def collect_daily_statistics(self):
 
         logger.error(f"Failed to collect daily statistics: {e}", exc_info=True)
         raise self.retry(exc=e, countdown=300, max_retries=3)
+    finally:
+        if redis_client:
+            redis_client.close()

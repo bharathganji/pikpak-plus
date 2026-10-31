@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -33,9 +34,9 @@ export default function ForgotPasswordPage() {
       setSuccess(
         "If a user with this email exists, a password reset link has been sent.",
       );
-    } catch (err: any) {
-      if (err.response?.data?.message) {
-        setError(err.response.data.message);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        setError(String(err.response.data.message));
       } else {
         setError("Failed to request password reset. Please try again.");
       }
@@ -69,7 +70,7 @@ export default function ForgotPasswordPage() {
               </Alert>
             )}
             {success && (
-              <Alert className="bg-green-500/10 text-green-600 border-green-500/20">
+              <Alert className="bg-emerald-50 text-emerald-950 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-100 dark:border-emerald-800">
                 <AlertDescription>{success}</AlertDescription>
               </Alert>
             )}

@@ -40,17 +40,17 @@ function ConfirmationDialog({
         <DialogHeader className="space-y-3">
           <div className="flex items-center space-x-3">
             <div
-              className={`flex h-12 w-12 items-center justify-center rounded-full ${
+              className={`flex h-12 w-12 items-center justify-center rounded-full border ${
                 variant === "destructive"
-                  ? "bg-red-100 dark:bg-red-900/20"
-                  : "bg-amber-100 dark:bg-amber-900/20"
+                  ? "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
+                  : "bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800"
               }`}
             >
               <IconComponent
                 className={`h-6 w-6 ${
                   variant === "destructive"
-                    ? "text-red-600 dark:text-red-400"
-                    : "text-amber-600 dark:text-amber-400"
+                    ? "text-red-700 dark:text-red-300"
+                    : "text-amber-700 dark:text-amber-300"
                 }`}
               />
             </div>

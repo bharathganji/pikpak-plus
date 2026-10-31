@@ -1,18 +1,20 @@
 """Task Management Routes"""
 import logging
-from flask import Blueprint, request, jsonify
-from app.core.config import AppConfig
-from app.core.auth import require_auth, get_current_user
-from app.services import WhatsLinkService
-from app.services.user_service import UserService
+
+from flask import Blueprint, jsonify, request
+
 from app.api.utils.async_helpers import run_async
 from app.api.utils.dependencies import (
+    get_cache_manager,
     get_pikpak_service,
     get_supabase_service,
-    get_cache_manager,
-    get_scheduler
 )
-from app.utils.common import extract_magnet_hash, extract_e2dk_hash, validate_link
+from app.core.auth import get_current_user, require_auth
+from app.core.config import AppConfig
+from app.services import WhatsLinkService
+from app.services.user_service import UserService
+from app.utils.common import extract_e2dk_hash, extract_magnet_hash, validate_link
+from app.utils.validators import get_json_body, validate_pagination
 
 logger = logging.getLogger(__name__)
 
@@ -59,11 +61,17 @@ def add_task():
                 "message": "Your account has been blocked. You cannot perform this action."
             }), 403
 
-        data = request.json
+        data, err = get_json_body(request)
+        if err:
+            return err[0], err[1]
         url = data.get('url')
 
-        if not url:
+        if not url or not isinstance(url, str):
             return jsonify({"error": "No URL provided"}), 400
+
+        url = url.strip()
+        if len(url) > 4096:
+            return jsonify({"error": "URL length exceeds maximum limit of 4096 characters"}), 400
 
         logger.info(f"Received add request for: {url}")
 
@@ -103,7 +111,7 @@ def add_task():
         try:
             task_result = await pikpak_service.add_download(url)
         except Exception as e:
-            return jsonify({"error": f"PikPak Error: {str(e)}"}), 500
+            return jsonify({"error": f"PikPak Error: {e!s}"}), 500
 
         # Log to Supabase with WhatsLink metadata and user email
         supabase_service.log_action(
@@ -134,8 +142,15 @@ def get_tasks():
 
         user_email = user_data['email']
 
-        page = int(request.args.get('page', 1))
-        limit = int(request.args.get('limit', AppConfig.DEFAULT_PAGE_SIZE))
+        page, limit, err = validate_pagination(
+            request.args,
+            default_page=1,
+            default_limit=AppConfig.DEFAULT_PAGE_SIZE,
+            max_limit=100
+        )
+        if err:
+            return err[0], err[1]
+
         offset = (page - 1) * limit
 
         # Fetch user-specific tasks

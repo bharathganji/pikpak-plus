@@ -1,7 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { format } from "date-fns";
+import {
+  useQuery,
+  useQueryClient,
+  keepPreviousData,
+} from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -14,43 +19,48 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
-import { SupabaseTaskRecord } from "@/types/api";
 import { getLogs, deleteTask } from "@/lib/admin-client";
 import { Loader2, Trash2, ExternalLink } from "lucide-react";
 
 export function ContentModeration() {
-  const [logs, setLogs] = useState<SupabaseTaskRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [userEmail, setUserEmail] = useState("");
+  const [emailInput, setEmailInput] = useState("");
+  const [appliedEmail, setAppliedEmail] = useState("");
   const [actionFilter, setActionFilter] = useState<string>("all");
-  const [totalCount, setTotalCount] = useState(0);
   const pageSize = 10;
 
-  const fetchLogs = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: logsData, isLoading } = useQuery({
+    queryKey: ["admin", "logs", { page, pageSize, actionFilter, appliedEmail }],
+    queryFn: () => {
       const action = actionFilter === "all" ? undefined : actionFilter;
-      const res = await getLogs(page, pageSize, action, userEmail || undefined);
-      setLogs(res.data);
-      setTotalCount(res.count);
-      setTotalPages(Math.ceil(res.count / pageSize));
-    } catch (error) {
-      console.error("Failed to fetch logs", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, userEmail, actionFilter]);
+      return getLogs(page, pageSize, action, appliedEmail || undefined);
+    },
+    placeholderData: keepPreviousData,
+  });
 
-  useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+  const logs = logsData?.data ?? [];
+  const totalCount = logsData?.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const loading = isLoading;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    fetchLogs();
+    setAppliedEmail(emailInput.trim());
+  };
+
+  const handleActionChange = (value: string) => {
+    setActionFilter(value);
+    setPage(1);
+  };
+
+  const handlePrevPage = () => {
+    setPage((p) => Math.max(1, p - 1));
+  };
+
+  const handleNextPage = () => {
+    setPage((p) => Math.min(totalPages, p + 1));
   };
 
   const handleDelete = async (id: number) => {
@@ -62,7 +72,8 @@ export function ContentModeration() {
       return;
     try {
       await deleteTask(id);
-      fetchLogs();
+      queryClient.invalidateQueries({ queryKey: ["admin", "logs"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard-stats"] });
     } catch (error) {
       console.error("Failed to delete log", error);
       alert("Failed to delete log");
@@ -75,8 +86,8 @@ export function ContentModeration() {
         <form onSubmit={handleSearch} className="flex gap-2 w-full sm:w-auto">
           <Input
             placeholder="Filter by User Email..."
-            value={userEmail}
-            onChange={(e) => setUserEmail(e.target.value)}
+            value={emailInput}
+            onChange={(e) => setEmailInput(e.target.value)}
             className="w-full sm:w-[250px]"
           />
           <Button type="submit" variant="secondary">
@@ -87,10 +98,7 @@ export function ContentModeration() {
           <select
             className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             value={actionFilter}
-            onChange={(e) => {
-              setActionFilter(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => handleActionChange(e.target.value)}
           >
             <option value="all">All Actions</option>
             <option value="add">Add Task</option>
@@ -126,7 +134,7 @@ export function ContentModeration() {
                 </TableCell>
               </TableRow>
             ) : (
-              logs.map((log: any) => (
+              logs.map((log) => (
                 <TableRow key={log.id}>
                   <TableCell className="font-medium text-xs text-muted-foreground">
                     {log.user_email || "Anonymous"}
@@ -135,14 +143,14 @@ export function ContentModeration() {
                     {log.action === "add" ? (
                       <Badge
                         variant="outline"
-                        className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200"
+                        className="bg-blue-50 text-blue-950 dark:bg-blue-950 dark:text-blue-200 border-blue-200 dark:border-blue-800"
                       >
                         Add
                       </Badge>
                     ) : (
                       <Badge
                         variant="outline"
-                        className="bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border-orange-200"
+                        className="bg-amber-50 text-amber-950 dark:bg-amber-950 dark:text-amber-200 border-amber-200 dark:border-amber-800"
                       >
                         Share
                       </Badge>
@@ -206,18 +214,18 @@ export function ContentModeration() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            onClick={handlePrevPage}
             disabled={page === 1 || loading}
           >
             Previous
           </Button>
           <div className="text-sm font-medium self-center">
-            Page {page} of {totalPages || 1}
+            Page {page} of {totalPages}
           </div>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            onClick={handleNextPage}
             disabled={page >= totalPages || loading}
           >
             Next

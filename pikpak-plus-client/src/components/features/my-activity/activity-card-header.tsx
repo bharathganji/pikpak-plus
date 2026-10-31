@@ -21,7 +21,9 @@ export function ActivityCardHeader({
             <Clock className="h-5 w-5" />
             My Activity
           </CardTitle>
-          <CardDescription>Tasks you've added (stored locally)</CardDescription>
+          <CardDescription>
+            Tasks you&apos;ve added (stored locally)
+          </CardDescription>
         </div>
         {taskCount > 0 && (
           <Button

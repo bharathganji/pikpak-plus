@@ -1,14 +1,33 @@
-import os
-from dotenv import load_dotenv
+"""
+Backward-compatibility stub for settings.py forwarding to constants.py.
+"""
 
-load_dotenv()
+from .constants import (
+    DEFAULT_INITIAL_BACKOFF,
+    DEFAULT_MAX_REQUESTS_PER_SECOND,
+    DEFAULT_MAX_RETRIES,
+    DEFAULT_SESSION_DIR,
+    LOGIN_COOLDOWN_SECONDS,
+    PIKPAK_API_HOST,
+    PIKPAK_USER_HOST,
+    TASK_PHASE_MAP,
+    TOKEN_EXPIRY_BUFFER_SECONDS,
+    WEBDAV_BASE_URL,
+)
+from .constants import (
+    DEFAULT_REQUEST_TIMEOUT as DEFAULT_TIMEOUT,
+)
 
-IS_DEVELOPMENT = os.getenv("IS_DEVELOPMENT", "false").lower() == "true"
-print(f"PikPakAPI initialized in {'DEVELOPMENT (MOCK)' if IS_DEVELOPMENT else 'REALTIME (LIVE)'} mode")
-
-PIKPAK_API_HOST = "api-drive.mypikpak.com"
-PIKPAK_USER_HOST = "user.mypikpak.com"
-WEBDAV_BASE_URL = "https://api-dav.mypikpak.com"
-
-# Default timeout for requests
-DEFAULT_TIMEOUT = 30.0
+__all__ = [
+    "DEFAULT_INITIAL_BACKOFF",
+    "DEFAULT_MAX_REQUESTS_PER_SECOND",
+    "DEFAULT_MAX_RETRIES",
+    "DEFAULT_SESSION_DIR",
+    "DEFAULT_TIMEOUT",
+    "LOGIN_COOLDOWN_SECONDS",
+    "PIKPAK_API_HOST",
+    "PIKPAK_USER_HOST",
+    "TASK_PHASE_MAP",
+    "TOKEN_EXPIRY_BUFFER_SECONDS",
+    "WEBDAV_BASE_URL",
+]

@@ -41,7 +41,7 @@ export const calculateTimeRemaining = (
     const target = new Date(dateStr).getTime();
     const now = Date.now();
 
-    let diff = target - now;
+    const diff = target - now;
 
     const totalSeconds = Math.floor(diff / 1000); // Only flooring ONCE fixes the reset bug
 

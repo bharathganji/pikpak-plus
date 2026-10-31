@@ -1,6 +1,8 @@
 """Supabase Service Module"""
 import logging
-from typing import Optional, Dict, Any
+from typing import Any, cast
+from postgrest.types import CountMethod
+
 from supabase import Client
 
 logger = logging.getLogger(__name__)
@@ -14,7 +16,7 @@ class SupabaseService:
     def __init__(self, client: Client):
         self.client = client
 
-    def log_action(self, url: str, task_result: dict, file_info: dict = None, user_email: str = None):
+    def log_action(self, url: str, task_result: dict[str, Any], file_info: dict[str, Any] | None = None, user_email: str | None = None):
         """Log an action to Supabase
 
         Args:
@@ -79,7 +81,7 @@ class SupabaseService:
             raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
 
         response = self.client.table("public_actions") \
-            .select("*", count="exact") \
+            .select("*", count=CountMethod.exact) \
             .eq("action", "add") \
             .order("created_at", desc=True) \
             .range(offset, offset + limit - 1) \
@@ -90,7 +92,7 @@ class SupabaseService:
             "count": response.count
         }
 
-    def get_tasks_by_urls(self, urls: list) -> list:
+    def get_tasks_by_urls(self, urls: list[Any]) -> list[Any]:
         """
         Get tasks matching specific URLs (for user's tasks from localStorage)
 
@@ -172,8 +174,9 @@ class SupabaseService:
                 .limit(1) \
                 .execute()
 
-            if response.data and len(response.data) > 0:
-                data = response.data[0].get("data", {})
+            rows = cast(list[dict[str, Any]], response.data or [])
+            if rows:
+                data = rows[0].get("data", {})
                 logger.info(f"Found existing share for file_id: {file_id}")
                 return data
 
@@ -207,8 +210,9 @@ class SupabaseService:
                 .limit(1) \
                 .execute()
 
-            if response.data and len(response.data) > 0:
-                data = response.data[0].get("data", {})
+            rows = cast(list[dict[str, Any]], response.data or [])
+            if rows:
+                data = rows[0].get("data", {})
                 logger.info(f"Found existing task for hash: {magnet_hash}")
                 return data.get("task")
 
@@ -217,7 +221,7 @@ class SupabaseService:
             logger.error(f"Failed to check for existing task: {e}")
             return None
 
-    def store_share(self, file_id: str, share_data: dict, user_email: str = None):
+    def store_share(self, file_id: str, share_data: dict[str, Any], user_email: str | None = None, file_name: str | None = None):
         """
         Store a share in public_actions table
 
@@ -225,6 +229,7 @@ class SupabaseService:
             file_id: The PikPak file ID
             share_data: Share data from PikPak API
             user_email: Optional email of user who created the share
+            file_name: Optional display file name
         """
         if not self.client:
             logger.warning(
@@ -232,20 +237,37 @@ class SupabaseService:
             return
 
         try:
-            # Add file_id to share_data for easy lookup
-            data_with_file_id = {
+            normalized_email = user_email.strip().lower() if user_email else ""
+            if normalized_email:
+                existing = self.client.table("public_actions") \
+                    .select("id") \
+                    .eq("action", "share") \
+                    .eq("user_email", normalized_email) \
+                    .contains("data", {"file_id": file_id}) \
+                    .limit(1) \
+                    .execute()
+                if existing.data and len(existing.data) > 0:
+                    logger.info(
+                        f"Share for file_id {file_id} already recorded for user {normalized_email}")
+                    return
+
+            # Add file_id and file_name to share_data for easy lookup and display
+            data_with_meta = {
                 **share_data,
                 "file_id": file_id
             }
+            if file_name:
+                data_with_meta["file_name"] = file_name
+            elif "file_name" not in data_with_meta and "name" in data_with_meta:
+                data_with_meta["file_name"] = data_with_meta["name"]
 
             self.client.table("public_actions").insert({
                 "action": "share",
-                "data": data_with_file_id,
-                "user_email": user_email
+                "data": data_with_meta,
+                "user_email": normalized_email
             }).execute()
             logger.info(
-                f"Stored share for file_id: {file_id} (user: {user_email})")
-            logger.info(f"Stored share for file_id: {file_id}")
+                f"Stored share for file_id: {file_id} (user: {normalized_email})")
         except Exception as e:
             logger.error(f"Failed to store share: {e}")
             # Don't fail the request just because storage failed
@@ -278,7 +300,7 @@ class SupabaseService:
                 .eq("action", "add") \
                 .execute()
 
-            supabase_tasks = response.data
+            supabase_tasks = cast(list[dict[str, Any]], response.data or [])
 
             # Create a mapping of task_id to PikPak task data
             pikpak_task_map = {task['id']: task for task in pikpak_tasks}
@@ -351,7 +373,7 @@ class SupabaseService:
 
         try:
             response = self.client.table("public_actions") \
-                .select("id", count="exact") \
+                .select("id", count=CountMethod.exact) \
                 .eq("action", "add") \
                 .gte("created_at", since_time) \
                 .execute()
@@ -374,7 +396,7 @@ class SupabaseService:
 
         try:
             response = self.client.table("public_actions") \
-                .select("id", count="exact") \
+                .select("id", count=CountMethod.exact) \
                 .eq("action", "add") \
                 .gte("created_at", start_time) \
                 .lt("created_at", end_time) \
@@ -423,25 +445,26 @@ class SupabaseService:
                 .limit(limit) \
                 .execute()
 
-            data = response.data
+            data = cast(list[dict[str, Any]], response.data or [])
             if not data:
                 return []
 
             # Sort by date ascending for prediction calculation
-            data.sort(key=lambda x: x['date'])
+            data.sort(key=lambda x: str(x.get('date', '')))
 
             # Extract series for each metric
-            tasks_added_series = [float(d.get('tasks_added', 0)) for d in data]
+            tasks_added_series = [float(d.get('tasks_added', 0) or 0) for d in data]
             storage_used_series = [
-                float(d.get('storage_used', 0)) for d in data]
+                float(d.get('storage_used', 0) or 0) for d in data]
             transfer_used_series = [
-                float(d.get('transfer_used', 0)) for d in data]
+                float(d.get('transfer_used', 0) or 0) for d in data]
             downstream_traffic_series = [
-                float(d.get('downstream_traffic', 0)) for d in data]
+                float(d.get('downstream_traffic', 0) or 0) for d in data]
 
             # Predict next 7 days
-            from app.utils.prediction import predict_next_values
             from datetime import datetime, timedelta
+
+            from app.utils.prediction import predict_next_values
 
             predicted_tasks = predict_next_values(tasks_added_series, 7)
             predicted_storage = predict_next_values(storage_used_series, 7)
@@ -450,7 +473,7 @@ class SupabaseService:
                 downstream_traffic_series, 7)
 
             # Generate future dates
-            last_date_str = data[-1]['date']
+            last_date_str = str(data[-1].get('date', ''))
             last_date = datetime.strptime(last_date_str, '%Y-%m-%d')
 
             predicted_data = []
@@ -482,7 +505,7 @@ class SupabaseService:
     # User Management Methods
     # ========================================
 
-    def create_user(self, email: str, password_hash: str, is_admin: bool = False) -> Dict[str, Any]:
+    def create_user(self, email: str, password_hash: str, is_admin: bool = False) -> dict[str, Any]:
         """Insert new user into database
 
         Args:
@@ -504,16 +527,17 @@ class SupabaseService:
                 "blocked": False
             }).execute()
 
-            if response.data and len(response.data) > 0:
+            rows = cast(list[dict[str, Any]], response.data or [])
+            if rows:
                 logger.info(f"Created user: {email}")
-                return response.data[0]
+                return rows[0]
 
             raise RuntimeError("Failed to create user")
         except Exception as e:
             logger.error(f"Error creating user {email}: {e}")
             raise
 
-    def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+    def get_user_by_email(self, email: str) -> dict[str, Any] | None:
         """Query user by email address
 
         Args:
@@ -532,8 +556,9 @@ class SupabaseService:
                 .limit(1) \
                 .execute()
 
-            if response.data and len(response.data) > 0:
-                return response.data[0]
+            rows = cast(list[dict[str, Any]], response.data or [])
+            if rows:
+                return rows[0]
 
             return None
         except Exception as e:
@@ -565,7 +590,7 @@ class SupabaseService:
             logger.error(f"Error updating password for {email}: {e}")
             raise
 
-    def store_password_reset_token(self, email: str, token: str, expires_at) -> bool:
+    def store_password_reset_token(self, email: str, token: str, expires_at: Any) -> bool:
         """Store password reset token for user
 
         Args:
@@ -594,7 +619,7 @@ class SupabaseService:
             logger.error(f"Error storing reset token for {email}: {e}")
             raise
 
-    def get_user_by_reset_token(self, token: str) -> Optional[Dict[str, Any]]:
+    def get_user_by_reset_token(self, token: str) -> dict[str, Any] | None:
         """Retrieve user by valid reset token
 
         Args:
@@ -613,8 +638,9 @@ class SupabaseService:
                 .limit(1) \
                 .execute()
 
-            if response.data and len(response.data) > 0:
-                return response.data[0]
+            rows = cast(list[dict[str, Any]], response.data or [])
+            if rows:
+                return rows[0]
 
             return None
         except Exception as e:
@@ -708,7 +734,7 @@ class SupabaseService:
 
         try:
             response = self.client.table("users") \
-                .select("id", count="exact") \
+                .select("id", count=CountMethod.exact) \
                 .eq("is_admin", True) \
                 .execute()
 
@@ -742,7 +768,7 @@ class SupabaseService:
             logger.error(f"Error updating blocked status for {email}: {e}")
             raise
 
-    def get_users_list(self, offset: int, limit: int, blocked_filter: Optional[bool] = None) -> Dict[str, Any]:
+    def get_users_list(self, offset: int, limit: int, blocked_filter: bool | None = None) -> dict[str, Any]:
         """Get filtered and paginated user list
 
         Args:
@@ -758,7 +784,7 @@ class SupabaseService:
 
         try:
             query = self.client.table("users") \
-                .select("email, is_admin, blocked, created_at", count="exact")
+                .select("email, is_admin, blocked, created_at", count=CountMethod.exact)
 
             # Apply filter if specified
             if blocked_filter is not None:
@@ -777,7 +803,7 @@ class SupabaseService:
             logger.error(f"Error fetching users list: {e}")
             raise
 
-    def get_user_tasks(self, email: str, offset: int, limit: int) -> Dict[str, Any]:
+    def get_user_tasks(self, email: str, offset: int, limit: int) -> dict[str, Any]:
         """Get user's tasks from public_actions (filtered by user_email)
 
         Args:
@@ -793,7 +819,7 @@ class SupabaseService:
 
         try:
             response = self.client.table("public_actions") \
-                .select("*", count="exact") \
+                .select("*", count=CountMethod.exact) \
                 .eq("action", "add") \
                 .eq("user_email", email) \
                 .order("created_at", desc=True) \
@@ -832,7 +858,89 @@ class SupabaseService:
             logger.error(f"Error deleting action {action_id}: {e}")
             raise
 
-    def get_admin_statistics(self) -> Dict[str, Any]:
+    def get_user_shares(self, email: str, offset: int = 0, limit: int = 50) -> dict[str, Any]:
+        """Get user's shares from public_actions (filtered by user_email)
+
+        Args:
+            email: User's email address
+            offset: Pagination offset
+            limit: Number of shares to return
+
+        Returns:
+            Dictionary with shares data and total count
+        """
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        try:
+            normalized_email = email.strip().lower() if email else ""
+            response = self.client.table("public_actions") \
+                .select("*", count=CountMethod.exact) \
+                .eq("action", "share") \
+                .eq("user_email", normalized_email) \
+                .order("created_at", desc=True) \
+                .range(offset, offset + limit - 1) \
+                .execute()
+
+            shares_list: list[dict[str, Any]] = []
+            for item in (response.data or []):
+                if isinstance(item, dict):
+                    share_payload = item.get("data", {})
+                    if isinstance(share_payload, dict):
+                        shares_list.append({
+                            **share_payload,
+                            "action_id": item.get("id"),
+                            "created_at": item.get("created_at"),
+                        })
+
+            return {
+                "data": response.data or [],
+                "shares": shares_list,
+                "count": response.count if response.count is not None else len(response.data or [])
+            }
+        except Exception as e:
+            logger.error(f"Error fetching shares for user {email}: {e}")
+            raise
+
+    def delete_user_share(self, email: str, action_id_or_share_id: str) -> bool:
+        """Delete specific user share by action ID or share_id
+
+        Args:
+            email: User's email address
+            action_id_or_share_id: ID of the action or share to delete
+
+        Returns:
+            True if deleted successfully
+        """
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        try:
+            normalized_email = email.strip().lower() if email else ""
+            target_str = str(action_id_or_share_id).strip()
+
+            if target_str.isdigit():
+                self.client.table("public_actions") \
+                    .delete() \
+                    .eq("action", "share") \
+                    .eq("user_email", normalized_email) \
+                    .eq("id", int(target_str)) \
+                    .execute()
+            else:
+                self.client.table("public_actions") \
+                    .delete() \
+                    .eq("action", "share") \
+                    .eq("user_email", normalized_email) \
+                    .contains("data", {"share_id": target_str}) \
+                    .execute()
+
+            logger.info(f"Deleted user share {action_id_or_share_id} for user {email}")
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting user share {action_id_or_share_id} for user {email}: {e}")
+            raise
+
+    def get_admin_statistics(self) -> dict[str, Any]:
         """Aggregate counts for admin dashboard
 
         Returns:
@@ -844,27 +952,27 @@ class SupabaseService:
         try:
             # Get total users count
             users_response = self.client.table("users") \
-                .select("id", count="exact") \
+                .select("id", count=CountMethod.exact) \
                 .execute()
             total_users = users_response.count or 0
 
             # Get blocked users count
             blocked_response = self.client.table("users") \
-                .select("id", count="exact") \
+                .select("id", count=CountMethod.exact) \
                 .eq("blocked", True) \
                 .execute()
             blocked_users = blocked_response.count or 0
 
             # Get total tasks count
             tasks_response = self.client.table("public_actions") \
-                .select("id", count="exact") \
+                .select("id", count=CountMethod.exact) \
                 .eq("action", "add") \
                 .execute()
             total_tasks = tasks_response.count or 0
 
             # Get total logs count
             logs_response = self.client.table("public_actions") \
-                .select("id", count="exact") \
+                .select("id", count=CountMethod.exact) \
                 .execute()
             total_logs = logs_response.count or 0
 

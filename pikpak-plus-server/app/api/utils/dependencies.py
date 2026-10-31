@@ -1,15 +1,14 @@
 """Dependency Injection for API Routes"""
-from typing import Optional
+
 from app.services import PikPakService, SupabaseService, WebDAVManager
 from app.utils.common import CacheManager
 
-
 # Global service instances (injected by app initialization)
-_pikpak_service: Optional[PikPakService] = None
-_supabase_service: Optional[SupabaseService] = None
-_cache_manager: Optional[CacheManager] = None
+_pikpak_service: PikPakService | None = None
+_supabase_service: SupabaseService | None = None
+_cache_manager: CacheManager | None = None
 _app_scheduler = None
-_webdav_manager: Optional[WebDAVManager] = None
+_webdav_manager: WebDAVManager | None = None
 _redis_client = None
 
 
@@ -18,7 +17,7 @@ def init_dependencies(
     supabase: SupabaseService,
     cache: CacheManager,
     scheduler=None,
-    webdav_mgr: Optional[WebDAVManager] = None,
+    webdav_mgr: WebDAVManager | None = None,
     redis_cli=None
 ):
     """Initialize all service dependencies for routes"""
@@ -44,15 +43,15 @@ def get_service(service_name: str):
 
 
 # Convenience getters
-def get_pikpak_service() -> Optional[PikPakService]:
+def get_pikpak_service() -> PikPakService | None:
     return _pikpak_service
 
 
-def get_supabase_service() -> Optional[SupabaseService]:
+def get_supabase_service() -> SupabaseService | None:
     return _supabase_service
 
 
-def get_cache_manager() -> Optional[CacheManager]:
+def get_cache_manager() -> CacheManager | None:
     return _cache_manager
 
 
@@ -60,7 +59,7 @@ def get_scheduler():
     return _app_scheduler
 
 
-def get_webdav_manager() -> Optional[WebDAVManager]:
+def get_webdav_manager() -> WebDAVManager | None:
     return _webdav_manager
 
 

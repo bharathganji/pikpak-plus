@@ -105,11 +105,11 @@ export function MagnetInputCard({
   const getLinkTypeColor = (type?: string) => {
     switch (type) {
       case "magnet":
-        return "bg-blue-500/20 text-blue-700 dark:text-blue-400";
+        return "bg-blue-100 text-blue-900 border-blue-200 dark:bg-blue-950 dark:text-blue-200 dark:border-blue-800";
       case "e2dk":
-        return "bg-purple-500/20 text-purple-700 dark:text-purple-400";
+        return "bg-purple-100 text-purple-900 border-purple-200 dark:bg-purple-950 dark:text-purple-200 dark:border-purple-800";
       default:
-        return "bg-gray-500/20 text-gray-700 dark:text-gray-400";
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
@@ -142,11 +142,18 @@ export function MagnetInputCard({
       </CardHeader>
       <CardContent className="space-y-2 px-4 pt-0.5 pb-4">
         {/* Info Banner */}
-        <div className="flex items-start gap-2 text-xs bg-blue-50 dark:bg-blue-950/30 p-3 rounded-md border border-blue-200 dark:border-blue-800">
-          <Info className="h-4 w-4 mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
-          <span className="text-blue-900 dark:text-blue-300">
-            Enter a <strong>magnet link</strong> (magnet:?xt=urn:btih:...) or an{" "}
-            <strong>E2DK link</strong> (ed2k://|file|...|/){" "}
+        <div className="flex items-start gap-2 text-xs bg-blue-50 text-blue-950 border-blue-200 dark:bg-blue-950 dark:text-blue-100 dark:border-blue-800 p-3 rounded-md border">
+          <Info className="h-4 w-4 mt-0.5 shrink-0 text-blue-700 dark:text-blue-300" />
+          <span>
+            Enter a{" "}
+            <strong className="font-semibold text-blue-950 dark:text-white">
+              magnet link
+            </strong>{" "}
+            (magnet:?xt=urn:btih:...) or an{" "}
+            <strong className="font-semibold text-blue-950 dark:text-white">
+              E2DK link
+            </strong>{" "}
+            (ed2k://|file|...|/){" "}
           </span>
         </div>
 

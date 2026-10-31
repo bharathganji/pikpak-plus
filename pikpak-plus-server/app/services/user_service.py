@@ -1,14 +1,17 @@
 """User Service Module - Handles user management operations"""
+
 import logging
-from typing import Optional, Dict, Any, List
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
 from app.core.auth import (
+    create_password_reset_token,
     hash_password,
     verify_password,
-    create_password_reset_token,
-    verify_reset_token
+    verify_reset_token,
 )
 from app.core.config import AppConfig
+from app.services.email_service import EmailService
 
 logger = logging.getLogger(__name__)
 
@@ -16,15 +19,17 @@ logger = logging.getLogger(__name__)
 class UserService:
     """Service for user management operations"""
 
-    def __init__(self, supabase_service):
+    def __init__(self, supabase_service, email_service: EmailService | None = None):
         """Initialize UserService with SupabaseService dependency
 
         Args:
             supabase_service: Instance of SupabaseService for database operations
+            email_service: Optional EmailService instance for email delivery
         """
         self.supabase_service = supabase_service
+        self.email_service = email_service or EmailService()
 
-    def register_user(self, email: str, password: str) -> Dict[str, Any]:
+    def register_user(self, email: str, password: str) -> dict[str, Any]:
         """Create a new user account
 
         Args:
@@ -46,20 +51,19 @@ class UserService:
         password_hash = hash_password(password)
 
         # Create user in database
-        user = self.supabase_service.create_user(
-            email, password_hash, is_admin=False)
+        user = self.supabase_service.create_user(email, password_hash, is_admin=False)
 
         logger.info(f"New user registered: {email}")
 
         # Return user without password hash
         return {
-            'email': user['email'],
-            'is_admin': user.get('is_admin', False),
-            'blocked': user.get('blocked', False),
-            'created_at': user.get('created_at')
+            "email": user["email"],
+            "is_admin": user.get("is_admin", False),
+            "blocked": user.get("blocked", False),
+            "created_at": user.get("created_at"),
         }
 
-    def authenticate_user(self, email: str, password: str) -> Optional[Dict[str, Any]]:
+    def authenticate_user(self, email: str, password: str) -> dict[str, Any] | None:
         """Verify login credentials
 
         Args:
@@ -76,7 +80,7 @@ class UserService:
             return None
 
         # Verify password
-        if not verify_password(password, user['password_hash']):
+        if not verify_password(password, user["password_hash"]):
             logger.warning(f"Failed login attempt for user: {email}")
             return None
 
@@ -84,13 +88,13 @@ class UserService:
 
         # Return user without password hash
         return {
-            'email': user['email'],
-            'is_admin': user.get('is_admin', False),
-            'blocked': user.get('blocked', False),
-            'created_at': user.get('created_at')
+            "email": user["email"],
+            "is_admin": user.get("is_admin", False),
+            "blocked": user.get("blocked", False),
+            "created_at": user.get("created_at"),
         }
 
-    def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+    def get_user_by_email(self, email: str) -> dict[str, Any] | None:
         """Retrieve user information
 
         Args:
@@ -106,10 +110,10 @@ class UserService:
 
         # Return user without password hash
         return {
-            'email': user['email'],
-            'is_admin': user.get('is_admin', False),
-            'blocked': user.get('blocked', False),
-            'created_at': user.get('created_at')
+            "email": user["email"],
+            "is_admin": user.get("is_admin", False),
+            "blocked": user.get("blocked", False),
+            "created_at": user.get("created_at"),
         }
 
     def request_password_reset(self, email: str) -> bool:
@@ -124,26 +128,23 @@ class UserService:
         user = self.supabase_service.get_user_by_email(email)
 
         if not user:
-            logger.warning(
-                f"Password reset requested for non-existent user: {email}")
+            logger.warning(f"Password reset requested for non-existent user: {email}")
             # Return True anyway to prevent user enumeration
             return True
 
         # Generate reset token
         reset_token = create_password_reset_token()
-        expires_at = datetime.utcnow() + timedelta(
+        expires_at = datetime.now(UTC) + timedelta(
             hours=AppConfig.PASSWORD_RESET_TOKEN_EXPIRATION_HOURS
         )
 
         # Store token in database
-        self.supabase_service.store_password_reset_token(
-            email, reset_token, expires_at)
+        self.supabase_service.store_password_reset_token(email, reset_token, expires_at)
 
         logger.info(f"Password reset token generated for: {email}")
 
-        # In a real application, send email with reset link here
-        # For now, just log the token (remove in production!)
-        logger.info(f"Reset token (dev only): {reset_token}")
+        # Send password reset email (falls back to dev logging if SMTP is unconfigured)
+        self.email_service.send_password_reset_email(email, reset_token)
 
         return True
 
@@ -166,9 +167,7 @@ class UserService:
 
         # Verify token is still valid
         if not verify_reset_token(
-            token,
-            user.get('reset_token'),
-            user.get('reset_token_expires_at')
+            token, user.get("reset_token"), user.get("reset_token_expires_at")
         ):
             return False
 
@@ -176,11 +175,10 @@ class UserService:
         password_hash = hash_password(new_password)
 
         # Update password
-        self.supabase_service.update_user_password(
-            user['email'], password_hash)
+        self.supabase_service.update_user_password(user["email"], password_hash)
 
         # Clear reset token
-        self.supabase_service.clear_password_reset_token(user['email'])
+        self.supabase_service.clear_password_reset_token(user["email"])
 
         logger.info(f"Password reset successful for: {user['email']}")
 
@@ -226,9 +224,11 @@ class UserService:
         if not user:
             return False
 
-        return user.get('blocked', False)
+        return user.get("blocked", False)
 
-    def get_all_users(self, offset: int = 0, limit: int = 25, blocked_filter: Optional[bool] = None) -> Dict[str, Any]:
+    def get_all_users(
+        self, offset: int = 0, limit: int = 25, blocked_filter: bool | None = None
+    ) -> dict[str, Any]:
         """Get paginated user list
 
         Args:
@@ -241,7 +241,7 @@ class UserService:
         """
         return self.supabase_service.get_users_list(offset, limit, blocked_filter)
 
-    def get_user_stats(self, email: str) -> Dict[str, Any]:
+    def get_user_stats(self, email: str) -> dict[str, Any]:
         """Get user activity statistics
 
         Args:
@@ -252,14 +252,13 @@ class UserService:
         """
         # Get user's task count
         user_tasks = self.supabase_service.get_user_tasks(email, 0, 1)
-        task_count = user_tasks.get('count', 0)
+        task_count = user_tasks.get("count", 0)
 
-        return {
-            'email': email,
-            'total_tasks': task_count
-        }
+        return {"email": email, "total_tasks": task_count}
 
-    def create_user(self, email: str, password: str, is_admin: bool = False) -> Dict[str, Any]:
+    def create_user(
+        self, email: str, password: str, is_admin: bool = False
+    ) -> dict[str, Any]:
         """Create a new user account (admin operation)
 
         Args:
@@ -278,18 +277,20 @@ class UserService:
             raise ValueError("Email already registered")
 
         password_hash = hash_password(password)
-        user = self.supabase_service.create_user(email, password_hash, is_admin=is_admin)
+        user = self.supabase_service.create_user(
+            email, password_hash, is_admin=is_admin
+        )
 
         logger.info(f"Admin created new user: {email}")
 
         return {
-            'email': user['email'],
-            'is_admin': user.get('is_admin', False),
-            'blocked': user.get('blocked', False),
-            'created_at': user.get('created_at')
+            "email": user["email"],
+            "is_admin": user.get("is_admin", False),
+            "blocked": user.get("blocked", False),
+            "created_at": user.get("created_at"),
         }
 
-    def delete_user(self, email: str) -> Dict[str, Any]:
+    def delete_user(self, email: str) -> dict[str, Any]:
         """Delete a user account (admin operation)
 
         Args:
@@ -305,7 +306,7 @@ class UserService:
         if not user:
             raise ValueError("User not found")
 
-        if user.get('is_admin', False):
+        if user.get("is_admin", False):
             admin_count = self.supabase_service.get_admins_count()
             if admin_count <= 1:
                 raise ValueError("Cannot delete the last admin user")
@@ -315,7 +316,7 @@ class UserService:
 
         return {"message": "User deleted successfully", "email": email}
 
-    def update_user_role(self, email: str, is_admin: bool) -> Dict[str, Any]:
+    def update_user_role(self, email: str, is_admin: bool) -> dict[str, Any]:
         """Update user's admin status (admin operation)
 
         Args:
@@ -343,10 +344,10 @@ class UserService:
         return {
             "message": "User role updated successfully",
             "email": email,
-            "is_admin": is_admin
+            "is_admin": is_admin,
         }
 
-    def reset_user_password(self, email: str, new_password: str) -> Dict[str, Any]:
+    def reset_user_password(self, email: str, new_password: str) -> dict[str, Any]:
         """Reset user password (admin override)
 
         Args:
@@ -385,22 +386,21 @@ class UserService:
         """
         if not AppConfig.ADMIN_EMAIL or not AppConfig.ADMIN_PASSWORD:
             logger.warning(
-                "ADMIN_EMAIL or ADMIN_PASSWORD not configured. Skipping admin bootstrap.")
+                "ADMIN_EMAIL or ADMIN_PASSWORD not configured. Skipping admin bootstrap."
+            )
             return
 
         # Check if admin already exists
-        existing_admin = self.supabase_service.get_user_by_email(
-            AppConfig.ADMIN_EMAIL)
+        existing_admin = self.supabase_service.get_user_by_email(AppConfig.ADMIN_EMAIL)
 
         if existing_admin:
-            if not existing_admin.get('is_admin'):
-                logger.info(
-                    f"Updating existing user to admin: {AppConfig.ADMIN_EMAIL}")
+            if not existing_admin.get("is_admin"):
+                logger.info(f"Updating existing user to admin: {AppConfig.ADMIN_EMAIL}")
                 self.supabase_service.update_user_admin_status(
-                    AppConfig.ADMIN_EMAIL, True)
+                    AppConfig.ADMIN_EMAIL, True
+                )
             else:
-                logger.info(
-                    f"Admin user already exists: {AppConfig.ADMIN_EMAIL}")
+                logger.info(f"Admin user already exists: {AppConfig.ADMIN_EMAIL}")
             return
 
         # Create admin user
@@ -408,10 +408,7 @@ class UserService:
         password_hash = hash_password(AppConfig.ADMIN_PASSWORD)
 
         self.supabase_service.create_user(
-            AppConfig.ADMIN_EMAIL,
-            password_hash,
-            is_admin=True
+            AppConfig.ADMIN_EMAIL, password_hash, is_admin=True
         )
 
-        logger.info(
-            f"Admin user created successfully: {AppConfig.ADMIN_EMAIL}")
+        logger.info(f"Admin user created successfully: {AppConfig.ADMIN_EMAIL}")

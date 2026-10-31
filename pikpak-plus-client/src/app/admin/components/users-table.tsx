@@ -1,7 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { format } from "date-fns";
+import { useState } from "react";
+import {
+  useQuery,
+  useQueryClient,
+  keepPreviousData,
+} from "@tanstack/react-query";
+import { AuthUser, UserStats } from "@/types/api";
+import {
+  getUsers,
+  blockUser,
+  unblockUser,
+  getUserDetails,
+} from "@/lib/admin-client";
 import {
   Table,
   TableBody,
@@ -13,7 +24,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import {
+  MoreHorizontal,
+  Search,
+  ShieldAlert,
+  ShieldCheck,
+  Eye,
+  Loader2,
+} from "lucide-react";
+import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -21,21 +40,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { AuthUser, UserStats } from "@/types/api";
-import {
-  getUsers,
-  blockUser,
-  unblockUser,
-  getUserDetails,
-} from "@/lib/admin-client";
-import {
-  Loader2,
-  Search,
-  MoreHorizontal,
-  ShieldAlert,
-  ShieldCheck,
-  Eye,
-} from "lucide-react";
+import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,51 +51,45 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function UsersTable() {
-  const [users, setUsers] = useState<AuthUser[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
-  const [totalCount, setTotalCount] = useState(0);
+  const [appliedSearch, setAppliedSearch] = useState("");
   const pageSize = 10;
 
-  const [selectedUser, setSelectedUser] = useState<AuthUser | null>(null);
   const [userDetails, setUserDetails] = useState<{
     user: AuthUser;
     stats: UserStats;
   } | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
-  const fetchUsers = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await getUsers(page, pageSize, undefined, search);
-      setUsers(res.data);
-      setTotalCount(res.count);
-      setTotalPages(Math.ceil(res.count / pageSize));
-    } catch (error) {
-      console.error("Failed to fetch users", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, search]);
+  const { data: usersData, isLoading: loading } = useQuery({
+    queryKey: ["admin", "users", { page, pageSize, search: appliedSearch }],
+    queryFn: () =>
+      getUsers(page, pageSize, undefined, appliedSearch || undefined),
+    placeholderData: keepPreviousData,
+  });
 
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+  const users = usersData?.data ?? [];
+  const totalCount = usersData?.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    fetchUsers();
+    setAppliedSearch(search);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
   };
 
   const handleBlock = async (email: string) => {
     if (!confirm(`Are you sure you want to block ${email}?`)) return;
     try {
       await blockUser(email);
-      // Refresh list
-      fetchUsers();
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard-stats"] });
     } catch (error) {
       console.error("Failed to block user", error);
       alert("Failed to block user");
@@ -100,7 +99,8 @@ export function UsersTable() {
   const handleUnblock = async (email: string) => {
     try {
       await unblockUser(email);
-      fetchUsers();
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard-stats"] });
     } catch (error) {
       console.error("Failed to unblock user", error);
     }
@@ -185,7 +185,7 @@ export function UsersTable() {
                     ) : (
                       <Badge
                         variant="secondary"
-                        className="text-green-600 bg-green-100 dark:bg-green-900/30"
+                        className="text-emerald-950 bg-emerald-50 dark:text-emerald-100 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800"
                       >
                         Active
                       </Badge>
@@ -210,7 +210,6 @@ export function UsersTable() {
                           <DialogTrigger asChild>
                             <DropdownMenuItem
                               onClick={() => {
-                                setSelectedUser(user);
                                 loadUserDetails(user.email);
                               }}
                             >
@@ -321,7 +320,7 @@ export function UsersTable() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          onClick={() => handlePageChange(Math.max(1, page - 1))}
           disabled={page === 1 || loading}
         >
           Previous
@@ -332,7 +331,7 @@ export function UsersTable() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages || loading}
         >
           Next

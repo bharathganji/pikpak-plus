@@ -57,14 +57,17 @@ export function TaskItem({ task, onDelete }: Readonly<TaskItemProps>) {
                 {formatTimeAgo(task.timestamp)}
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="shrink-0 h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={() => onDelete(task.id)}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+            <div className="flex items-center gap-1 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => onDelete(task.id)}
+                title="Delete Task"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
 
           {/* Magnet Link */}

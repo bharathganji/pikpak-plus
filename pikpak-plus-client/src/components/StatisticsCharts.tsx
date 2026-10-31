@@ -19,6 +19,20 @@ interface StatisticsChartsProps {
   data: DailyStat[];
 }
 
+interface ChartDataPoint {
+  date: string;
+  tasks_added: number | null;
+  storage_used: number | null;
+  transfer_used: number | null;
+  downstream_traffic: number | null;
+  is_predicted?: boolean;
+  tasks_added_predicted: number | null;
+  storage_used_predicted: number | null;
+  transfer_used_predicted: number | null;
+  downstream_traffic_predicted: number | null;
+  [key: string]: unknown;
+}
+
 export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
   // Sort data by date ascending for charts
   const rawData = [...data].sort(
@@ -26,7 +40,7 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
   );
 
   // Process data to separate actual vs predicted for continuity
-  const chartData = rawData.map((item, index) => {
+  const chartData: ChartDataPoint[] = rawData.map((item) => {
     const isPredicted = item.is_predicted;
 
     // If this is the first predicted item, the previous item (actual) needs to start the predicted line
@@ -36,13 +50,13 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
     // - Predicted series: value if isPredicted.
     // - To connect them: The LAST actual item should have BOTH actual and predicted values.
 
-    const newItem: any = { ...item };
-
-    // Default all predicted to null initially
-    newItem.tasks_added_predicted = null;
-    newItem.storage_used_predicted = null;
-    newItem.transfer_used_predicted = null;
-    newItem.downstream_traffic_predicted = null;
+    const newItem: ChartDataPoint = {
+      ...item,
+      tasks_added_predicted: null,
+      storage_used_predicted: null,
+      transfer_used_predicted: null,
+      downstream_traffic_predicted: null,
+    };
 
     if (isPredicted) {
       // Move exact values to predicted fields

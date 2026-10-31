@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardOverview } from "./components/dashboard-overview";
@@ -8,17 +9,41 @@ import { ContentModeration } from "./components/content-moderation";
 import { SystemSettings } from "./components/system-settings";
 import { Activity, Users, FileText, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useRouter } from "next/navigation";
 
 export default function AdminPage() {
   const { user, loading, isAdmin, logout } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
   const router = useRouter();
 
-  // Redirect is handled by AuthProvider, but we can show loading meanwhile
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
+  // Show responsive admin skeleton while loading
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading...
+      <div className="container mx-auto py-8 px-4 space-y-8">
+        <div className="flex justify-between items-center">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-96" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-9 w-20" />
+          </div>
+        </div>
+        <Skeleton className="h-10 w-full max-w-[600px] rounded-lg" />
+        <Skeleton className="h-[400px] w-full rounded-xl" />
       </div>
     );
   }
@@ -42,8 +67,12 @@ export default function AdminPage() {
           <Button variant="outline" onClick={() => router.push("/")}>
             Back to App
           </Button>
-          <Button variant="destructive" onClick={() => logout()}>
-            Logout
+          <Button
+            variant="destructive"
+            onClick={handleLogout}
+            disabled={loggingOut}
+          >
+            {loggingOut ? "Logging out..." : "Logout"}
           </Button>
         </div>
       </div>
@@ -65,19 +94,27 @@ export default function AdminPage() {
         </TabsList>
 
         <TabsContent value="overview">
-          <DashboardOverview />
+          <ErrorBoundary title="Failed to load Overview">
+            <DashboardOverview />
+          </ErrorBoundary>
         </TabsContent>
 
         <TabsContent value="users">
-          <UsersTable />
+          <ErrorBoundary title="Failed to load Users Table">
+            <UsersTable />
+          </ErrorBoundary>
         </TabsContent>
 
         <TabsContent value="content">
-          <ContentModeration />
+          <ErrorBoundary title="Failed to load Content Moderation">
+            <ContentModeration />
+          </ErrorBoundary>
         </TabsContent>
 
         <TabsContent value="settings">
-          <SystemSettings />
+          <ErrorBoundary title="Failed to load System Settings">
+            <SystemSettings />
+          </ErrorBoundary>
         </TabsContent>
       </Tabs>
     </div>
