@@ -41,14 +41,12 @@ export async function proxy(request: NextRequest) {
   // Scenario A: Server is DOWN, force Maintenance Page
   if (!isHealthy) {
     if (pathname !== "/maintenance" && pathname !== "/faq") {
-      const url = request.nextUrl.clone();
-      url.pathname = "/maintenance";
+      const url = new URL("/maintenance", request.nextUrl);
       return NextResponse.redirect(url);
     }
   } else if (pathname === "/maintenance") {
     // Scenario B: Server is UP, recover from Maintenance Page
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
+    const url = new URL("/", request.nextUrl);
     return NextResponse.redirect(url);
   }
 
@@ -63,16 +61,27 @@ export async function proxy(request: NextRequest) {
 
   // Case A: Unauthenticated user accesses protected route -> immediate server redirect to /login
   if (isProtectedRoute && !token) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("from", pathname);
+    const url = new URL("/login", request.nextUrl);
+    const fullPath = request.nextUrl.search
+      ? `${pathname}${request.nextUrl.search}`
+      : pathname;
+    url.searchParams.set("from", fullPath);
     return NextResponse.redirect(url);
   }
 
-  // Case B: Authenticated user accesses auth page or landing page -> immediate server redirect to /dashboard
+  // Case B: Authenticated user accesses auth page or landing page -> immediate server redirect
   if ((isAuthPage || pathname === "/") && token) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    const fromParam = request.nextUrl.searchParams.get("from");
+    const target =
+      fromParam &&
+      fromParam.startsWith("/") &&
+      !fromParam.startsWith("//") &&
+      !fromParam.startsWith("/login") &&
+      !fromParam.startsWith("/register") &&
+      !fromParam.startsWith("/forgot-password")
+        ? fromParam
+        : "/dashboard";
+    const url = new URL(target, request.nextUrl);
     return NextResponse.redirect(url);
   }
 

@@ -21,7 +21,7 @@ interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   isAdmin: boolean;
-  login: (email: string, pass: string) => Promise<void>;
+  login: (email: string, pass: string, redirectTo?: string) => Promise<void>;
   register: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
@@ -83,30 +83,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!user && !isAuthPage && !isPublicPage) {
         // Not logged in and trying to access protected page
-        router.push("/login");
+        if (pathname !== "/login") {
+          router.replace("/login");
+        }
       } else if (
         user &&
         isAuthPage &&
         !pathname?.startsWith("/reset-password")
       ) {
         // Logged in and trying to access auth page
-        router.push("/dashboard");
+        if (pathname !== "/dashboard") {
+          router.replace("/dashboard");
+        }
       } else if (user && pathname === "/") {
         // Logged in and visiting root landing page -> take to dashboard
-        router.push("/dashboard");
+        router.replace("/dashboard");
       } else if (user && isAdminPage && !user.is_admin) {
         // Non-admin trying to access admin page
-        router.push("/dashboard");
+        router.replace("/dashboard");
       }
     }
   }, [user, loading, pathname, router]);
 
-  const login = async (email: string, pass: string) => {
+  const login = async (email: string, pass: string, redirectTo?: string) => {
     try {
       const res = await apiLogin(email, pass);
       if (res.user) {
         setUser(res.user);
-        router.push("/dashboard");
+        const target =
+          redirectTo &&
+          redirectTo.startsWith("/") &&
+          !redirectTo.startsWith("//") &&
+          !redirectTo.startsWith("/login") &&
+          !redirectTo.startsWith("/register")
+            ? redirectTo
+            : "/dashboard";
+        router.replace(target);
       }
     } catch (error) {
       throw error;
@@ -118,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRegister(email, pass);
       if (res.user) {
         setUser(res.user);
-        router.push("/dashboard");
+        router.replace("/dashboard");
       }
     } catch (error) {
       throw error;
@@ -128,9 +140,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     try {
       await apiLogout();
+    } catch (err) {
+      console.error("Logout API failed:", err);
     } finally {
       setUser(null);
-      router.push("/login");
+      router.replace("/login");
+      router.refresh();
     }
   };
 

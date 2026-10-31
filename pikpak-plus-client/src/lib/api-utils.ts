@@ -7,7 +7,7 @@ export const getApiUrl = (): string => {
 export const getServerApiUrl = (): string => {
   // 1. Prefer internal Docker network URL if available
   // 2. Fallback to localhost default for server-side context
-  return process.env.API_URL_INTERNAL || "http://localhost:5000";
+  return process.env.API_URL_INTERNAL || "http://127.0.0.1:5000";
 };
 
 // Get auth headers (credentials are automatically transmitted via secure HttpOnly cookies)

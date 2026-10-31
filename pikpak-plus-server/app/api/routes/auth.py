@@ -210,7 +210,7 @@ def logout():
     response = jsonify({"message": "Logout successful", "note": "Session terminated"})
     response.delete_cookie("access_token", path="/")
     response.delete_cookie("token", path="/")
-    response.headers["Clear-Site-Data"] = '"cookies", "storage", "cache"'
+    response.headers["Clear-Site-Data"] = '"cookies"'
     return response, 200
 
 

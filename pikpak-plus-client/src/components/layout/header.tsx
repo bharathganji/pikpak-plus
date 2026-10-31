@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -22,9 +23,16 @@ export function Header() {
   const { user, isAdmin, logout } = useAuth();
   const router = useRouter();
 
-  const handleLogout = () => {
-    logout();
-    router.push("/login");
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   return (
@@ -98,10 +106,11 @@ export function Header() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={handleLogout}
-                  className="text-destructive focus:text-destructive"
+                  disabled={loggingOut}
+                  className="text-destructive focus:text-destructive cursor-pointer"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  Log out
+                  {loggingOut ? "Logging out..." : "Log out"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

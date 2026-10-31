@@ -106,7 +106,7 @@ def test_logout(test_client, auth_headers):
     res = test_client.post("/logout", headers=auth_headers)
     assert res.status_code == 200
     assert res.get_json()["message"] == "Logout successful"
-    assert res.headers.get("Clear-Site-Data") == '"cookies", "storage", "cache"'
+    assert res.headers.get("Clear-Site-Data") == '"cookies"'
     set_cookie = res.headers.get("Set-Cookie", "")
     assert "access_token=;" in set_cookie or "access_token=" in set_cookie
 

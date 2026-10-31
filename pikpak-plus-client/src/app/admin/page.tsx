@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardOverview } from "./components/dashboard-overview";
@@ -14,7 +15,18 @@ import { useRouter } from "next/navigation";
 
 export default function AdminPage() {
   const { user, loading, isAdmin, logout } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
   const router = useRouter();
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   // Show responsive admin skeleton while loading
   if (loading) {
@@ -55,8 +67,12 @@ export default function AdminPage() {
           <Button variant="outline" onClick={() => router.push("/")}>
             Back to App
           </Button>
-          <Button variant="destructive" onClick={() => logout()}>
-            Logout
+          <Button
+            variant="destructive"
+            onClick={handleLogout}
+            disabled={loggingOut}
+          >
+            {loggingOut ? "Logging out..." : "Logout"}
           </Button>
         </div>
       </div>
