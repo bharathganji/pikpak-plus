@@ -41,7 +41,7 @@ def _resolve_jwt_secret(base_dir: Path | None = None) -> str:
                 content = f.read().strip()
                 if len(content) >= 32:
                     return content
-        except Exception as e:
+        except OSError as e:
             logger.warning(f"Failed to read existing .jwt_secret: {e}")
 
     # Generate new cryptographically secure secret and persist atomically
@@ -58,7 +58,7 @@ def _resolve_jwt_secret(base_dir: Path | None = None) -> str:
             pass
         os.replace(tmp_file, secret_file)
         return new_secret
-    except Exception as e:
+    except OSError as e:
         logger.warning(
             f"Failed to persist .jwt_secret atomically ({e}). "
             "Falling back to deterministic host-bound key."
@@ -66,8 +66,8 @@ def _resolve_jwt_secret(base_dir: Path | None = None) -> str:
         try:
             if tmp_file.exists():
                 tmp_file.unlink()
-        except Exception:
-            pass
+        except OSError as cleanup_err:
+            logger.debug(f"Failed to cleanup temporary secret file: {cleanup_err}")
 
         # Deterministic host fallback
         host_ident = f"pikpak-plus:{platform.node()}:{uuid.getnode()}".encode()
@@ -76,6 +76,7 @@ def _resolve_jwt_secret(base_dir: Path | None = None) -> str:
 
 class AppConfig:
     """Application configuration"""
+
     # Flask
     SCHEDULER_API_ENABLED = True
 
@@ -92,11 +93,7 @@ class AppConfig:
         or os.getenv("passwd")
         or os.getenv("PASSWD")
     )
-    PIKPAK_PROXY = (
-        os.getenv("PIKPAK_PROXY")
-        or os.getenv("proxy")
-        or os.getenv("PROXY")
-    )
+    PIKPAK_PROXY = os.getenv("PIKPAK_PROXY") or os.getenv("proxy") or os.getenv("PROXY")
 
     # Reverse proxy and internal route protection
     TRUSTED_PROXIES = os.getenv("TRUSTED_PROXIES", "127.0.0.1,::1")
@@ -114,7 +111,8 @@ class AppConfig:
     # Default: 5 minutes
     TASK_CACHE_TTL = int(os.getenv("TASK_CACHE_TTL_SECONDS", "300"))
     QUOTA_CACHE_TTL = int(
-        os.getenv("QUOTA_CACHE_TTL_SECONDS", "10800"))  # Default: 3 hours
+        os.getenv("QUOTA_CACHE_TTL_SECONDS", "10800")
+    )  # Default: 3 hours
 
     # Request Timeout
     REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "60"))
@@ -127,7 +125,8 @@ class AppConfig:
 
     # Scheduler Configuration
     TASK_STATUS_UPDATE_INTERVAL_MINUTES = int(
-        os.getenv("TASK_STATUS_UPDATE_INTERVAL_MINUTES", "15"))
+        os.getenv("TASK_STATUS_UPDATE_INTERVAL_MINUTES", "15")
+    )
     CLEANUP_INTERVAL_HOURS = int(os.getenv("CLEANUP_INTERVAL_HOURS", "24"))
 
     # Pagination Configuration
@@ -135,7 +134,8 @@ class AppConfig:
 
     # WebDAV Generation Configuration
     WEBDAV_GENERATION_INTERVAL_HOURS = int(
-        os.getenv("WEBDAV_GENERATION_INTERVAL_HOURS", "24"))
+        os.getenv("WEBDAV_GENERATION_INTERVAL_HOURS", "24")
+    )
 
     # Authentication Configuration
     # Admin account credentials (auto-created on startup)
@@ -148,20 +148,43 @@ class AppConfig:
 
     # Password Reset Configuration
     PASSWORD_RESET_TOKEN_EXPIRATION_HOURS = int(
-        os.getenv("PASSWORD_RESET_TOKEN_EXPIRATION_HOURS", "1"))
+        os.getenv("PASSWORD_RESET_TOKEN_EXPIRATION_HOURS", "1")
+    )
+
+    # SMTP / Brevo Email Configuration (optional, falls back to dev logging if unconfigured)
+    SMTP_HOST = os.getenv("SMTP_HOST")
+    SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USER = os.getenv("SMTP_USER")
+    SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+    SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() in ("true", "1", "yes")
+    SMTP_USE_SSL = os.getenv("SMTP_USE_SSL", "false").lower() in ("true", "1", "yes")
+    SMTP_FROM_EMAIL = (
+        os.getenv("SMTP_FROM_EMAIL")
+        or os.getenv("SMTP_USER")
+        or "noreply@pikpakplus.com"
+    )
+    SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "PikPak Plus")
+    FRONTEND_URL = (
+        os.getenv("FRONTEND_URL") or os.getenv("APP_URL") or "http://localhost:3000"
+    )
 
     @classmethod
     def validate(cls):
         """Validate that all required config is present and alert on POSIX collisions."""
-        required = [cls.PIKPAK_USER, cls.PIKPAK_PASS,
-                    cls.SUPABASE_URL, cls.SUPABASE_KEY, cls.REDIS_URL]
+        required = [
+            cls.PIKPAK_USER,
+            cls.PIKPAK_PASS,
+            cls.SUPABASE_URL,
+            cls.SUPABASE_KEY,
+            cls.REDIS_URL,
+        ]
         if not all(required):
             raise ValueError(
-                "Missing required environment variables. Please check .env file")
+                "Missing required environment variables. Please check .env file"
+            )
 
         if cls.PIKPAK_USER in {"root", "ubuntu", "runner", "appuser", "node", "daemon"}:
             logger.warning(
                 f"PIKPAK_USER is set to '{cls.PIKPAK_USER}', which appears to be a local POSIX username. "
                 "Ensure your PikPak account email is declared as PIKPAK_USER in .env."
             )
-
