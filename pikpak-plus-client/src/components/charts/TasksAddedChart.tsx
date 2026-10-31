@@ -68,7 +68,9 @@ export function TasksAddedChart({ chartData }: Readonly<TasksAddedChartProps>) {
                 dx={-10}
               />
               <Tooltip
-                labelFormatter={(date: unknown) => format(new Date(date as string | number | Date), "PPP")}
+                labelFormatter={(date: unknown) =>
+                  format(new Date(date as string | number | Date), "PPP")
+                }
                 contentStyle={tooltipStyle}
                 cursor={{ fill: "rgba(0,0,0,0.05)" }}
               />

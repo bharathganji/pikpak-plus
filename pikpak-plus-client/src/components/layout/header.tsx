@@ -28,7 +28,7 @@ export function Header() {
   };
 
   return (
-    <div className="w-full max-w-6xl flex items-center justify-between pb-4 pt-2 px-2 sm:px-4">
+    <div className="w-full max-w-6xl flex items-center justify-between pb-4 pt-2 px-2 sm:px-4 sticky top-0 z-30 backdrop-blur-xl bg-white/85 dark:bg-[#090B10]/85 border-b border-slate-200/80 dark:border-slate-800/80">
       <Link href="/" className="flex items-center focus:outline-hidden group">
         {/* Desktop logo */}
         <Image

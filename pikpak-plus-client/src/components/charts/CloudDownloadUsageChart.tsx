@@ -59,7 +59,9 @@ export function CloudDownloadUsageChart({
                 dx={-10}
               />
               <Tooltip
-                labelFormatter={(date: unknown) => format(new Date(date as string | number | Date), "PPP")}
+                labelFormatter={(date: unknown) =>
+                  format(new Date(date as string | number | Date), "PPP")
+                }
                 formatter={(value: unknown, name: unknown) => [
                   formatBytes(typeof value === "number" ? value : 0),
                   name === "transfer_used_predicted"

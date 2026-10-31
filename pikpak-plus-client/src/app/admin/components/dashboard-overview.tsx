@@ -5,12 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminStats, DailyStats } from "@/types/api";
 import { getOverviewStats, getDailyStats } from "@/lib/admin-client";
-import {
-  Users,
-  UserCheck,
-  UserX,
-  FileText,
-} from "lucide-react";
+import { Users, UserCheck, UserX, FileText } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -211,7 +206,9 @@ export function DashboardOverview() {
                       border: "none",
                       boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                     }}
-                    formatter={(val: unknown) => formatBytes(typeof val === "number" ? val : 0)}
+                    formatter={(val: unknown) =>
+                      formatBytes(typeof val === "number" ? val : 0)
+                    }
                   />
                   <Legend />
                   <Line

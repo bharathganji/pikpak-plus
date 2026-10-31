@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { DisclaimerModal } from "@/components/disclaimer-modal";
@@ -49,7 +55,10 @@ export default function Home() {
           </h1>
 
           <p className="mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed text-balance">
-            PikPak Plus enhances the PikPak cloud storage experience by enabling easy sharing of your PikPak Premium account. Built with modern web technologies, it provides a seamless interface for managing downloads, creating share links, and generating WebDAV clients.
+            PikPak Plus enhances the PikPak cloud storage experience by enabling
+            easy sharing of your PikPak Premium account. Built with modern web
+            technologies, it provides a seamless interface for managing
+            downloads, creating share links, and generating WebDAV clients.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -60,12 +69,20 @@ export default function Home() {
               </Button>
             </Link>
             <Link href="/register">
-              <Button size="lg" variant="outline" className="text-base px-6 h-11">
+              <Button
+                size="lg"
+                variant="outline"
+                className="text-base px-6 h-11"
+              >
                 <span>Sign Up</span>
               </Button>
             </Link>
             <Link href="/statistics">
-              <Button size="lg" variant="ghost" className="text-base px-4 h-11 text-muted-foreground hover:text-foreground gap-1.5">
+              <Button
+                size="lg"
+                variant="ghost"
+                className="text-base px-4 h-11 text-muted-foreground hover:text-foreground gap-1.5"
+              >
                 <BarChart3 className="h-4 w-4" />
                 <span>Statistics</span>
               </Button>
@@ -76,9 +93,12 @@ export default function Home() {
         {/* Key Features from README */}
         <section className="w-full mt-14 md:mt-20">
           <div className="text-center mb-8">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Key Features</h2>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
+              Key Features
+            </h2>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              Everything provided by the platform as described in our documentation.
+              Everything provided by the platform as described in our
+              documentation.
             </p>
           </div>
 
@@ -88,11 +108,14 @@ export default function Home() {
                 <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-2">
                   <ShieldCheck className="h-5 w-5" />
                 </div>
-                <CardTitle className="text-base font-semibold">Secure Authentication</CardTitle>
+                <CardTitle className="text-base font-semibold">
+                  Secure Authentication
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription className="text-xs sm:text-sm leading-relaxed">
-                  Uses Supabase for user authentication without storing PikPak passwords.
+                  Uses Supabase for user authentication without storing PikPak
+                  passwords.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -102,11 +125,14 @@ export default function Home() {
                 <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-2">
                   <Download className="h-5 w-5" />
                 </div>
-                <CardTitle className="text-base font-semibold">Task Management</CardTitle>
+                <CardTitle className="text-base font-semibold">
+                  Task Management
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription className="text-xs sm:text-sm leading-relaxed">
-                  Create and monitor download tasks from magnet links with real-time status updates.
+                  Create and monitor download tasks from magnet links with
+                  real-time status updates.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -116,11 +142,14 @@ export default function Home() {
                 <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-2">
                   <Share2 className="h-5 w-5" />
                 </div>
-                <CardTitle className="text-base font-semibold">Smart Share Links</CardTitle>
+                <CardTitle className="text-base font-semibold">
+                  Smart Share Links
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription className="text-xs sm:text-sm leading-relaxed">
-                  Global share deduplication ensures one link per file, reused by all users.
+                  Global share deduplication ensures one link per file, reused
+                  by all users.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -130,11 +159,14 @@ export default function Home() {
                 <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-2">
                   <FolderSync className="h-5 w-5" />
                 </div>
-                <CardTitle className="text-base font-semibold">WebDAV Support</CardTitle>
+                <CardTitle className="text-base font-semibold">
+                  WebDAV Support
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription className="text-xs sm:text-sm leading-relaxed">
-                  Auto-generate WebDAV clients for easy access from any WebDAV-compatible application.
+                  Auto-generate WebDAV clients for easy access from any
+                  WebDAV-compatible application.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -144,11 +176,14 @@ export default function Home() {
                 <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-2">
                   <Trash2 className="h-5 w-5" />
                 </div>
-                <CardTitle className="text-base font-semibold">Auto Cleanup</CardTitle>
+                <CardTitle className="text-base font-semibold">
+                  Auto Cleanup
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription className="text-xs sm:text-sm leading-relaxed">
-                  Automated task cleanup after 24 hours to maintain account hygiene and storage health.
+                  Automated task cleanup after 24 hours to maintain account
+                  hygiene and storage health.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -158,11 +193,14 @@ export default function Home() {
                 <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-2">
                   <BarChart3 className="h-5 w-5" />
                 </div>
-                <CardTitle className="text-base font-semibold">Quota Monitoring</CardTitle>
+                <CardTitle className="text-base font-semibold">
+                  Quota Monitoring
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription className="text-xs sm:text-sm leading-relaxed">
-                  Real-time tracking of personal storage and bandwidth usage, with historical statistics charts.
+                  Real-time tracking of personal storage and bandwidth usage,
+                  with historical statistics charts.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -172,7 +210,8 @@ export default function Home() {
         {/* Quick Links / Community Bar */}
         <section className="w-full mt-12 pt-8 border-t border-border/40 flex flex-wrap items-center justify-between gap-4 text-xs sm:text-sm text-muted-foreground">
           <p>
-            An educational open-source project. For actual cloud file storage, please use the official PikPak service.
+            An educational open-source project. For actual cloud file storage,
+            please use the official PikPak service.
           </p>
           <div className="flex items-center gap-4">
             <a
@@ -191,7 +230,10 @@ export default function Home() {
             >
               Telegram <ExternalLink className="h-3 w-3" />
             </a>
-            <Link href="/faq" className="hover:text-primary transition-colors font-medium">
+            <Link
+              href="/faq"
+              className="hover:text-primary transition-colors font-medium"
+            >
               FAQ
             </Link>
           </div>

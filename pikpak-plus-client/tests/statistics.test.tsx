@@ -23,7 +23,10 @@ console.log("=== STARTING STATISTICS TEST SUITE ===");
 let passedTests = 0;
 let failedTests = 0;
 
-async function runTest(name: string, fn: () => void | Promise<void>): Promise<void> {
+async function runTest(
+  name: string,
+  fn: () => void | Promise<void>,
+): Promise<void> {
   try {
     const result = fn();
     if (result instanceof Promise) {
@@ -96,57 +99,66 @@ async function runAll() {
     const futureDate = new Date(Date.now() + 3600 * 1000 * 2 + 60 * 1000 * 15);
     const formatted = calculateTimeRemaining(futureDate.toISOString());
     assert.ok(formatted.includes("h") || formatted.includes("m"));
-    assert.equal(calculateTimeRemaining(new Date(Date.now() - 1000).toISOString()), "Now");
+    assert.equal(
+      calculateTimeRemaining(new Date(Date.now() - 1000).toISOString()),
+      "Now",
+    );
   });
 
   // 4. Client-side fetch triggered to /statistics?limit=30
-  await runTest("Entering statistics triggers GET /statistics?limit=30", async () => {
-    let requestedUrl = "";
-    const originalGet = axios.get;
+  await runTest(
+    "Entering statistics triggers GET /statistics?limit=30",
+    async () => {
+      let requestedUrl = "";
+      const originalGet = axios.get;
 
-    axios.get = (async (url: string) => {
-      requestedUrl = url;
-      return {
-        data: {
-          data: sampleStats,
-          schedule: sampleSchedule,
-        },
-      };
-    }) as unknown as typeof axios.get;
+      axios.get = (async (url: string) => {
+        requestedUrl = url;
+        return {
+          data: {
+            data: sampleStats,
+            schedule: sampleSchedule,
+          },
+        };
+      }) as unknown as typeof axios.get;
 
-    try {
-      const apiUrl = getApiUrl();
-      const response = await axios.get(`${apiUrl}/statistics?limit=30`);
-      assert.equal(requestedUrl, `${apiUrl}/statistics?limit=30`);
-      assert.equal(response.data.data.length, 2);
-      assert.equal(response.data.schedule.scheduler_running, true);
-    } finally {
-      axios.get = originalGet;
-    }
-  });
+      try {
+        const apiUrl = getApiUrl();
+        const response = await axios.get(`${apiUrl}/statistics?limit=30`);
+        assert.equal(requestedUrl, `${apiUrl}/statistics?limit=30`);
+        assert.equal(response.data.data.length, 2);
+        assert.equal(response.data.schedule.scheduler_running, true);
+      } finally {
+        axios.get = originalGet;
+      }
+    },
+  );
 
   // 5. Error resilience when API is unreachable
-  await runTest("Graceful error handling when statistics API fails", async () => {
-    const originalGet = axios.get;
-    axios.get = (async () => {
-      throw new Error("Network Error");
-    }) as unknown as typeof axios.get;
+  await runTest(
+    "Graceful error handling when statistics API fails",
+    async () => {
+      const originalGet = axios.get;
+      axios.get = (async () => {
+        throw new Error("Network Error");
+      }) as unknown as typeof axios.get;
 
-    try {
-      const apiUrl = getApiUrl();
-      let threw = false;
       try {
-        await axios.get(`${apiUrl}/statistics?limit=30`);
-      } catch (err) {
-        threw = true;
-        assert.ok(err instanceof Error);
-        assert.equal((err as Error).message, "Network Error");
+        const apiUrl = getApiUrl();
+        let threw = false;
+        try {
+          await axios.get(`${apiUrl}/statistics?limit=30`);
+        } catch (err) {
+          threw = true;
+          assert.ok(err instanceof Error);
+          assert.equal((err as Error).message, "Network Error");
+        }
+        assert.ok(threw);
+      } finally {
+        axios.get = originalGet;
       }
-      assert.ok(threw);
-    } finally {
-      axios.get = originalGet;
-    }
-  });
+    },
+  );
 
   console.log("\n=== TEST EXECUTION SUMMARY ===");
   console.log(`Total tests run: ${passedTests + failedTests}`);

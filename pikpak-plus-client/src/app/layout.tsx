@@ -88,7 +88,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         className={cn(
-          "min-h-screen bg-background font-sans antialiased",
+          "min-h-screen bg-slate-50 dark:bg-[#090B10] text-slate-900 dark:text-slate-100 antialiased selection:bg-indigo-500/30",
           outfit.variable,
         )}
       >

@@ -37,7 +37,7 @@ export function DashboardNav() {
       aria-label="Dashboard views"
       className="w-full max-w-6xl mb-6 border-b border-border/50"
     >
-      <div className="grid w-full grid-cols-3 max-w-2xl mx-auto p-1 bg-muted/60 rounded-xl">
+      <div className="flex justify-center w-full max-w-2xl mx-auto p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#11151F]/90">
         {DASHBOARD_NAV_ITEMS.map((item) => {
           const isActive = item.exact
             ? pathname === item.href
@@ -53,8 +53,8 @@ export function DashboardNav() {
               className={cn(
                 "inline-flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200 select-none",
                 isActive
-                  ? "bg-background text-foreground shadow-xs font-semibold ring-1 ring-border/20"
-                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                  ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/20 rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold transition-all"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/50 rounded-xl px-4 py-2 text-xs sm:text-sm transition-all",
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
@@ -67,4 +67,3 @@ export function DashboardNav() {
     </nav>
   );
 }
-
