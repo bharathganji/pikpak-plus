@@ -8,67 +8,79 @@ Empirically challenges:
    - Across both '/' and '/api/' root prefixes
    - Across non-existent HTTP methods (PUT, PATCH, HEAD) and query string variations
 2. URL Map introspection verifying zero routing rules exist for File Explorer while download rules are preserved.
-3. Preserved direct download endpoints (POST /file/download-url, GET /file/<file_id>):
+3. Eliminated direct download endpoint (POST /file/download-url) and preserved metadata (GET /file/<file_id>):
    - Valid authentication and payload responses (normalized url/download_url)
    - Graceful bad input handling (missing body, non-dict JSON, missing id, invalid types, whitespace)
    - Path traversal and boundary length injection vectors (exceeding 128 chars, traversal slashes, null bytes)
    - Backend service exception containment (graceful 500 JSON without process crash)
 4. Non-file endpoints regression safety (/tasks, /add, /share, /shares, /health/live, /health/ready, /quota, /statistics).
 """
+
 from __future__ import annotations
 
-import json
 from unittest.mock import AsyncMock, patch
 
 import pytest
-
 
 # ==============================================================================
 # 1. Removed File Explorer Endpoints Complete Unroutability (HTTP 404)
 # ==============================================================================
 
-@pytest.mark.parametrize("path", [
-    "/files",
-    "/files/",
-    "/api/files",
-    "/api/files/",
-    "/files/folder",
-    "/files/folder/",
-    "/api/files/folder",
-    "/api/files/folder/",
-    "/files/file_123",
-    "/api/files/file_123",
-    "/files/folder_abc",
-    "/api/files/folder_abc",
-    "/files/nested/subfolder/file_123",
-])
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/files",
+        "/files/",
+        "/api/files",
+        "/api/files/",
+        "/files/folder",
+        "/files/folder/",
+        "/api/files/folder",
+        "/api/files/folder/",
+        "/files/file_123",
+        "/api/files/file_123",
+        "/files/folder_abc",
+        "/api/files/folder_abc",
+        "/files/nested/subfolder/file_123",
+    ],
+)
 @pytest.mark.parametrize("method", ["get", "post", "delete", "put", "patch", "head"])
-def test_adversarial_removed_endpoints_strictly_404_unauthenticated(test_client, path, method):
+def test_adversarial_removed_endpoints_strictly_404_unauthenticated(
+    test_client, path, method
+):
     """
     Verify that ALL removed File Explorer endpoints return HTTP 404 for unauthenticated requests.
     Flask URL routing must fail before auth middleware is even invoked.
     """
     call_fn = getattr(test_client, method)
     res = call_fn(path)
-    assert res.status_code == 404, f"Expected 404 on unauthenticated {method.upper()} {path}, got {res.status_code}"
+    assert res.status_code == 404, (
+        f"Expected 404 on unauthenticated {method.upper()} {path}, got {res.status_code}"
+    )
 
 
-@pytest.mark.parametrize("path", [
-    "/files",
-    "/files/",
-    "/api/files",
-    "/api/files/",
-    "/files/folder",
-    "/files/folder/",
-    "/api/files/folder",
-    "/api/files/folder/",
-    "/files/file_123",
-    "/api/files/file_123",
-    "/files/folder_abc",
-    "/api/files/folder_abc",
-])
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/files",
+        "/files/",
+        "/api/files",
+        "/api/files/",
+        "/files/folder",
+        "/files/folder/",
+        "/api/files/folder",
+        "/api/files/folder/",
+        "/files/file_123",
+        "/api/files/file_123",
+        "/files/folder_abc",
+        "/api/files/folder_abc",
+    ],
+)
 @pytest.mark.parametrize("method", ["get", "post", "delete"])
-def test_adversarial_removed_endpoints_strictly_404_authenticated_user(test_client, auth_headers, path, method):
+def test_adversarial_removed_endpoints_strictly_404_authenticated_user(
+    test_client, auth_headers, path, method
+):
     """
     Verify that ALL removed File Explorer endpoints return HTTP 404 for valid authenticated user.
     """
@@ -76,50 +88,70 @@ def test_adversarial_removed_endpoints_strictly_404_authenticated_user(test_clie
     res = call_fn(
         path,
         headers=auth_headers,
-        json={"name": "Test Folder", "id": "file_123", "parent_id": "root"}
+        json={"name": "Test Folder", "id": "file_123", "parent_id": "root"},
     )
-    assert res.status_code == 404, f"Expected 404 on authenticated {method.upper()} {path}, got {res.status_code}"
+    assert res.status_code == 404, (
+        f"Expected 404 on authenticated {method.upper()} {path}, got {res.status_code}"
+    )
 
 
-@pytest.mark.parametrize("path", [
-    "/files",
-    "/api/files",
-    "/files/folder",
-    "/api/files/folder",
-    "/files/file_123",
-    "/api/files/file_123",
-])
-def test_adversarial_removed_endpoints_strictly_404_admin_and_malformed_auth(test_client, admin_headers, path):
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/files",
+        "/api/files",
+        "/files/folder",
+        "/api/files/folder",
+        "/files/file_123",
+        "/api/files/file_123",
+    ],
+)
+def test_adversarial_removed_endpoints_strictly_404_admin_and_malformed_auth(
+    test_client, admin_headers, path
+):
     """
     Verify that removed endpoints return 404 regardless of auth tokens (admin, garbage, or malformed).
     """
     # 1. Admin Token
     res_admin_get = test_client.get(path, headers=admin_headers)
     assert res_admin_get.status_code == 404
-    res_admin_post = test_client.post(path, headers=admin_headers, json={"name": "Admin Folder"})
+    res_admin_post = test_client.post(
+        path, headers=admin_headers, json={"name": "Admin Folder"}
+    )
     assert res_admin_post.status_code == 404
     res_admin_del = test_client.delete(path, headers=admin_headers)
     assert res_admin_del.status_code == 404
 
     # 2. Garbage JWT
-    garbage_headers = {"Authorization": "Bearer invalid_garbage_token_123", "Content-Type": "application/json"}
+    garbage_headers = {
+        "Authorization": "Bearer invalid_garbage_token_123",
+        "Content-Type": "application/json",
+    }
     res_garbage = test_client.get(path, headers=garbage_headers)
     assert res_garbage.status_code == 404
 
     # 3. Malformed Auth Header
-    malformed_headers = {"Authorization": "Basic whatever_credentials", "Content-Type": "application/json"}
+    malformed_headers = {
+        "Authorization": "Basic whatever_credentials",
+        "Content-Type": "application/json",
+    }
     res_malformed = test_client.get(path, headers=malformed_headers)
     assert res_malformed.status_code == 404
 
 
-@pytest.mark.parametrize("query_param", [
-    "?parent_id=root",
-    "?parent_id=folder_123&page_token=abc",
-    "?parent_id=../../traversal",
-    "?limit=100&offset=0",
-    "?filters=name%3Dtest",
-])
-def test_adversarial_removed_endpoints_with_query_params_return_404(test_client, auth_headers, query_param):
+@pytest.mark.parametrize(
+    "query_param",
+    [
+        "?parent_id=root",
+        "?parent_id=folder_123&page_token=abc",
+        "?parent_id=../../traversal",
+        "?limit=100&offset=0",
+        "?filters=name%3Dtest",
+    ],
+)
+def test_adversarial_removed_endpoints_with_query_params_return_404(
+    test_client, auth_headers, query_param
+):
     """
     Verify query string variations on /files and /api/files return 404.
     """
@@ -133,6 +165,7 @@ def test_adversarial_removed_endpoints_with_query_params_return_404(test_client,
 # 2. Direct Flask URL Map Introspection
 # ==============================================================================
 
+
 def test_adversarial_flask_url_map_contains_zero_explorer_routes(flask_app):
     """
     Empirically inspect Flask app url_map:
@@ -144,163 +177,106 @@ def test_adversarial_flask_url_map_contains_zero_explorer_routes(flask_app):
     all_rules = list(flask_app.url_map.iter_rules())
 
     explorer_rules = [
-        rule for rule in all_rules
-        if rule.rule in {"/files", "/files/", "/api/files", "/api/files/", "/files/folder", "/api/files/folder"}
+        rule
+        for rule in all_rules
+        if rule.rule
+        in {
+            "/files",
+            "/files/",
+            "/api/files",
+            "/api/files/",
+            "/files/folder",
+            "/api/files/folder",
+        }
         or rule.rule.startswith("/files/")
         or rule.rule.startswith("/api/files/")
     ]
-    assert len(explorer_rules) == 0, f"Found unexpected File Explorer rules in url_map: {explorer_rules}"
+    assert len(explorer_rules) == 0, (
+        f"Found unexpected File Explorer rules in url_map: {explorer_rules}"
+    )
 
     explorer_endpoints = [
-        rule.endpoint for rule in all_rules
-        if any(bad in rule.endpoint for bad in ["list_files", "create_folder", "delete_file"])
+        rule.endpoint
+        for rule in all_rules
+        if any(
+            bad in rule.endpoint
+            for bad in ["list_files", "create_folder", "delete_file"]
+        )
     ]
-    assert len(explorer_endpoints) == 0, f"Found unexpected explorer endpoints in url_map: {explorer_endpoints}"
+    assert len(explorer_endpoints) == 0, (
+        f"Found unexpected explorer endpoints in url_map: {explorer_endpoints}"
+    )
 
-    # Assert preserved download endpoints exist
+    # Assert eliminated download endpoints do NOT exist
     rule_strings = {rule.rule for rule in all_rules}
+    assert "/file/download-url" not in rule_strings
+    assert "/api/file/download-url" not in rule_strings
+
+    # Assert preserved file metadata endpoints exist
     assert "/file/<file_id>" in rule_strings
     assert "/api/file/<file_id>" in rule_strings
-    assert "/file/download-url" in rule_strings
-    assert "/api/file/download-url" in rule_strings
 
 
 # ==============================================================================
-# 3. Preserved Download Endpoint Stress Testing: POST /file/download-url
+# 3. Eliminated Download Endpoint Elimination Verification: POST /file/download-url
 # ==============================================================================
 
-def test_adversarial_download_url_auth_matrix(test_client, auth_headers):
-    """Verify POST /file/download-url authentication enforcement."""
-    # Unauthenticated -> 401
-    res_unauth = test_client.post("/file/download-url", json={"id": "file_123"})
-    assert res_unauth.status_code == 401
 
-    res_unauth_api = test_client.post("/api/file/download-url", json={"id": "file_123"})
-    assert res_unauth_api.status_code == 401
+def test_adversarial_download_url_endpoint_returns_404(test_client, auth_headers):
+    """Verify POST /file/download-url and /api/file/download-url are unroutable / not allowed (404/405)."""
+    # Unauthenticated -> 404 or 405
+    assert test_client.post(
+        "/file/download-url", json={"id": "file_123"}
+    ).status_code in (404, 405)
+    assert test_client.post(
+        "/api/file/download-url", json={"id": "file_123"}
+    ).status_code in (404, 405)
 
-    # Valid authenticated -> 200
-    res_auth = test_client.post("/file/download-url", headers=auth_headers, json={"id": "file_123"})
-    assert res_auth.status_code == 200
-    data = res_auth.get_json()
-    assert "url" in data
-    assert "download_url" in data
-    assert data["url"] == data["download_url"]
-
-    # Valid authenticated via /api/ prefix -> 200
-    res_auth_api = test_client.post("/api/file/download-url", headers=auth_headers, json={"id": "file_123"})
-    assert res_auth_api.status_code == 200
+    # Authenticated -> 404 or 405
+    assert test_client.post(
+        "/file/download-url", headers=auth_headers, json={"id": "file_123"}
+    ).status_code in (404, 405)
+    assert test_client.post(
+        "/api/file/download-url", headers=auth_headers, json={"id": "file_123"}
+    ).status_code in (404, 405)
 
 
-@pytest.mark.parametrize("bad_payload", [
-    "",
-    "   ",
-    "{malformed_json",
-    "[1, 2, 3]",
-    '"file_123"',
-    "12345",
-    "true",
-    "null",
-])
-def test_adversarial_download_url_malformed_and_non_dict_json(test_client, auth_headers, bad_payload):
-    """Verify POST /file/download-url rejects non-dict or malformed JSON payloads with 400."""
+@pytest.mark.parametrize(
+    "payload",
+    [
+        "",
+        "   ",
+        "{malformed_json",
+        {"file_id": "file_123"},
+        {"id": "../../etc/passwd"},
+        {"id": "valid_file_123"},
+    ],
+)
+def test_adversarial_download_url_all_payloads_return_404(
+    test_client, auth_headers, payload
+):
+    """Verify eliminated /file/download-url is unroutable / not allowed (404/405) regardless of payload content."""
     res = test_client.post(
         "/file/download-url",
-        headers={"Authorization": auth_headers["Authorization"], "Content-Type": "application/json"},
-        data=bad_payload,
+        headers=auth_headers,
+        json=payload if isinstance(payload, dict) else None,
+        data=payload if isinstance(payload, str) else None,
     )
-    assert res.status_code == 400
-    data = res.get_json()
-    assert "error" in data
+    assert res.status_code in (404, 405)
 
-
-@pytest.mark.parametrize("missing_id_payload", [
-    {},
-    {"file_id": "file_123"},
-    {"name": "file.mp4"},
-    {"id": None},
-    {"id": ""},
-    {"id": 12345},
-    {"id": True},
-    {"id": ["file_123"]},
-    {"id": {"key": "file_123"}},
-])
-def test_adversarial_download_url_missing_or_invalid_id_type(test_client, auth_headers, missing_id_payload):
-    """Verify POST /file/download-url requires string 'id' parameter."""
-    res = test_client.post("/file/download-url", headers=auth_headers, json=missing_id_payload)
-    assert res.status_code == 400
-    data = res.get_json()
-    assert "error" in data
-
-
-@pytest.mark.parametrize("injection_id", [
-    "../../etc/passwd",
-    "..\\windows\\system32",
-    "folder/subfile",
-    "folder\\subfile",
-    "file\0nullbyte",
-    "   ",
-    "\t\n",
-    "a" * 129,  # Exceeds max identifier length 128
-])
-def test_adversarial_download_url_identifier_traversal_and_length(test_client, auth_headers, injection_id):
-    """Verify sanitize_identifier blocks path traversal, null bytes, and length violations."""
-    res = test_client.post("/file/download-url", headers=auth_headers, json={"id": injection_id})
-    assert res.status_code == 400
-    data = res.get_json()
-    assert "Invalid identifier" in data.get("error", "") or "Missing 'id' parameter" in data.get("error", "")
-
-
-def test_adversarial_download_url_boundary_valid_identifiers(test_client, auth_headers):
-    """Verify valid identifier boundaries (1 char, 128 chars, dashes, dots, underscores)."""
-    # 1 char valid
-    res_min = test_client.post("/file/download-url", headers=auth_headers, json={"id": "x"})
-    assert res_min.status_code == 200
-
-    # Exactly 128 chars valid
-    res_max = test_client.post("/file/download-url", headers=auth_headers, json={"id": "a" * 128})
-    assert res_max.status_code == 200
-
-    # Complex alphanumeric with safe symbols
-    res_complex = test_client.post("/file/download-url", headers=auth_headers, json={"id": "file-123_test.sample.mp4"})
-    assert res_complex.status_code == 200
-
-
-def test_adversarial_download_url_service_response_normalization(test_client, auth_headers, mock_pikpak):
-    """
-    Verify POST /file/download-url response normalization:
-    - Service returns string
-    - Service returns dict with 'url'
-    - Service returns dict with 'download_url'
-    - Service returns dict with 'web_content_link'
-    - Service raises exception -> graceful 500 JSON without server crash
-    """
-    # Case 1: Service returns dict with 'web_content_link'
-    with patch.object(mock_pikpak, "get_download_url", new=AsyncMock(return_value={"web_content_link": "https://cdn.example.com/stream"})):
-        res = test_client.post("/file/download-url", headers=auth_headers, json={"id": "f_stream"})
-        assert res.status_code == 200
-        data = res.get_json()
-        assert data["url"] == "https://cdn.example.com/stream"
-        assert data["download_url"] == "https://cdn.example.com/stream"
-
-    # Case 2: Service returns dict with 'download_url'
-    with patch.object(mock_pikpak, "get_download_url", new=AsyncMock(return_value={"download_url": "https://cdn.example.com/dl"})):
-        res = test_client.post("/file/download-url", headers=auth_headers, json={"id": "f_dl"})
-        assert res.status_code == 200
-        data = res.get_json()
-        assert data["url"] == "https://cdn.example.com/dl"
-
-    # Case 3: Service raises RuntimeError
-    with patch.object(mock_pikpak, "get_download_url", new=AsyncMock(side_effect=RuntimeError("PikPak network failure"))):
-        res = test_client.post("/file/download-url", headers=auth_headers, json={"id": "f_err"})
-        assert res.status_code == 500
-        data = res.get_json()
-        assert "error" in data
-        assert "PikPak network failure" in data["error"]
+    res_api = test_client.post(
+        "/api/file/download-url",
+        headers=auth_headers,
+        json=payload if isinstance(payload, dict) else None,
+        data=payload if isinstance(payload, str) else None,
+    )
+    assert res_api.status_code in (404, 405)
 
 
 # ==============================================================================
 # 4. Preserved Download Endpoint Stress Testing: GET /file/<file_id>
 # ==============================================================================
+
 
 def test_adversarial_get_file_auth_and_routing(test_client, auth_headers):
     """Verify GET /file/<file_id> auth checks and response format."""
@@ -323,13 +299,16 @@ def test_adversarial_get_file_auth_and_routing(test_client, auth_headers):
     assert res_auth_api.status_code == 200
 
 
-@pytest.mark.parametrize("bad_id", [
-    "..%2F..%2Fetc%2Fpasswd",
-    "folder%2Fchild",
-    "file%00test",
-    "%20%20%20",
-    "a" * 129,
-])
+@pytest.mark.parametrize(
+    "bad_id",
+    [
+        "..%2F..%2Fetc%2Fpasswd",
+        "folder%2Fchild",
+        "file%00test",
+        "%20%20%20",
+        "a" * 129,
+    ],
+)
 def test_adversarial_get_file_identifier_validation(test_client, auth_headers, bad_id):
     """
     Verify GET /file/<file_id> sanitizes path parameter against traversal and length violations.
@@ -340,9 +319,15 @@ def test_adversarial_get_file_identifier_validation(test_client, auth_headers, b
     assert res.status_code in {400, 404}
 
 
-def test_adversarial_get_file_service_exception_handling(test_client, auth_headers, mock_pikpak):
+def test_adversarial_get_file_service_exception_handling(
+    test_client, auth_headers, mock_pikpak
+):
     """Verify GET /file/<file_id> catches service errors gracefully into 500 JSON response."""
-    with patch.object(mock_pikpak, "get_file", new=AsyncMock(side_effect=RuntimeError("File storage unavailable"))):
+    with patch.object(
+        mock_pikpak,
+        "get_file",
+        new=AsyncMock(side_effect=RuntimeError("File storage unavailable")),
+    ):
         res = test_client.get("/file/file_crash", headers=auth_headers)
         assert res.status_code == 500
         data = res.get_json()
@@ -352,6 +337,7 @@ def test_adversarial_get_file_service_exception_handling(test_client, auth_heade
 # ==============================================================================
 # 5. Non-File Endpoints Regression Testing
 # ==============================================================================
+
 
 def test_adversarial_non_file_endpoints_zero_regressions(test_client, auth_headers):
     """
@@ -375,13 +361,17 @@ def test_adversarial_non_file_endpoints_zero_regressions(test_client, auth_heade
     assert res_tasks_auth.status_code == 200
 
     # 3. Add Download Task
-    res_add_unauth = test_client.post("/add", json={"url": "magnet:?xt=urn:btih:sample"})
+    res_add_unauth = test_client.post(
+        "/add", json={"url": "magnet:?xt=urn:btih:sample"}
+    )
     assert res_add_unauth.status_code == 401
 
     res_add_bad = test_client.post("/add", headers=auth_headers, json={})
     assert res_add_bad.status_code == 400
 
-    res_add_ok = test_client.post("/add", headers=auth_headers, json={"url": "magnet:?xt=urn:btih:sample"})
+    res_add_ok = test_client.post(
+        "/add", headers=auth_headers, json={"url": "magnet:?xt=urn:btih:sample"}
+    )
     assert res_add_ok.status_code == 200
 
     # 4. Shares Endpoints
@@ -394,7 +384,9 @@ def test_adversarial_non_file_endpoints_zero_regressions(test_client, auth_heade
     res_share_post_unauth = test_client.post("/share", json={"id": "file_123"})
     assert res_share_post_unauth.status_code == 401
 
-    res_share_post_auth = test_client.post("/share", headers=auth_headers, json={"id": "file_123"})
+    res_share_post_auth = test_client.post(
+        "/share", headers=auth_headers, json={"id": "file_123"}
+    )
     assert res_share_post_auth.status_code == 200
 
     # 5. Quota Endpoint (Public / Unauthenticated)

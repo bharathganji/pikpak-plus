@@ -1,9 +1,8 @@
 "use client";
 import { useState } from "react";
-import { Trash2, FileIcon, Copy, Download } from "lucide-react";
+import { Trash2, FileIcon, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { fileService } from "@/services/file-service";
 import { LocalTask } from "./types";
 import { formatTimeAgo, formatFileSize } from "./utils";
 import copy from "copy-to-clipboard";
@@ -16,24 +15,11 @@ interface TaskItemProps {
 export function TaskItem({ task, onDelete }: Readonly<TaskItemProps>) {
   const isCompleted = task.status === "completed" || task.status === "success";
   const [copied, setCopied] = useState(false);
-  const [downloading, setDownloading] = useState(false);
 
   const copyToClipboard = (text: string) => {
     copy(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleDownload = async () => {
-    if (!task.file_id) return;
-    setDownloading(true);
-    try {
-      await fileService.downloadFile(task.file_id, task.name);
-    } catch (e) {
-      console.error("Direct download failed", e);
-    } finally {
-      setDownloading(false);
-    }
   };
 
   return (
@@ -72,20 +58,6 @@ export function TaskItem({ task, onDelete }: Readonly<TaskItemProps>) {
               </div>
             </div>
             <div className="flex items-center gap-1 shrink-0">
-              {task.file_id && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 p-0 text-primary hover:text-primary hover:bg-primary/10"
-                  onClick={handleDownload}
-                  disabled={downloading}
-                  title="Direct Download"
-                >
-                  <Download
-                    className={`h-3.5 w-3.5 ${downloading ? "animate-bounce" : ""}`}
-                  />
-                </Button>
-              )}
               <Button
                 variant="ghost"
                 size="icon"

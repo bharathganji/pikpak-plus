@@ -24,10 +24,6 @@ export const authService = {
     } catch (err) {
       console.error(err);
       // Ignore network errors on logout
-    } finally {
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("token");
-      }
     }
   },
 

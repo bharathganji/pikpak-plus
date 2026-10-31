@@ -52,6 +52,30 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // 4. Server-Side Authentication Guarding (Eliminates login/dashboard screen flash)
+  const token = request.cookies.get("access_token")?.value;
+  const isProtectedRoute =
+    pathname.startsWith("/dashboard") || pathname.startsWith("/admin");
+  const isAuthPage =
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/register") ||
+    pathname.startsWith("/forgot-password");
+
+  // Case A: Unauthenticated user accesses protected route -> immediate server redirect to /login
+  if (isProtectedRoute && !token) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("from", pathname);
+    return NextResponse.redirect(url);
+  }
+
+  // Case B: Authenticated user accesses auth page or landing page -> immediate server redirect to /dashboard
+  if ((isAuthPage || pathname === "/") && token) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/dashboard";
+    return NextResponse.redirect(url);
+  }
+
   return NextResponse.next();
 }
 

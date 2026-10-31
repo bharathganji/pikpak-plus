@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getApiUrl, getAuthHeaders } from "./api-utils";
+import { getApiUrl } from "./api-utils";
 import {
   AuthUser,
   PaginatedResponse,
@@ -11,26 +11,11 @@ import {
   SchedulerStatus,
 } from "@/types/api";
 
-// Create an axio instance for admin requests
-const createAdminClient = () => {
-  const apiUrl = getApiUrl();
-  const client = axios.create({
-    baseURL: apiUrl,
-  });
-
-  // Add interceptor to inject token
-  client.interceptors.request.use((config) => {
-    const headers = getAuthHeaders();
-    if (headers.Authorization) {
-      config.headers.Authorization = headers.Authorization;
-    }
-    return config;
-  });
-
-  return client;
-};
-
-const adminClient = createAdminClient();
+// Create an axios instance for admin requests with secure cookie credentials
+const adminClient = axios.create({
+  baseURL: getApiUrl(),
+  withCredentials: true,
+});
 
 // User Management
 export const getUsers = async (

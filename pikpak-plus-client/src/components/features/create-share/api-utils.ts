@@ -33,12 +33,9 @@ export const fetchCleanupStatus = async () => {
 export const fetchGlobalTasks = async (page: number, pageSize: number) => {
   try {
     const apiUrl = getApiUrl();
-    const headers = getAuthHeaders();
     const res = await axios.get(`${apiUrl}/tasks`, {
       params: { page: page, limit: pageSize },
-      headers: headers.Authorization
-        ? { Authorization: headers.Authorization }
-        : {},
+      withCredentials: true,
     });
     return {
       data: res.data.data || [],

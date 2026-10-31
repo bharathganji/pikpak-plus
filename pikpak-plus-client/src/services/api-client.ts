@@ -24,25 +24,21 @@ export class ApiError extends Error {
 }
 
 /**
- * Unified Axios instance with automatic JWT header attachment and 401 response handling.
+ * Unified Axios instance with automatic HttpOnly cookie credentials and 401 response handling.
  */
 export const apiClient: AxiosInstance = axios.create({
   baseURL: getApiUrl(),
   timeout: 30000,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Request interceptor to attach Bearer token
+// Request interceptor to attach credentials
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("token");
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
+    config.withCredentials = true;
     return config;
   },
   (error) => Promise.reject(error),
@@ -114,26 +110,17 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const res = await axios.post<{ token: string }>(
+        await axios.post(
           `${getApiUrl()}/refresh-token`,
           {},
           {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
+            withCredentials: true,
           },
         );
-        const newToken = res.data.token;
-        localStorage.setItem("token", newToken);
-        processQueue(null, newToken);
-
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = "Bearer " + newToken;
-        }
+        processQueue(null);
         return apiClient(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        localStorage.removeItem("token");
         if (!isPublicRoute && typeof window !== "undefined") {
           window.location.replace(`${window.location.origin}/login`);
         }

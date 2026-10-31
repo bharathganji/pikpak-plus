@@ -1,7 +1,9 @@
 """
-Integration tests for Files API routes (direct file metadata and download endpoints).
-Covers: GET /file/<id>, POST /file/download-url, and verifies removed explorer endpoints return 404.
+Integration tests for Files API routes (file metadata endpoint and retired endpoints).
+Covers: GET /file/<id>, verification that retired POST /file/download-url returns 404/405,
+and verifies removed explorer endpoints return 404.
 """
+
 from __future__ import annotations
 
 
@@ -13,16 +15,23 @@ def test_get_file_metadata(test_client, auth_headers):
     assert data.get("id") == "file_123"
 
 
-def test_get_file_download_url(test_client, auth_headers):
-    """Test POST /file/download-url returns download url."""
+def test_download_url_endpoint_removed_returns_404_or_405(test_client, auth_headers):
+    """Test POST /file/download-url and /api/file/download-url are rejected after feature removal."""
+    # Direct endpoint
     res = test_client.post(
         "/file/download-url",
         headers=auth_headers,
         json={"id": "file_123"},
     )
-    assert res.status_code == 200
-    data = res.get_json()
-    assert "url" in data or "download_url" in data
+    assert res.status_code in (404, 405)
+
+    # API prefixed endpoint
+    res_api = test_client.post(
+        "/api/file/download-url",
+        headers=auth_headers,
+        json={"id": "file_123"},
+    )
+    assert res_api.status_code in (404, 405)
 
 
 def test_removed_file_explorer_endpoints_return_404(test_client, auth_headers):
@@ -42,5 +51,3 @@ def test_removed_file_explorer_endpoints_return_404(test_client, auth_headers):
     # DELETE /files/<id>
     res_delete = test_client.delete("/files/file_123", headers=auth_headers)
     assert res_delete.status_code == 404
-
-

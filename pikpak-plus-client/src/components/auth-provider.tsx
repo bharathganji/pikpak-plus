@@ -27,7 +27,9 @@ interface AuthContextType {
   checkAuth: () => Promise<void>;
 }
 
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(
+  undefined,
+);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -35,27 +37,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Load user from token on mount
+  // Load user session from secure HttpOnly cookie on mount
   const checkAuth = useCallback(async () => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
     try {
       const res = await getMe();
       if (res.user) {
         setUser(res.user);
       } else {
-        // Token invalid
-        localStorage.removeItem("token");
         setUser(null);
       }
     } catch {
-      // Token invalid or expired
-      localStorage.removeItem("token");
+      // Not authenticated or session expired
       setUser(null);
     } finally {
       setLoading(false);
@@ -112,8 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, pass: string) => {
     try {
       const res = await apiLogin(email, pass);
-      if (res.token && res.user) {
-        localStorage.setItem("token", res.token);
+      if (res.user) {
         setUser(res.user);
         router.push("/dashboard");
       }
@@ -125,8 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (email: string, pass: string) => {
     try {
       const res = await apiRegister(email, pass);
-      if (res.token && res.user) {
-        localStorage.setItem("token", res.token);
+      if (res.user) {
         setUser(res.user);
         router.push("/dashboard");
       }
@@ -139,7 +129,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await apiLogout();
     } finally {
-      localStorage.removeItem("token");
       setUser(null);
       router.push("/login");
     }
@@ -157,6 +146,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     pathname?.startsWith("/statistics");
   const isUnprotected = isAuthPage || isPublicPage;
 
+  // Prevent flash of screen during initial auth check and client-side route transitions
+  const shouldRenderContent = () => {
+    // 1. Initial auth check in progress:
+    if (loading) {
+      // Allow documentation/public informational pages to display immediately
+      return (
+        pathname?.startsWith("/faq") ||
+        pathname?.startsWith("/maintenance") ||
+        pathname?.startsWith("/statistics")
+      );
+    }
+
+    // 2. If authenticated user is on an auth page or root, hide content while redirecting to dashboard
+    if (
+      user &&
+      (isAuthPage || pathname === "/") &&
+      !pathname?.startsWith("/reset-password")
+    ) {
+      return false;
+    }
+
+    // 3. If unauthenticated user is on a protected page, hide content while redirecting to login
+    if (!user && !isUnprotected) {
+      return false;
+    }
+
+    // 4. Non-admin attempting to access admin route
+    if (user && pathname?.startsWith("/admin") && !user.is_admin) {
+      return false;
+    }
+
+    return true;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -169,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         checkAuth,
       }}
     >
-      {loading && !isUnprotected ? (
+      {!shouldRenderContent() ? (
         <div className="min-h-screen flex items-center justify-center bg-background">
           <div className="flex flex-col items-center gap-4">
             <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />

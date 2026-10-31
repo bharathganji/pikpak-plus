@@ -8,12 +8,9 @@ import {
   ArchiveIcon,
   ImageIcon,
   FileTextIcon,
-  Download,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { SupabaseTaskRecord } from "@/types";
-import { fileService } from "@/services/file-service";
-import { Button } from "@/components/ui/button";
 import {
   formatFileSize,
   getTaskStatus,
@@ -70,16 +67,6 @@ export function TaskCard({ task, isLocal, onClick }: Readonly<TaskCardProps>) {
     }
   };
 
-  const handleDirectDownload = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!taskData?.file_id) return;
-    try {
-      await fileService.downloadFile(taskData.file_id, name);
-    } catch (err) {
-      console.error("Direct download failed", err);
-    }
-  };
-
   return (
     <button
       type="button"
@@ -99,19 +86,6 @@ export function TaskCard({ task, isLocal, onClick }: Readonly<TaskCardProps>) {
             >
               {name}
             </h4>
-            {taskData?.file_id && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleDirectDownload}
-                title="Direct Download"
-                className="h-6 px-1.5 text-[11px] gap-1 text-primary hover:text-primary hover:bg-primary/10 shrink-0"
-              >
-                <Download className="h-3 w-3" />
-                <span className="hidden sm:inline">Download</span>
-              </Button>
-            )}
           </div>
           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
             <span className="text-[11px] text-muted-foreground whitespace-nowrap">

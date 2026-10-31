@@ -13,7 +13,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getApiUrl, getAuthHeaders } from "@/lib/api-utils";
+import { getApiUrl } from "@/lib/api-utils";
 import axios from "axios";
 import type { SupabaseTaskRecord } from "@/types";
 
@@ -94,7 +94,7 @@ export function ShareSection({
           need_password: needPassword,
           expiration_days: expirationDays,
         },
-        { headers: getAuthHeaders() },
+        { withCredentials: true },
       );
 
       const shareResult = response.data;

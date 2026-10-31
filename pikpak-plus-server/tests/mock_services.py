@@ -3,6 +3,7 @@ Hermetic In-Memory Services for PikPak-Plus Integration Testing.
 Provides MemorySupabaseService, MemoryRedisClient, MemoryCacheManager,
 MockPikPakService, and MockWebDAVManager without any external network calls.
 """
+
 from __future__ import annotations
 
 import json
@@ -44,7 +45,9 @@ class MemorySupabaseService:
         self.client = MagicMock()
 
     # User Management
-    def create_user(self, email: str, password_hash: str, is_admin: bool = False) -> dict[str, Any]:
+    def create_user(
+        self, email: str, password_hash: str, is_admin: bool = False
+    ) -> dict[str, Any]:
         email_clean = email.strip().lower()
         now_str = datetime.now(UTC).isoformat()
         user_record = {
@@ -71,12 +74,16 @@ class MemorySupabaseService:
             return True
         return False
 
-    def store_password_reset_token(self, email: str, token: str, expires_at: Any) -> bool:
+    def store_password_reset_token(
+        self, email: str, token: str, expires_at: Any
+    ) -> bool:
         email_clean = email.strip().lower()
         if email_clean in self.users:
             self.users[email_clean]["reset_token"] = token
             self.users[email_clean]["reset_token_expires_at"] = (
-                expires_at.isoformat() if hasattr(expires_at, "isoformat") else str(expires_at)
+                expires_at.isoformat()
+                if hasattr(expires_at, "isoformat")
+                else str(expires_at)
             )
             return True
         return False
@@ -116,7 +123,14 @@ class MemorySupabaseService:
             return True
         return False
 
-    def get_users_list(self, offset: int = 0, limit: int = 20, blocked_filter: bool | None = None, *args, **kwargs) -> dict[str, Any]:
+    def get_users_list(
+        self,
+        offset: int = 0,
+        limit: int = 20,
+        blocked_filter: bool | None = None,
+        *args,
+        **kwargs,
+    ) -> dict[str, Any]:
         user_list = list(self.users.values())
         if blocked_filter is not None:
             user_list = [u for u in user_list if u.get("blocked") == blocked_filter]
@@ -131,7 +145,13 @@ class MemorySupabaseService:
     def get_admins_count(self) -> int:
         return sum(1 for u in self.users.values() if u.get("is_admin"))
 
-    def log_action(self, url: str, task_result: dict, file_info: dict | None = None, user_email: str | None = None) -> dict[str, Any]:
+    def log_action(
+        self,
+        url: str,
+        task_result: dict,
+        file_info: dict | None = None,
+        user_email: str | None = None,
+    ) -> dict[str, Any]:
         action_id = len(self.actions) + 1
         record = {
             "id": action_id,
@@ -155,7 +175,9 @@ class MemorySupabaseService:
             "count": len(tasks),
         }
 
-    def get_user_tasks(self, user_email: str, offset: int = 0, limit: int = 20) -> dict[str, Any]:
+    def get_user_tasks(
+        self, user_email: str, offset: int = 0, limit: int = 20
+    ) -> dict[str, Any]:
         email_clean = user_email.strip().lower()
         tasks = [a for a in self.actions if a.get("user_email") == email_clean]
         return {
@@ -188,7 +210,15 @@ class MemorySupabaseService:
         return None
 
     # Shares
-    def store_share(self, url: str = "", share_result: dict[str, Any] | None = None, file_info: dict | None = None, user_email: str | None = None, file_name: str | None = None, **kwargs) -> dict[str, Any]:
+    def store_share(
+        self,
+        url: str = "",
+        share_result: dict[str, Any] | None = None,
+        file_info: dict | None = None,
+        user_email: str | None = None,
+        file_name: str | None = None,
+        **kwargs,
+    ) -> dict[str, Any]:
         share_id = len(self.shares) + 1
         data_meta = dict(share_result or {})
         data_meta["file_id"] = url or data_meta.get("file_id", "")
@@ -214,21 +244,29 @@ class MemorySupabaseService:
             if data.get("file_id") == file_id or data.get("id") == file_id:
                 return data
             share = data.get("share", {})
-            if isinstance(share, dict) and (share.get("file_id") == file_id or share.get("id") == file_id):
+            if isinstance(share, dict) and (
+                share.get("file_id") == file_id or share.get("id") == file_id
+            ):
                 return share
         return None
 
-    def get_user_shares(self, email: str, offset: int = 0, limit: int = 50) -> dict[str, Any]:
+    def get_user_shares(
+        self, email: str, offset: int = 0, limit: int = 50
+    ) -> dict[str, Any]:
         normalized = email.strip().lower() if email else ""
         user_shares = [
-            s for s in self.shares
-            if s.get("action") == "share" and (s.get("user_email") == normalized or not s.get("user_email"))
+            s
+            for s in self.shares
+            if s.get("action") == "share"
+            and (s.get("user_email") == normalized or not s.get("user_email"))
         ]
-        paged = user_shares[offset:offset + limit]
+        paged = user_shares[offset : offset + limit]
         shares_list = []
         for s in paged:
             data = s.get("data", {})
-            shares_list.append({**data, "action_id": s.get("id"), "created_at": s.get("created_at")})
+            shares_list.append(
+                {**data, "action_id": s.get("id"), "created_at": s.get("created_at")}
+            )
         return {
             "data": paged,
             "shares": shares_list,
@@ -241,17 +279,19 @@ class MemorySupabaseService:
         before = len(self.shares)
         if target_str.isdigit():
             target_id = int(target_str)
-            self.shares = [
-                s for s in self.shares
-                if s.get("id") != target_id
-            ]
+            self.shares = [s for s in self.shares if s.get("id") != target_id]
         else:
             self.shares = [
-                s for s in self.shares
+                s
+                for s in self.shares
                 if not (
-                    s.get("data", {}).get("share_id") == target_str or
-                    s.get("data", {}).get("id") == target_str or
-                    (isinstance(s.get("data", {}).get("share"), dict) and s.get("data", {}).get("share", {}).get("share_id") == target_str)
+                    s.get("data", {}).get("share_id") == target_str
+                    or s.get("data", {}).get("id") == target_str
+                    or (
+                        isinstance(s.get("data", {}).get("share"), dict)
+                        and s.get("data", {}).get("share", {}).get("share_id")
+                        == target_str
+                    )
                 )
             ]
         return len(self.shares) < before
@@ -451,9 +491,6 @@ class MockPikPakService:
             "created_time": datetime.now(UTC).isoformat(),
         }
 
-    async def get_download_url(self, file_id: str) -> str:
-        return f"https://mock.pikpak.me/download/{file_id}"
-
     async def create_folder(self, name: str, parent_id: str = "") -> dict[str, Any]:
         return {
             "id": f"folder_{name}",
@@ -464,7 +501,12 @@ class MockPikPakService:
     async def delete_to_trash(self, file_id: str) -> bool:
         return True
 
-    async def create_share(self, file_ids: list[str], need_password: bool = False, expiration_days: int = -1) -> dict[str, Any]:
+    async def create_share(
+        self,
+        file_ids: list[str],
+        need_password: bool = False,
+        expiration_days: int = -1,
+    ) -> dict[str, Any]:
         return {
             "share_id": "share_mock_888",
             "share_url": "https://mypikpak.com/s/share_mock_888",
@@ -505,7 +547,9 @@ class MockPikPakService:
     async def toggle_webdav(self, enable: bool) -> dict[str, Any]:
         return {"status": "ok", "enabled": enable}
 
-    async def create_webdav_application(self, name: str, read_only: bool = False) -> dict[str, Any]:
+    async def create_webdav_application(
+        self, name: str, read_only: bool = False
+    ) -> dict[str, Any]:
         return {
             "status": "ok",
             "application": {
@@ -516,10 +560,18 @@ class MockPikPakService:
             },
         }
 
-    async def delete_webdav_application(self, username: str, password: str = "", **kwargs) -> dict[str, Any]:
+    async def delete_webdav_application(
+        self, username: str, password: str = "", **kwargs
+    ) -> dict[str, Any]:
         return {"status": "ok", "deleted": True}
 
-    async def modify_webdav_application(self, username: str, password: str = "", modify_props: dict[str, Any] | None = None, **kwargs) -> dict[str, Any]:
+    async def modify_webdav_application(
+        self,
+        username: str,
+        password: str = "",
+        modify_props: dict[str, Any] | None = None,
+        **kwargs,
+    ) -> dict[str, Any]:
         return {
             "status": "ok",
             "application": {"username": username, **(modify_props or {})},

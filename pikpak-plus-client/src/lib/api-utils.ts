@@ -10,18 +10,7 @@ export const getServerApiUrl = (): string => {
   return process.env.API_URL_INTERNAL || "http://localhost:5000";
 };
 
-// Get auth headers with JWT token
-export const getAuthHeaders = () => {
-  if (typeof window === "undefined") {
-    return {};
-  }
-
-  const token = localStorage.getItem("token");
-  if (token) {
-    return {
-      Authorization: `Bearer ${token}`,
-    };
-  }
-
+// Get auth headers (credentials are automatically transmitted via secure HttpOnly cookies)
+export const getAuthHeaders = (): Record<string, string> => {
   return {};
 };
