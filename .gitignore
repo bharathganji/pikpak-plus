@@ -75,3 +75,5 @@ temp.*
 PP-server#*.json
 down.bash
 client.json
+.agents
+skills-lock.json

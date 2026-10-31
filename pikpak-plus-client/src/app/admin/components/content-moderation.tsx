@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { format } from "date-fns";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -14,78 +15,54 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
-import { SupabaseTaskRecord } from "@/types/api";
 import { getLogs, deleteTask } from "@/lib/admin-client";
 import { Loader2, Trash2, ExternalLink } from "lucide-react";
 
 export function ContentModeration() {
-  const [logs, setLogs] = useState<SupabaseTaskRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [emailInput, setEmailInput] = useState("");
   const [appliedEmail, setAppliedEmail] = useState("");
   const [actionFilter, setActionFilter] = useState<string>("all");
-  const [totalCount, setTotalCount] = useState(0);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const pageSize = 10;
 
+  const {
+    data: logsData,
+    isLoading,
+  } = useQuery({
+    queryKey: [
+      "admin",
+      "logs",
+      { page, pageSize, actionFilter, appliedEmail },
+    ],
+    queryFn: () => {
+      const action = actionFilter === "all" ? undefined : actionFilter;
+      return getLogs(page, pageSize, action, appliedEmail || undefined);
+    },
+    placeholderData: keepPreviousData,
+  });
+
+  const logs = logsData?.data ?? [];
+  const totalCount = logsData?.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-
-  useEffect(() => {
-    let ignore = false;
-
-    const loadLogs = async () => {
-      try {
-        const action = actionFilter === "all" ? undefined : actionFilter;
-        const res = await getLogs(
-          page,
-          pageSize,
-          action,
-          appliedEmail || undefined
-        );
-        if (!ignore) {
-          setLogs(res.data);
-          setTotalCount(res.count);
-        }
-      } catch (error) {
-        if (!ignore) {
-          console.error("Failed to fetch logs", error);
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadLogs();
-
-    return () => {
-      ignore = true;
-    };
-  }, [page, appliedEmail, actionFilter, refreshTrigger]);
+  const loading = isLoading;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setPage(1);
     setAppliedEmail(emailInput.trim());
-    setRefreshTrigger((prev) => prev + 1);
   };
 
   const handleActionChange = (value: string) => {
-    setLoading(true);
     setActionFilter(value);
     setPage(1);
   };
 
   const handlePrevPage = () => {
-    setLoading(true);
     setPage((p) => Math.max(1, p - 1));
   };
 
   const handleNextPage = () => {
-    setLoading(true);
     setPage((p) => Math.min(totalPages, p + 1));
   };
 
@@ -98,8 +75,8 @@ export function ContentModeration() {
       return;
     try {
       await deleteTask(id);
-      setLoading(true);
-      setRefreshTrigger((prev) => prev + 1);
+      queryClient.invalidateQueries({ queryKey: ["admin", "logs"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard-stats"] });
     } catch (error) {
       console.error("Failed to delete log", error);
       alert("Failed to delete log");

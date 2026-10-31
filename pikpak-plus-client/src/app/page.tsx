@@ -53,15 +53,15 @@ export default function Home() {
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link href="/register">
+            <Link href="/login">
               <Button size="lg" className="gap-2 text-base px-6 h-11">
                 <span>Get Started</span>
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
-            <Link href="/login">
+            <Link href="/register">
               <Button size="lg" variant="outline" className="text-base px-6 h-11">
-                <span>Sign In</span>
+                <span>Sign Up</span>
               </Button>
             </Link>
             <Link href="/statistics">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { HardDrive } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { QuotaResponse } from "@/types/api";
@@ -11,54 +11,36 @@ import { QuotaTransfer } from "./quota-transfer";
 import { QuotaExtraPackages } from "./quota-extra-packages";
 import { QuotaRefreshInfo } from "./quota-refresh-info";
 
+const fetchQuota = async (): Promise<QuotaResponse> => {
+  const apiUrl = getApiUrl();
+  const response = await axios.get<QuotaResponse>(`${apiUrl}/quota`);
+  return response.data;
+};
+
+function getErrorMessage(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    if (err.code === "ERR_NETWORK" || err.message === "Network Error") {
+      return "Cannot connect to server. Please ensure the backend is running.";
+    } else if (err.response?.data?.error) {
+      return String(err.response.data.error);
+    } else if (err.message) {
+      return err.message;
+    }
+  } else if (err instanceof Error) {
+    return err.message;
+  }
+  return "Unknown error";
+}
+
 export function QuotaDisplay() {
-  const [quotaData, setQuotaData] = useState<QuotaResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let ignore = false;
-
-    const fetchQuota = async () => {
-      try {
-        const apiUrl = getApiUrl();
-        const response = await axios.get<QuotaResponse>(`${apiUrl}/quota`);
-        if (!ignore) {
-          setQuotaData(response.data);
-        }
-      } catch (err: unknown) {
-        if (!ignore) {
-          let errorMsg = "Unknown error";
-
-          // Check if it's a network error (backend not running)
-          if (axios.isAxiosError(err)) {
-            if (err.code === "ERR_NETWORK" || err.message === "Network Error") {
-              errorMsg =
-                "Cannot connect to server. Please ensure the backend is running.";
-            } else if (err.response?.data?.error) {
-              errorMsg = String(err.response.data.error);
-            } else if (err.message) {
-              errorMsg = err.message;
-            }
-          } else if (err instanceof Error) {
-            errorMsg = err.message;
-          }
-
-          setError(errorMsg);
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchQuota();
-
-    return () => {
-      ignore = true;
-    };
-  }, []);
+  const {
+    data: quotaData,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["quota"],
+    queryFn: fetchQuota,
+  });
 
   if (error) {
     return (
@@ -70,13 +52,13 @@ export function QuotaDisplay() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-destructive">{error}</p>
+          <p className="text-sm text-destructive">{getErrorMessage(error)}</p>
         </CardContent>
       </Card>
     );
   }
 
-  if (loading || !quotaData) {
+  if (isLoading || !quotaData) {
     return (
       <Card>
         <CardHeader>

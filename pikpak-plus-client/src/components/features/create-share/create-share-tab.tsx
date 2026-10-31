@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useSyncExternalStore } from "react";
+import { useState, useCallback, useMemo } from "react";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { MagnetInputCard } from "./magnet-input-card";
 import { GlobalActivityCard } from "./global-activity-card";
 import { fetchConfig, fetchCleanupStatus, fetchGlobalTasks } from "./api-utils";
@@ -8,13 +9,8 @@ import { useLocalStorage } from "@uidotdev/usehooks";
 import { LocalTask, LOCAL_TASKS_STORAGE_KEY } from "../my-activity/types";
 
 export function CreateShareTab() {
-  // Global tasks state
-  const [globalTasks, setGlobalTasks] = useState<any[]>([]);
-  const [globalTasksLoading, setGlobalTasksLoading] = useState(true);
-  const [globalTasksError, setGlobalTasksError] = useState("");
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
   const [pageSize, setPageSize] = useState(25);
 
   // Local activity state (for permanent retention)
@@ -23,28 +19,36 @@ export function CreateShareTab() {
     [],
   );
 
-  // Cleanup status state
-  const [cleanupStatus, setCleanupStatus] = useState<{
-    next_cleanup: string | null;
-    cleanup_interval_hours: number;
-    task_retention_hours: number;
-    scheduler_running: boolean;
-  } | null>(null);
+  // Fetch config and cleanup status with TanStack Query
+  const { data: configAndCleanup } = useQuery({
+    queryKey: ["app-config-cleanup"],
+    queryFn: async () => {
+      try {
+        const [configData, cleanupData] = await Promise.all([
+          fetchConfig(),
+          fetchCleanupStatus(),
+        ]);
+        return { configData, cleanupData };
+      } catch (error) {
+        console.error("Failed to fetch initial data:", error);
+        return {
+          configData: {
+            max_file_size_gb: 25,
+            task_status_update_interval_minutes: 15,
+            next_task_status_update: null,
+          },
+          cleanupData: null,
+        };
+      }
+    },
+  });
 
-  // Config state
-  const [maxFileSizeGB, setMaxFileSizeGB] = useState<number | null>(null);
-  const [taskStatusUpdateIntervalMinutes, setTaskStatusUpdateIntervalMinutes] =
-    useState<number | null>(null);
-  const [nextTaskStatusUpdate, setNextTaskStatusUpdate] = useState<
-    string | null
-  >(null);
-
-  // Mount check to prevent hydration mismatches using useSyncExternalStore
-  const isMounted = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
+  const cleanupStatus = configAndCleanup?.cleanupData ?? null;
+  const maxFileSizeGB = configAndCleanup?.configData?.max_file_size_gb ?? null;
+  const taskStatusUpdateIntervalMinutes =
+    configAndCleanup?.configData?.task_status_update_interval_minutes ?? null;
+  const nextTaskStatusUpdate =
+    configAndCleanup?.configData?.next_task_status_update ?? null;
 
   // Derived time until cleanup using useMemo
   const timeUntilCleanup = useMemo(() => {
@@ -62,69 +66,25 @@ export function CreateShareTab() {
     return `${hours}h ${minutes}m`;
   }, [cleanupStatus]);
 
-  // Fetch config and cleanup status on mount
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch config and cleanup status in parallel
-        const [configData, cleanupData] = await Promise.all([
-          fetchConfig(),
-          fetchCleanupStatus(),
-        ]);
+  // Fetch global tasks with TanStack Query
+  const {
+    data: tasksResult,
+    isLoading: globalTasksLoading,
+    error: globalTasksErrorObj,
+  } = useQuery({
+    queryKey: ["global-tasks", page, pageSize],
+    queryFn: () => fetchGlobalTasks(page, pageSize),
+    placeholderData: keepPreviousData,
+  });
 
-        setMaxFileSizeGB(configData.max_file_size_gb);
-        setTaskStatusUpdateIntervalMinutes(
-          configData.task_status_update_interval_minutes,
-        );
-        setNextTaskStatusUpdate(configData.next_task_status_update);
-
-        setCleanupStatus(cleanupData);
-      } catch (error) {
-        console.error("Failed to fetch initial data:", error);
-        // Set default values on error
-        setMaxFileSizeGB(25);
-        setTaskStatusUpdateIntervalMinutes(15);
-        setCleanupStatus(null);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  // Fetch tasks with cancellation token to avoid race conditions
-  useEffect(() => {
-    if (!isMounted) return;
-
-    let ignore = false;
-
-    const loadTasks = async () => {
-      try {
-        const result = await fetchGlobalTasks(page, pageSize);
-        if (!ignore) {
-          setGlobalTasks(result.data);
-          setTotalPages(Math.ceil(result.count / pageSize));
-          setTotalItems(result.count);
-          setGlobalTasksError("");
-        }
-      } catch (error: unknown) {
-        if (!ignore) {
-          const message =
-            error instanceof Error ? error.message : "Failed to load tasks";
-          setGlobalTasksError(message);
-        }
-      } finally {
-        if (!ignore) {
-          setGlobalTasksLoading(false);
-        }
-      }
-    };
-
-    loadTasks();
-
-    return () => {
-      ignore = true;
-    };
-  }, [isMounted, page, pageSize]);
+  const globalTasks = tasksResult?.data ?? [];
+  const totalItems = tasksResult?.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const globalTasksError = globalTasksErrorObj
+    ? globalTasksErrorObj instanceof Error
+      ? globalTasksErrorObj.message
+      : "Failed to load tasks"
+    : "";
 
   // Optimized task addition with batch operations
   const handleAddSuccess = useCallback(
@@ -156,29 +116,19 @@ export function CreateShareTab() {
       // Reset to first page to show the new task
       setPage(1);
 
-      // Refresh the task list from server to show the newly added task
-      try {
-        const result = await fetchGlobalTasks(1, pageSize);
-        setGlobalTasks(result.data);
-        setTotalPages(Math.ceil(result.count / pageSize));
-        setTotalItems(result.count);
-      } catch (error) {
-        console.error("Failed to refresh tasks after adding:", error);
-      }
+      // Refresh tasks cache
+      queryClient.invalidateQueries({ queryKey: ["global-tasks"] });
     },
-    [setLocalTasks, pageSize],
+    [setLocalTasks, queryClient],
   );
 
   const handlePageChange = useCallback((newPage: number) => {
-    setGlobalTasksLoading(true);
     setPage(newPage);
   }, []);
 
-  // Optimized page size change handler
   const handlePageSizeChange = useCallback((newSize: number) => {
-    setGlobalTasksLoading(true);
     setPageSize(newSize);
-    setPage(1); // Reset to first page when changing page size
+    setPage(1);
   }, []);
 
   return (

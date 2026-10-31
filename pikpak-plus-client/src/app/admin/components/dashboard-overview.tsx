@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminStats, DailyStats } from "@/types/api";
@@ -30,31 +30,30 @@ const formatBytes = (bytes: number) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
+interface DashboardData {
+  stats: AdminStats;
+  dailyStats: DailyStats[];
+}
+
 export function DashboardOverview() {
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading } = useQuery<DashboardData>({
+    queryKey: ["admin", "dashboard-stats"],
+    queryFn: async () => {
+      const [overviewData, dailyData] = await Promise.all([
+        getOverviewStats(),
+        getDailyStats(14), // Last 14 days
+      ]);
+      return {
+        stats: overviewData,
+        dailyStats: dailyData.data || [],
+      };
+    },
+  });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [overviewData, dailyData] = await Promise.all([
-          getOverviewStats(),
-          getDailyStats(14), // Last 14 days
-        ]);
-        setStats(overviewData);
-        setDailyStats(dailyData.data || []);
-      } catch (error) {
-        console.error("Failed to fetch admin stats", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const stats = data?.stats ?? null;
+  const dailyStats = data?.dailyStats ?? [];
 
-    fetchData();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

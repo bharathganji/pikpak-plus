@@ -115,7 +115,7 @@ export function Header() {
             </Link>
             <Link href="/register">
               <Button size="sm" className="hidden xs:inline-flex">
-                Get Started
+                Sign Up
               </Button>
             </Link>
           </div>

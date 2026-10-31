@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { SystemConfig, SchedulerStatus } from "@/types/api";
+import { SystemConfig } from "@/types/api";
 import {
   getConfig,
   updateConfig,
@@ -30,57 +31,33 @@ const defaultConfig: SystemConfig = {
 };
 
 export function SystemSettings() {
-  const [draft, setDraft] = useState<SystemConfig>(defaultConfig);
-  const [scheduler, setScheduler] = useState<SchedulerStatus | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const [formDraft, setFormDraft] = useState<Partial<SystemConfig>>({});
   const [saving, setSaving] = useState(false);
   const [triggering, setTriggering] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  useEffect(() => {
-    let ignore = false;
+  const configQuery = useQuery({
+    queryKey: ["admin", "config"],
+    queryFn: getConfig,
+  });
 
-    async function fetchInitialSettings() {
-      try {
-        const [configData, schedulerData] = await Promise.all([
-          getConfig(),
-          getSchedulerStatus(),
-        ]);
-        if (!ignore) {
-          setDraft(configData);
-          setScheduler(schedulerData);
-        }
-      } catch (err) {
-        if (!ignore) {
-          setError("Failed to load system settings");
-          console.error(err);
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
-      }
-    }
+  const schedulerQuery = useQuery({
+    queryKey: ["admin", "scheduler-status"],
+    queryFn: getSchedulerStatus,
+    refetchInterval: 15000,
+  });
 
-    fetchInitialSettings();
+  const currentConfig = configQuery.data ?? defaultConfig;
+  const draft: SystemConfig = {
+    ...currentConfig,
+    ...formDraft,
+  };
 
-    const interval = setInterval(() => {
-      getSchedulerStatus()
-        .then((data) => {
-          if (!ignore) {
-            setScheduler(data);
-          }
-        })
-        .catch(() => {});
-    }, 15000);
-
-    return () => {
-      ignore = true;
-      clearInterval(interval);
-    };
-  }, []);
+  const scheduler = schedulerQuery.data ?? null;
+  const loading = configQuery.isLoading && !configQuery.data;
+  const refreshing = schedulerQuery.isFetching;
 
   const handleSave = async () => {
     setSaving(true);
@@ -88,7 +65,8 @@ export function SystemSettings() {
     setSuccess(null);
     try {
       const updated = await updateConfig(draft);
-      setDraft(updated);
+      setFormDraft({});
+      queryClient.setQueryData(["admin", "config"], updated);
       setSuccess("Configuration saved successfully");
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -104,6 +82,9 @@ export function SystemSettings() {
     setError(null);
     try {
       await triggerCleanup();
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "scheduler-status"],
+      });
       setSuccess("Cleanup triggered successfully");
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -115,16 +96,12 @@ export function SystemSettings() {
   };
 
   const handleRefreshScheduler = async () => {
-    setRefreshing(true);
     setError(null);
     try {
-      const data = await getSchedulerStatus();
-      setScheduler(data);
+      await schedulerQuery.refetch();
     } catch (err) {
       setError("Failed to refresh scheduler status");
       console.error(err);
-    } finally {
-      setRefreshing(false);
     }
   };
 
@@ -147,10 +124,10 @@ export function SystemSettings() {
 
   return (
     <div className="space-y-6">
-      {error && (
+      {(error || configQuery.error || schedulerQuery.error) && (
         <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           <AlertCircle className="h-4 w-4" />
-          {error}
+          {error || "Failed to load system settings"}
         </div>
       )}
       {success && (
@@ -175,10 +152,10 @@ export function SystemSettings() {
                 min={0}
                 value={draft.cleanup_interval_hours}
                 onChange={(e) =>
-                  setDraft({
-                    ...draft,
+                  setFormDraft((prev) => ({
+                    ...prev,
                     cleanup_interval_hours: Number(e.target.value),
-                  })
+                  }))
                 }
               />
             </div>
@@ -191,10 +168,10 @@ export function SystemSettings() {
                 min={0}
                 value={draft.task_status_update_interval_minutes}
                 onChange={(e) =>
-                  setDraft({
-                    ...draft,
+                  setFormDraft((prev) => ({
+                    ...prev,
                     task_status_update_interval_minutes: Number(e.target.value),
-                  })
+                  }))
                 }
               />
             </div>
@@ -207,10 +184,10 @@ export function SystemSettings() {
                 min={0}
                 value={draft.webdav_generation_interval_hours}
                 onChange={(e) =>
-                  setDraft({
-                    ...draft,
+                  setFormDraft((prev) => ({
+                    ...prev,
                     webdav_generation_interval_hours: Number(e.target.value),
-                  })
+                  }))
                 }
               />
             </div>
@@ -239,10 +216,10 @@ export function SystemSettings() {
               step={0.1}
               value={draft.max_file_size_gb}
               onChange={(e) =>
-                setDraft({
-                  ...draft,
+                setFormDraft((prev) => ({
+                  ...prev,
                   max_file_size_gb: Number(e.target.value),
-                })
+                }))
               }
             />
           </div>

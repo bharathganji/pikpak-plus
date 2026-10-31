@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalStorage } from "@uidotdev/usehooks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,15 +24,70 @@ import { taskService } from "@/services/task-service";
 import { shareService } from "@/services/share-service";
 import { SupabaseTaskRecord } from "@/types/api";
 
+interface ActivityData {
+  serverTasks: LocalTask[];
+  shares: LocalShare[];
+}
+
+const fetchActivity = async (): Promise<ActivityData> => {
+  const [taskResponse, shareResponse] = await Promise.all([
+    taskService.getTasks(1, 100),
+    shareService.getShares(1, 100),
+  ]);
+
+  const records: SupabaseTaskRecord[] = taskResponse?.data || [];
+  const mappedTasks: LocalTask[] = (records || []).map((record) => {
+    const taskData = record.data.task?.task;
+    const whatslink = record.data.whatslink;
+    const phase = taskData?.phase;
+
+    let status = "running";
+    if (phase === "PHASE_TYPE_COMPLETE") status = "completed";
+    else if (phase === "PHASE_TYPE_ERROR") status = "failed";
+    else if (taskData?.progress === 100) status = "completed";
+
+    return {
+      id: String(record.id),
+      url: record.data.url,
+      status,
+      timestamp: new Date(record.created_at).getTime(),
+      name:
+        taskData?.file_name ||
+        whatslink?.name ||
+        record.data.meta?.title ||
+        "Download Task",
+      file_size:
+        taskData?.file_size ||
+        (whatslink?.size ? String(whatslink.size) : undefined),
+      file_type: whatslink?.file_type,
+      file_id: taskData?.file_id,
+    };
+  });
+
+  const shareRecords = shareResponse?.data || [];
+  const mappedShares: LocalShare[] = (shareRecords || []).map((record) => {
+    const sData = record.data || {};
+    return {
+      id: String(record.id),
+      file_name: sData.file_name || sData.title || "Shared Content",
+      share_url: sData.share_url || "",
+      pass_code: sData.pass_code,
+      timestamp: record.created_at
+        ? new Date(record.created_at).getTime()
+        : Date.now(),
+      file_id: sData.file_id || "",
+    };
+  });
+
+  return { serverTasks: mappedTasks, shares: mappedShares };
+};
+
 export function MyActivityTab() {
+  const queryClient = useQueryClient();
   const [tasks, setTasks] = useLocalStorage<LocalTask[]>(
     LOCAL_TASKS_STORAGE_KEY,
     [],
   );
-  const [shares, setShares] = useState<LocalShare[]>([]);
-  const [serverTasks, setServerTasks] = useState<LocalTask[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clearAllDialogOpen, setClearAllDialogOpen] = useState(false);
@@ -39,95 +95,28 @@ export function MyActivityTab() {
   const [clearAllSharesDialogOpen, setClearAllSharesDialogOpen] =
     useState(false);
 
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const {
+    data: activityData,
+    isLoading: loading,
+    isFetching,
+    error: queryError,
+    refetch,
+  } = useQuery<ActivityData>({
+    queryKey: ["user-activity"],
+    queryFn: fetchActivity,
+  });
 
-  // Sync tasks and shares from backend Supabase
-  const syncServerActivity = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    setRefreshTrigger((prev) => prev + 1);
-  }, []);
+  const serverTasks = activityData?.serverTasks ?? [];
+  const shares = activityData?.shares ?? [];
+  const error = queryError
+    ? queryError instanceof Error
+      ? queryError.message
+      : "Failed to sync activity from server"
+    : null;
 
-  useEffect(() => {
-    let ignore = false;
-
-    const loadData = async () => {
-      try {
-        const [taskResponse, shareResponse] = await Promise.all([
-          taskService.getTasks(1, 100),
-          shareService.getShares(1, 100),
-        ]);
-
-        if (ignore) return;
-
-        const records: SupabaseTaskRecord[] = taskResponse?.data || [];
-        const mappedTasks: LocalTask[] = (records || []).map((record) => {
-          const taskData = record.data.task?.task;
-          const whatslink = record.data.whatslink;
-          const phase = taskData?.phase;
-
-          let status = "running";
-          if (phase === "PHASE_TYPE_COMPLETE") status = "completed";
-          else if (phase === "PHASE_TYPE_ERROR") status = "failed";
-          else if (taskData?.progress === 100) status = "completed";
-
-          return {
-            id: String(record.id),
-            url: record.data.url,
-            status,
-            timestamp: new Date(record.created_at).getTime(),
-            name:
-              taskData?.file_name ||
-              whatslink?.name ||
-              record.data.meta?.title ||
-              "Download Task",
-            file_size:
-              taskData?.file_size ||
-              (whatslink?.size ? String(whatslink.size) : undefined),
-            file_type: whatslink?.file_type,
-            file_id: taskData?.file_id,
-          };
-        });
-
-        setServerTasks(mappedTasks);
-
-        const shareRecords = shareResponse?.data || [];
-        const mappedShares: LocalShare[] = (shareRecords || []).map((record) => {
-          const sData = record.data || {};
-          return {
-            id: String(record.id),
-            file_name: sData.file_name || sData.title || "Shared Content",
-            share_url: sData.share_url || "",
-            pass_code: sData.pass_code,
-            timestamp: record.created_at
-              ? new Date(record.created_at).getTime()
-              : Date.now(),
-            file_id: sData.file_id || "",
-          };
-        });
-
-        setShares(mappedShares);
-      } catch (err: unknown) {
-        if (!ignore) {
-          const msg =
-            err instanceof Error
-              ? err.message
-              : "Failed to sync activity from server";
-          setError(msg);
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadData();
-
-    return () => {
-      ignore = true;
-    };
-  }, [refreshTrigger]);
+  const syncServerActivity = () => {
+    refetch();
+  };
 
   // Combine server tasks and local tasks without duplicates
   const taskMap = new Map<string, LocalTask>();
@@ -154,10 +143,15 @@ export function MyActivityTab() {
           await taskService.deleteTask(taskToDelete);
         } catch (err) {
           console.error(err);
-          // If server delete fails, still clear locally
         }
       }
-      setServerTasks((prev) => prev.filter((t) => t.id !== taskToDelete));
+      queryClient.setQueryData<ActivityData>(["user-activity"], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          serverTasks: old.serverTasks.filter((t) => t.id !== taskToDelete),
+        };
+      });
       setTasks(tasks.filter((t) => t.id !== taskToDelete));
     }
     setDeleteDialogOpen(false);
@@ -170,7 +164,10 @@ export function MyActivityTab() {
 
   const confirmClearAll = () => {
     setTasks([]);
-    setServerTasks([]);
+    queryClient.setQueryData<ActivityData>(["user-activity"], (old) => {
+      if (!old) return old;
+      return { ...old, serverTasks: [] };
+    });
     setClearAllDialogOpen(false);
   };
 
@@ -182,7 +179,13 @@ export function MyActivityTab() {
         console.error("Failed to delete share from server:", err);
       }
     }
-    setShares((prev) => prev.filter((s) => s.id !== shareId));
+    queryClient.setQueryData<ActivityData>(["user-activity"], (old) => {
+      if (!old) return old;
+      return {
+        ...old,
+        shares: old.shares.filter((s) => s.id !== shareId),
+      };
+    });
   };
 
   const handleClearAllSharesClick = () => {
@@ -199,7 +202,10 @@ export function MyActivityTab() {
         }
       }
     }
-    setShares([]);
+    queryClient.setQueryData<ActivityData>(["user-activity"], (old) => {
+      if (!old) return old;
+      return { ...old, shares: [] };
+    });
     setClearAllSharesDialogOpen(false);
   };
 
@@ -241,12 +247,12 @@ export function MyActivityTab() {
                 variant="ghost"
                 size="icon"
                 onClick={syncServerActivity}
-                disabled={loading}
+                disabled={isFetching}
                 title="Sync from server"
                 className="h-8 w-8"
               >
                 <RefreshCw
-                  className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+                  className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
                 />
               </Button>
 

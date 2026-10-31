@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -30,70 +30,42 @@ interface StatisticsClientProps {
   initialSchedule?: ScheduleInfo | null;
 }
 
+const fetchStatistics = async (): Promise<StatisticsResponse> => {
+  const apiUrl = getApiUrl();
+  const response = await axios.get<StatisticsResponse>(
+    `${apiUrl}/statistics?limit=30`,
+  );
+  return response.data;
+};
+
 export function StatisticsClient({
   initialData = [],
   initialSchedule = null,
 }: StatisticsClientProps) {
-  const [data, setData] = useState<DailyStats[]>(initialData);
-  const [schedule, setSchedule] = useState<ScheduleInfo | null>(
-    initialSchedule,
-  );
-  const [loading, setLoading] = useState(
-    !initialData || initialData.length === 0,
-  );
-  const [error, setError] = useState("");
+  const {
+    data: statsResponse,
+    isLoading,
+    isFetching,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey: ["statistics", 30],
+    queryFn: fetchStatistics,
+    initialData:
+      initialData && initialData.length > 0
+        ? {
+            data: initialData,
+            schedule: initialSchedule as ScheduleInfo,
+          }
+        : undefined,
+  });
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const apiUrl = getApiUrl();
-      const response = await axios.get<StatisticsResponse>(
-        `${apiUrl}/statistics?limit=30`,
-      );
-      setData(response.data.data ?? []);
-      setSchedule(response.data.schedule ?? null);
-    } catch (err) {
-      console.error("Failed to fetch statistics:", err);
-      setError("Failed to load statistics. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    let ignore = false;
-
-    const loadData = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const apiUrl = getApiUrl();
-        const response = await axios.get<StatisticsResponse>(
-          `${apiUrl}/statistics?limit=30`,
-        );
-        if (!ignore) {
-          setData(response.data.data ?? []);
-          setSchedule(response.data.schedule ?? null);
-        }
-      } catch (err) {
-        if (!ignore) {
-          console.error("Failed to fetch statistics:", err);
-          setError("Failed to load statistics. Please try again later.");
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadData();
-
-    return () => {
-      ignore = true;
-    };
-  }, []);
+  const data = statsResponse?.data ?? [];
+  const schedule = statsResponse?.schedule ?? null;
+  const loading = isLoading;
+  const error = queryError
+    ? "Failed to load statistics. Please try again later."
+    : "";
 
   return (
     <main className="flex min-h-screen flex-col items-center p-2 md:p-4 lg:p-8 bg-linear-to-b from-background to-muted/20 overflow-x-hidden w-full">
@@ -123,12 +95,12 @@ export function StatisticsClient({
             <Button
               variant="ghost"
               size="icon"
-              onClick={fetchData}
-              disabled={loading}
+              onClick={() => refetch()}
+              disabled={isFetching}
               title="Refresh statistics"
             >
               <RefreshCw
-                className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+                className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
               />
             </Button>
           </div>

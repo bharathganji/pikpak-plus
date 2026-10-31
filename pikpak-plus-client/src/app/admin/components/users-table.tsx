@@ -1,7 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { useState } from "react";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { AuthUser, UserStats } from "@/types/api";
+import {
+  getUsers,
+  blockUser,
+  unblockUser,
+  getUserDetails,
+} from "@/lib/admin-client";
 import {
   Table,
   TableBody,
@@ -13,7 +20,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import {
+  MoreHorizontal,
+  Search,
+  ShieldAlert,
+  ShieldCheck,
+  Eye,
+  Loader2,
+} from "lucide-react";
+import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -21,21 +36,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { AuthUser, UserStats } from "@/types/api";
-import {
-  getUsers,
-  blockUser,
-  unblockUser,
-  getUserDetails,
-} from "@/lib/admin-client";
-import {
-  Loader2,
-  Search,
-  MoreHorizontal,
-  ShieldAlert,
-  ShieldCheck,
-  Eye,
-} from "lucide-react";
+import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,14 +47,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function UsersTable() {
-  const [users, setUsers] = useState<AuthUser[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [totalCount, setTotalCount] = useState(0);
   const pageSize = 10;
 
   const [userDetails, setUserDetails] = useState<{
@@ -62,45 +59,27 @@ export function UsersTable() {
   } | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
-  useEffect(() => {
-    let ignore = false;
+  const {
+    data: usersData,
+    isLoading: loading,
+  } = useQuery({
+    queryKey: ["admin", "users", { page, pageSize, search: appliedSearch }],
+    queryFn: () =>
+      getUsers(page, pageSize, undefined, appliedSearch || undefined),
+    placeholderData: keepPreviousData,
+  });
 
-    async function loadUsers() {
-      try {
-        const res = await getUsers(page, pageSize, undefined, appliedSearch || undefined);
-        if (!ignore) {
-          setUsers(res.data);
-          setTotalCount(res.count);
-          setTotalPages(Math.ceil(res.count / pageSize));
-        }
-      } catch (error) {
-        if (!ignore) {
-          console.error("Failed to fetch users", error);
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadUsers();
-
-    return () => {
-      ignore = true;
-    };
-  }, [page, appliedSearch, refreshTrigger]);
+  const users = usersData?.data ?? [];
+  const totalCount = usersData?.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setPage(1);
     setAppliedSearch(search);
-    setRefreshTrigger((prev) => prev + 1);
   };
 
   const handlePageChange = (newPage: number) => {
-    setLoading(true);
     setPage(newPage);
   };
 
@@ -108,8 +87,8 @@ export function UsersTable() {
     if (!confirm(`Are you sure you want to block ${email}?`)) return;
     try {
       await blockUser(email);
-      setLoading(true);
-      setRefreshTrigger((prev) => prev + 1);
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard-stats"] });
     } catch (error) {
       console.error("Failed to block user", error);
       alert("Failed to block user");
@@ -119,8 +98,8 @@ export function UsersTable() {
   const handleUnblock = async (email: string) => {
     try {
       await unblockUser(email);
-      setLoading(true);
-      setRefreshTrigger((prev) => prev + 1);
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard-stats"] });
     } catch (error) {
       console.error("Failed to unblock user", error);
     }
