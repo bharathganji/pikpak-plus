@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prepare": "husky",
     "release": "semantic-release",
     "lint:commits": "commitlint --from=HEAD~1 --to=HEAD --verbose",
     "sync-versions": "node scripts/sync-version.js"
@@ -27,8 +28,23 @@
     "extends": "./release.config.js"
   },
   "lint-staged": {
-    "*.{js,ts,tsx}": [
-      "eslint --fix",
+    "pikpak-plus-client/**/*.{js,jsx,ts,tsx}": [
+      "prettier --write",
+      "eslint --config pikpak-plus-client/eslint.config.mjs --fix"
+    ],
+    "*.{js,cjs,mjs}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "pikpak-plus-server/**/*.py": [
+      "uvx ruff check --fix",
+      "uvx ruff format"
+    ],
+    "*.py": [
+      "uvx ruff check --fix",
+      "uvx ruff format"
+    ],
+    "*.{json,md,yml,yaml}": [
       "prettier --write"
     ]
   },
