@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -26,22 +26,24 @@ export interface StatisticsResponse {
 }
 
 interface StatisticsClientProps {
-  initialData: DailyStats[];
-  initialSchedule: ScheduleInfo | null;
+  initialData?: DailyStats[];
+  initialSchedule?: ScheduleInfo | null;
 }
 
 export function StatisticsClient({
-  initialData,
-  initialSchedule,
+  initialData = [],
+  initialSchedule = null,
 }: StatisticsClientProps) {
   const [data, setData] = useState<DailyStats[]>(initialData);
   const [schedule, setSchedule] = useState<ScheduleInfo | null>(
     initialSchedule,
   );
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(
+    !initialData || initialData.length === 0,
+  );
   const [error, setError] = useState("");
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -49,15 +51,49 @@ export function StatisticsClient({
       const response = await axios.get<StatisticsResponse>(
         `${apiUrl}/statistics?limit=30`,
       );
-      setData(response.data.data);
-      setSchedule(response.data.schedule);
+      setData(response.data.data ?? []);
+      setSchedule(response.data.schedule ?? null);
     } catch (err) {
       console.error("Failed to fetch statistics:", err);
-      setError("Failed to reload statistics. Please try again later.");
+      setError("Failed to load statistics. Please try again later.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    let ignore = false;
+
+    const loadData = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const apiUrl = getApiUrl();
+        const response = await axios.get<StatisticsResponse>(
+          `${apiUrl}/statistics?limit=30`,
+        );
+        if (!ignore) {
+          setData(response.data.data ?? []);
+          setSchedule(response.data.schedule ?? null);
+        }
+      } catch (err) {
+        if (!ignore) {
+          console.error("Failed to fetch statistics:", err);
+          setError("Failed to load statistics. Please try again later.");
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   return (
     <main className="flex min-h-screen flex-col items-center p-2 md:p-4 lg:p-8 bg-linear-to-b from-background to-muted/20 overflow-x-hidden w-full">

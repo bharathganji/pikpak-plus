@@ -14,10 +14,16 @@ export const revalidate = 60;
 async function getInitialStatistics(): Promise<StatisticsResponse> {
   try {
     const apiUrl = getServerApiUrl();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
     const res = await fetch(`${apiUrl}/statistics?limit=30`, {
       next: { revalidate: 60 },
       headers: { Accept: "application/json" },
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
+
     if (!res.ok) {
       return {
         data: [],
