@@ -27,15 +27,23 @@ async function getInitialStatistics(): Promise<StatisticsResponse> {
     if (!res.ok) {
       return {
         data: [],
-        schedule: { next_update: null, last_update: null, scheduler_running: false },
+        schedule: {
+          next_update: null,
+          last_update: null,
+          scheduler_running: false,
+        },
       };
     }
     return await res.json();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return {
       data: [],
-      schedule: { next_update: null, last_update: null, scheduler_running: false },
+      schedule: {
+        next_update: null,
+        last_update: null,
+        scheduler_running: false,
+      },
     };
   }
 }
