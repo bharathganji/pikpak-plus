@@ -1,0 +1,4 @@
+{
+  "python.analysis.inlayHints.functionReturnTypes": true,
+  "python.analysis.autoImportCompletions": true
+}
