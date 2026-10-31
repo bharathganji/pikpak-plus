@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import {
+  useQuery,
+  useQueryClient,
+  keepPreviousData,
+} from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -26,15 +30,8 @@ export function ContentModeration() {
   const [actionFilter, setActionFilter] = useState<string>("all");
   const pageSize = 10;
 
-  const {
-    data: logsData,
-    isLoading,
-  } = useQuery({
-    queryKey: [
-      "admin",
-      "logs",
-      { page, pageSize, actionFilter, appliedEmail },
-    ],
+  const { data: logsData, isLoading } = useQuery({
+    queryKey: ["admin", "logs", { page, pageSize, actionFilter, appliedEmail }],
     queryFn: () => {
       const action = actionFilter === "all" ? undefined : actionFilter;
       return getLogs(page, pageSize, action, appliedEmail || undefined);
@@ -146,14 +143,14 @@ export function ContentModeration() {
                     {log.action === "add" ? (
                       <Badge
                         variant="outline"
-                        className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200"
+                        className="bg-blue-50 text-blue-950 dark:bg-blue-950 dark:text-blue-200 border-blue-200 dark:border-blue-800"
                       >
                         Add
                       </Badge>
                     ) : (
                       <Badge
                         variant="outline"
-                        className="bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border-orange-200"
+                        className="bg-amber-50 text-amber-950 dark:bg-amber-950 dark:text-amber-200 border-amber-200 dark:border-amber-800"
                       >
                         Share
                       </Badge>

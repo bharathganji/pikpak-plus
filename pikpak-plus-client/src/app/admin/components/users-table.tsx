@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import {
+  useQuery,
+  useQueryClient,
+  keepPreviousData,
+} from "@tanstack/react-query";
 import { AuthUser, UserStats } from "@/types/api";
 import {
   getUsers,
@@ -59,10 +63,7 @@ export function UsersTable() {
   } | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
-  const {
-    data: usersData,
-    isLoading: loading,
-  } = useQuery({
+  const { data: usersData, isLoading: loading } = useQuery({
     queryKey: ["admin", "users", { page, pageSize, search: appliedSearch }],
     queryFn: () =>
       getUsers(page, pageSize, undefined, appliedSearch || undefined),
@@ -184,7 +185,7 @@ export function UsersTable() {
                     ) : (
                       <Badge
                         variant="secondary"
-                        className="text-green-600 bg-green-100 dark:bg-green-900/30"
+                        className="text-emerald-950 bg-emerald-50 dark:text-emerald-100 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800"
                       >
                         Active
                       </Badge>

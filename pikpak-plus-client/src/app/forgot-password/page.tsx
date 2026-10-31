@@ -70,7 +70,7 @@ export default function ForgotPasswordPage() {
               </Alert>
             )}
             {success && (
-              <Alert className="bg-green-500/10 text-green-600 border-green-500/20">
+              <Alert className="bg-emerald-50 text-emerald-950 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-100 dark:border-emerald-800">
                 <AlertDescription>{success}</AlertDescription>
               </Alert>
             )}

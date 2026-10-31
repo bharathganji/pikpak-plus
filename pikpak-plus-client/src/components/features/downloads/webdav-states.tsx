@@ -58,18 +58,18 @@ export function WebDAVEmptyState({
     <Alert
       className={
         isTrafficIssue
-          ? "border-orange-200 bg-orange-50 dark:bg-orange-950/20"
+          ? "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100"
           : ""
       }
       variant={isTrafficIssue ? undefined : "default"}
     >
       {isTrafficIssue ? (
-        <WifiOff className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+        <WifiOff className="h-4 w-4 text-amber-700 dark:text-amber-300" />
       ) : (
         <AlertCircle className="h-4 w-4" />
       )}
       <AlertDescription
-        className={isTrafficIssue ? "text-orange-900 dark:text-orange-200" : ""}
+        className={isTrafficIssue ? "text-amber-950 dark:text-amber-100" : ""}
       >
         {message ||
           "No WebDAV clients currently active. They will be created on the next scheduled run."}
@@ -84,9 +84,9 @@ interface TrafficWarningProps {
 
 export function WebDAVTrafficWarning({ message }: TrafficWarningProps) {
   return (
-    <Alert className="border-orange-200 bg-orange-50 dark:bg-orange-950/20">
-      <WifiOff className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-      <AlertDescription className="text-orange-900 dark:text-orange-200">
+    <Alert className="border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+      <WifiOff className="h-4 w-4 text-amber-700 dark:text-amber-300" />
+      <AlertDescription className="text-amber-950 dark:text-amber-100">
         {message}
       </AlertDescription>
     </Alert>

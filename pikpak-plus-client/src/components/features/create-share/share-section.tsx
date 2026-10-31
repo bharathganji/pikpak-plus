@@ -121,22 +121,22 @@ export function ShareSection({
       {/* Visual Status Indicator - Fix 4 */}
       <div className="mb-3">
         {isError ? (
-          <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-500 bg-red-50 dark:bg-red-950/30 p-2 rounded-md">
-            <XCircle className="h-4 w-4" />
+          <div className="flex items-center gap-2 text-sm text-red-950 dark:text-red-100 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 p-2.5 rounded-md">
+            <XCircle className="h-4 w-4 shrink-0 text-red-700 dark:text-red-300" />
             <span className="font-medium">Task Failed</span>
           </div>
         ) : hasFileId ? (
-          <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-950/30 p-2 rounded-md">
-            <CheckCircle2 className="h-4 w-4" />
+          <div className="flex items-center gap-2 text-sm text-emerald-950 dark:text-emerald-100 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 p-2.5 rounded-md">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-700 dark:text-emerald-300" />
             <span className="font-medium">Ready to Share</span>
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-sm text-orange-600 dark:text-orange-500 bg-orange-50 dark:bg-orange-950/30 p-2 rounded-md">
-            <Clock className="h-4 w-4" />
+          <div className="flex items-center gap-2 text-sm text-amber-950 dark:text-amber-100 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-2.5 rounded-md">
+            <Clock className="h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300" />
             <div className="flex-1">
               <span className="font-medium">Task in Progress</span>
               {taskProgress > 0 && (
-                <span className="ml-2 text-xs opacity-80">
+                <span className="ml-2 text-xs opacity-90">
                   ({taskProgress}% complete)
                 </span>
               )}

@@ -107,7 +107,7 @@ export function StatisticsClient({
         </div>
 
         {error && (
-          <div className="p-4 mb-6 text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+          <div className="p-4 mb-6 text-red-950 dark:text-red-100 bg-red-50 dark:bg-red-950 rounded-lg border border-red-200 dark:border-red-800">
             {error}
           </div>
         )}
