@@ -1,23 +1,19 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import {
+  useQuery,
+  useQueryClient,
+  keepPreviousData,
+} from "@tanstack/react-query";
 import { MagnetInputCard } from "./magnet-input-card";
 import { GlobalActivityCard } from "./global-activity-card";
 import { fetchConfig, fetchCleanupStatus, fetchGlobalTasks } from "./api-utils";
-import { useLocalStorage } from "@uidotdev/usehooks";
-import { LocalTask, LOCAL_TASKS_STORAGE_KEY } from "../my-activity/types";
 
 export function CreateShareTab() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
-
-  // Local activity state (for permanent retention)
-  const [, setLocalTasks] = useLocalStorage<LocalTask[]>(
-    LOCAL_TASKS_STORAGE_KEY,
-    [],
-  );
 
   // Fetch config and cleanup status with TanStack Query
   const { data: configAndCleanup } = useQuery({
@@ -86,41 +82,15 @@ export function CreateShareTab() {
       : "Failed to load tasks"
     : "";
 
-  // Optimized task addition with batch operations
-  const handleAddSuccess = useCallback(
-    async (taskData: any, fileInfoData: any) => {
-      // Create new task object with defaults
-      const newTask: LocalTask = {
-        id: taskData?.id || Date.now().toString(),
-        url: taskData?.url || "",
-        status: "Added",
-        timestamp: Date.now(),
-        name: taskData?.name || fileInfoData?.name || "Processing...",
-        file_size: taskData?.file_size || fileInfoData?.size?.toString(),
-        file_type: fileInfoData?.file_type,
-      };
+  // Task addition handler - invalidates query caches to trigger fresh data fetch
+  const handleAddSuccess = useCallback(async () => {
+    // Reset to first page to show the new task
+    setPage(1);
 
-      // Optimized array operations using Set for O(1) lookup
-      setLocalTasks((prevTasks) => {
-        const existingTasks = new Set(prevTasks.map((t) => t.id));
-
-        // Filter out existing task if it exists and add new task
-        const filteredTasks = existingTasks.has(newTask.id)
-          ? prevTasks.filter((t) => t.id !== newTask.id)
-          : prevTasks;
-
-        // Add new task to the top with single array operation
-        return [newTask, ...filteredTasks];
-      });
-
-      // Reset to first page to show the new task
-      setPage(1);
-
-      // Refresh tasks cache
-      queryClient.invalidateQueries({ queryKey: ["global-tasks"] });
-    },
-    [setLocalTasks, queryClient],
-  );
+    // Refresh tasks cache
+    queryClient.invalidateQueries({ queryKey: ["global-tasks"] });
+    queryClient.invalidateQueries({ queryKey: ["user-activity"] });
+  }, [queryClient]);
 
   const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage);

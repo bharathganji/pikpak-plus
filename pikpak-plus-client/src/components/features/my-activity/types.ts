@@ -18,5 +18,7 @@ export interface LocalShare {
   file_id: string;
 }
 
+/** @deprecated Local storage persistence is superseded by TanStack Query and server activity. Kept for backwards compatibility. */
 export const LOCAL_TASKS_STORAGE_KEY = "pikpak_user_tasks";
+/** @deprecated Local storage persistence is superseded by TanStack Query and server activity. Kept for backwards compatibility. */
 export const LOCAL_SHARES_STORAGE_KEY = "pikpak_user_shares";

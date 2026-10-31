@@ -2,17 +2,12 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocalStorage } from "@uidotdev/usehooks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2, RefreshCw, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  LocalTask,
-  LocalShare,
-  LOCAL_TASKS_STORAGE_KEY,
-} from "../my-activity/types";
+import { LocalTask, LocalShare } from "../my-activity/types";
 import { EmptyState } from "../my-activity/empty-state";
 import { TaskItem } from "../my-activity/task-item";
 import { ShareItem } from "../my-activity/share-item";
@@ -84,10 +79,6 @@ const fetchActivity = async (): Promise<ActivityData> => {
 
 export function MyActivityTab() {
   const queryClient = useQueryClient();
-  const [tasks, setTasks] = useLocalStorage<LocalTask[]>(
-    LOCAL_TASKS_STORAGE_KEY,
-    [],
-  );
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clearAllDialogOpen, setClearAllDialogOpen] = useState(false);
@@ -118,18 +109,7 @@ export function MyActivityTab() {
     refetch();
   };
 
-  // Combine server tasks and local tasks without duplicates
-  const taskMap = new Map<string, LocalTask>();
-  serverTasks.forEach((st) => taskMap.set(st.url || st.id, st));
-  tasks.forEach((lt) => {
-    const key = lt.url || lt.id;
-    if (!taskMap.has(key)) {
-      taskMap.set(key, lt);
-    }
-  });
-  const allTasks = Array.from(taskMap.values()).sort(
-    (a, b) => b.timestamp - a.timestamp,
-  );
+  const allTasks = [...serverTasks].sort((a, b) => b.timestamp - a.timestamp);
 
   const handleDeleteClick = (taskId: string) => {
     setTaskToDelete(taskId);
@@ -142,7 +122,7 @@ export function MyActivityTab() {
         try {
           await taskService.deleteTask(taskToDelete);
         } catch (err) {
-          console.error(err);
+          console.error("Failed to delete task from server:", err);
         }
       }
       queryClient.setQueryData<ActivityData>(["user-activity"], (old) => {
@@ -152,7 +132,6 @@ export function MyActivityTab() {
           serverTasks: old.serverTasks.filter((t) => t.id !== taskToDelete),
         };
       });
-      setTasks(tasks.filter((t) => t.id !== taskToDelete));
     }
     setDeleteDialogOpen(false);
     setTaskToDelete(null);
@@ -162,8 +141,16 @@ export function MyActivityTab() {
     setClearAllDialogOpen(true);
   };
 
-  const confirmClearAll = () => {
-    setTasks([]);
+  const confirmClearAll = async () => {
+    for (const t of serverTasks) {
+      if (/^\d+$/.test(t.id)) {
+        try {
+          await taskService.deleteTask(t.id);
+        } catch (err) {
+          console.error("Failed to delete task on server:", err);
+        }
+      }
+    }
     queryClient.setQueryData<ActivityData>(["user-activity"], (old) => {
       if (!old) return old;
       return { ...old, serverTasks: [] };
