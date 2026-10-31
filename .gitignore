@@ -50,7 +50,8 @@ pikpak_tokens.json
 pikpak_login_state.json
 
 # Teamwork Multi-Agent Internal Workspaces
-.agents/
+.agents/*
+!.agents/skills/
 
 # Editor & OS files
 .vscode

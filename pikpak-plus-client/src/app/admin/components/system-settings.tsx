@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,6 @@ const defaultConfig: SystemConfig = {
 };
 
 export function SystemSettings() {
-  const [config, setConfig] = useState<SystemConfig>(defaultConfig);
   const [draft, setDraft] = useState<SystemConfig>(defaultConfig);
   const [scheduler, setScheduler] = useState<SchedulerStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,34 +39,48 @@ export function SystemSettings() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const loadSettings = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [configData, schedulerData] = await Promise.all([
-        getConfig(),
-        getSchedulerStatus(),
-      ]);
-      setConfig(configData);
-      setDraft(configData);
-      setScheduler(schedulerData);
-    } catch (err) {
-      setError("Failed to load system settings");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    loadSettings();
+    let ignore = false;
+
+    async function fetchInitialSettings() {
+      try {
+        const [configData, schedulerData] = await Promise.all([
+          getConfig(),
+          getSchedulerStatus(),
+        ]);
+        if (!ignore) {
+          setDraft(configData);
+          setScheduler(schedulerData);
+        }
+      } catch (err) {
+        if (!ignore) {
+          setError("Failed to load system settings");
+          console.error(err);
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchInitialSettings();
+
     const interval = setInterval(() => {
       getSchedulerStatus()
-        .then((data) => setScheduler(data))
+        .then((data) => {
+          if (!ignore) {
+            setScheduler(data);
+          }
+        })
         .catch(() => {});
     }, 15000);
-    return () => clearInterval(interval);
-  }, [loadSettings]);
+
+    return () => {
+      ignore = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);
@@ -75,7 +88,7 @@ export function SystemSettings() {
     setSuccess(null);
     try {
       const updated = await updateConfig(draft);
-      setConfig(updated);
+      setDraft(updated);
       setSuccess("Configuration saved successfully");
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -119,7 +132,7 @@ export function SystemSettings() {
     if (!value) return "Never";
     try {
       return new Date(value).toLocaleString();
-    } catch (err) {
+    } catch {
       return value;
     }
   };

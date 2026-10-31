@@ -23,51 +23,46 @@ export function GitHubButton({
 }: Readonly<GitHubButtonProps>) {
   const cacheKey = `${CACHE_KEY_PREFIX}${repo}`;
   const [stars, setStars] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(showCount);
 
   useEffect(() => {
     if (!showCount) {
-      setLoading(false);
       return;
     }
 
-    // Check cache first
-    const checkCache = () => {
-      const stored = localStorage.getItem(cacheKey);
-      if (stored) {
-        try {
+    let ignore = false;
+
+    const loadStars = async () => {
+      // Check cache first
+      try {
+        const stored = localStorage.getItem(cacheKey);
+        if (stored) {
           const parsed: CachedStars = JSON.parse(stored);
           const now = Date.now();
           if (now - parsed.timestamp < CACHE_DURATION) {
-            setStars(parsed.count);
-            setLoading(false);
-            return true;
+            if (!ignore) {
+              setStars(parsed.count);
+              setLoading(false);
+            }
+            return;
           } else {
-            // Cache expired, remove it
             localStorage.removeItem(cacheKey);
           }
-        } catch (e) {
-          // Invalid cache, remove it
-          console.error("Failed to parse cached GitHub stars:", e);
-          localStorage.removeItem(cacheKey);
         }
+      } catch (e) {
+        console.error("Failed to parse cached GitHub stars:", e);
+        localStorage.removeItem(cacheKey);
       }
-      return false;
-    };
 
-    // If cache is valid, use it and skip fetch
-    if (checkCache()) {
-      return;
-    }
-
-    // Otherwise fetch from API
-    const fetchStars = async () => {
+      // Otherwise fetch from API
       try {
         const response = await fetch(`https://api.github.com/repos/${repo}`);
         if (response.ok) {
           const data = await response.json();
           const starCount = data.stargazers_count;
-          setStars(starCount);
+          if (!ignore) {
+            setStars(starCount);
+          }
 
           // Cache the result
           const cacheData = {
@@ -77,13 +72,21 @@ export function GitHubButton({
           localStorage.setItem(cacheKey, JSON.stringify(cacheData));
         }
       } catch (error) {
-        console.error("Failed to fetch GitHub stars:", error);
+        if (!ignore) {
+          console.error("Failed to fetch GitHub stars:", error);
+        }
       } finally {
-        setLoading(false);
+        if (!ignore) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchStars();
+    Promise.resolve().then(loadStars);
+
+    return () => {
+      ignore = true;
+    };
   }, [repo, showCount, cacheKey]);
 
   const formatStars = (count: number) => {

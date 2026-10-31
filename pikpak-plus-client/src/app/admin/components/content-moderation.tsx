@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import {
   Table,
@@ -22,35 +22,71 @@ export function ContentModeration() {
   const [logs, setLogs] = useState<SupabaseTaskRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [userEmail, setUserEmail] = useState("");
+  const [emailInput, setEmailInput] = useState("");
+  const [appliedEmail, setAppliedEmail] = useState("");
   const [actionFilter, setActionFilter] = useState<string>("all");
   const [totalCount, setTotalCount] = useState(0);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const pageSize = 10;
 
-  const fetchLogs = useCallback(async () => {
-    setLoading(true);
-    try {
-      const action = actionFilter === "all" ? undefined : actionFilter;
-      const res = await getLogs(page, pageSize, action, userEmail || undefined);
-      setLogs(res.data);
-      setTotalCount(res.count);
-      setTotalPages(Math.ceil(res.count / pageSize));
-    } catch (error) {
-      console.error("Failed to fetch logs", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, userEmail, actionFilter]);
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+    let ignore = false;
+
+    const loadLogs = async () => {
+      try {
+        const action = actionFilter === "all" ? undefined : actionFilter;
+        const res = await getLogs(
+          page,
+          pageSize,
+          action,
+          appliedEmail || undefined
+        );
+        if (!ignore) {
+          setLogs(res.data);
+          setTotalCount(res.count);
+        }
+      } catch (error) {
+        if (!ignore) {
+          console.error("Failed to fetch logs", error);
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadLogs();
+
+    return () => {
+      ignore = true;
+    };
+  }, [page, appliedEmail, actionFilter, refreshTrigger]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     setPage(1);
-    fetchLogs();
+    setAppliedEmail(emailInput.trim());
+    setRefreshTrigger((prev) => prev + 1);
+  };
+
+  const handleActionChange = (value: string) => {
+    setLoading(true);
+    setActionFilter(value);
+    setPage(1);
+  };
+
+  const handlePrevPage = () => {
+    setLoading(true);
+    setPage((p) => Math.max(1, p - 1));
+  };
+
+  const handleNextPage = () => {
+    setLoading(true);
+    setPage((p) => Math.min(totalPages, p + 1));
   };
 
   const handleDelete = async (id: number) => {
@@ -62,7 +98,8 @@ export function ContentModeration() {
       return;
     try {
       await deleteTask(id);
-      fetchLogs();
+      setLoading(true);
+      setRefreshTrigger((prev) => prev + 1);
     } catch (error) {
       console.error("Failed to delete log", error);
       alert("Failed to delete log");
@@ -75,8 +112,8 @@ export function ContentModeration() {
         <form onSubmit={handleSearch} className="flex gap-2 w-full sm:w-auto">
           <Input
             placeholder="Filter by User Email..."
-            value={userEmail}
-            onChange={(e) => setUserEmail(e.target.value)}
+            value={emailInput}
+            onChange={(e) => setEmailInput(e.target.value)}
             className="w-full sm:w-[250px]"
           />
           <Button type="submit" variant="secondary">
@@ -87,10 +124,7 @@ export function ContentModeration() {
           <select
             className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             value={actionFilter}
-            onChange={(e) => {
-              setActionFilter(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => handleActionChange(e.target.value)}
           >
             <option value="all">All Actions</option>
             <option value="add">Add Task</option>
@@ -126,7 +160,7 @@ export function ContentModeration() {
                 </TableCell>
               </TableRow>
             ) : (
-              logs.map((log: any) => (
+              logs.map((log) => (
                 <TableRow key={log.id}>
                   <TableCell className="font-medium text-xs text-muted-foreground">
                     {log.user_email || "Anonymous"}
@@ -206,18 +240,18 @@ export function ContentModeration() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            onClick={handlePrevPage}
             disabled={page === 1 || loading}
           >
             Previous
           </Button>
           <div className="text-sm font-medium self-center">
-            Page {page} of {totalPages || 1}
+            Page {page} of {totalPages}
           </div>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            onClick={handleNextPage}
             disabled={page >= totalPages || loading}
           >
             Next

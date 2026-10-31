@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem("token");
         setUser(null);
       }
-    } catch (error) {
+    } catch {
       // Token invalid or expired
       localStorage.removeItem("token");
       setUser(null);
@@ -63,7 +63,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    checkAuth();
+    let ignore = false;
+    Promise.resolve().then(() => {
+      if (!ignore) {
+        checkAuth();
+      }
+    });
+    return () => {
+      ignore = true;
+    };
   }, [checkAuth]);
 
   // Protected route check

@@ -8,7 +8,6 @@ import {
   AdminStats,
   DailyStats,
   SystemConfig,
-  SchedulerJob,
   SchedulerStatus,
 } from "@/types/api";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { getApiUrl } from "@/lib/api-utils";
 import { WebDAVClientCard } from "./webdav-client-card";
@@ -19,43 +19,61 @@ export function WebDAVClientsGrid() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [webdavData, setWebdavData] = useState<WebDAVResponse | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  useEffect(() => {
-    fetchWebDAVClients();
+  const handleRetry = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    setRefreshTrigger((prev) => prev + 1);
   }, []);
 
-  const fetchWebDAVClients = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  useEffect(() => {
+    let ignore = false;
 
-      const apiUrl = getApiUrl();
-      const response = await axios.get(`${apiUrl}/webdav/active-clients`);
-      const data: WebDAVResponse = response.data;
-      setWebdavData(data);
-    } catch (err: any) {
-      console.error("Failed to fetch WebDAV clients:", err);
-      let errorMsg = "Failed to load WebDAV clients";
+    const fetchClients = async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const response = await axios.get(`${apiUrl}/webdav/active-clients`);
+        const data: WebDAVResponse = response.data;
+        if (!ignore) {
+          setWebdavData(data);
+        }
+      } catch (err: unknown) {
+        if (!ignore) {
+          console.error("Failed to fetch WebDAV clients:", err);
+          let errorMsg = "Failed to load WebDAV clients";
 
-      if (err.code === "ERR_NETWORK" || err.message === "Network Error") {
-        errorMsg =
-          "Cannot connect to server. Please ensure the backend is running.";
-      } else if (err.response?.data?.error) {
-        errorMsg = err.response.data.error;
-      } else if (err.message) {
-        errorMsg = err.message;
+          if (axios.isAxiosError(err)) {
+            if (err.code === "ERR_NETWORK" || err.message === "Network Error") {
+              errorMsg =
+                "Cannot connect to server. Please ensure the backend is running.";
+            } else if (err.response?.data?.error) {
+              errorMsg = String(err.response.data.error);
+            } else if (err.message) {
+              errorMsg = err.message;
+            }
+          } else if (err instanceof Error) {
+            errorMsg = err.message;
+          }
+
+          setError(errorMsg);
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
       }
+    };
 
-      setError(errorMsg);
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchClients();
+
+    return () => {
+      ignore = true;
+    };
+  }, [refreshTrigger]);
 
   if (loading) {
-    return (
-      <WebDAVLoadingState onRetry={fetchWebDAVClients} loading={loading} />
-    );
+    return <WebDAVLoadingState onRetry={handleRetry} loading={loading} />;
   }
 
   if (error) {

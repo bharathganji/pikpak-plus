@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useSyncExternalStore } from "react";
 import { MagnetInputCard } from "./magnet-input-card";
 import { GlobalActivityCard } from "./global-activity-card";
 import { fetchConfig, fetchCleanupStatus, fetchGlobalTasks } from "./api-utils";
@@ -30,7 +30,6 @@ export function CreateShareTab() {
     task_retention_hours: number;
     scheduler_running: boolean;
   } | null>(null);
-  const [timeUntilCleanup, setTimeUntilCleanup] = useState("");
 
   // Config state
   const [maxFileSizeGB, setMaxFileSizeGB] = useState<number | null>(null);
@@ -40,12 +39,28 @@ export function CreateShareTab() {
     string | null
   >(null);
 
-  // Mount check to prevent hydration mismatches
-  const [isMounted, setIsMounted] = useState(false);
+  // Mount check to prevent hydration mismatches using useSyncExternalStore
+  const isMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  // Derived time until cleanup using useMemo
+  const timeUntilCleanup = useMemo(() => {
+    if (!cleanupStatus?.next_cleanup) return "";
+
+    const now = new Date();
+    const next = new Date(cleanupStatus.next_cleanup);
+    const diff = next.getTime() - now.getTime();
+
+    if (diff <= 0) {
+      return "Soon";
+    }
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return `${hours}h ${minutes}m`;
+  }, [cleanupStatus]);
 
   // Fetch config and cleanup status on mount
   useEffect(() => {
@@ -76,47 +91,40 @@ export function CreateShareTab() {
     fetchData();
   }, []);
 
-  // Calculate time until cleanup once when cleanupStatus changes
+  // Fetch tasks with cancellation token to avoid race conditions
   useEffect(() => {
-    if (!cleanupStatus?.next_cleanup) return;
-
-    const now = new Date();
-    const next = new Date(cleanupStatus.next_cleanup);
-    const diff = next.getTime() - now.getTime();
-
-    if (diff <= 0) {
-      setTimeUntilCleanup("Soon");
-    } else {
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      setTimeUntilCleanup(`${hours}h ${minutes}m`);
-    }
-  }, [cleanupStatus?.next_cleanup]);
-
-  // Memoized fetch function for tasks
-  const fetchTasksData = useCallback(async () => {
     if (!isMounted) return;
 
-    setGlobalTasksLoading(true);
-    setGlobalTasksError("");
+    let ignore = false;
 
-    try {
-      const result = await fetchGlobalTasks(page, pageSize);
+    const loadTasks = async () => {
+      try {
+        const result = await fetchGlobalTasks(page, pageSize);
+        if (!ignore) {
+          setGlobalTasks(result.data);
+          setTotalPages(Math.ceil(result.count / pageSize));
+          setTotalItems(result.count);
+          setGlobalTasksError("");
+        }
+      } catch (error: unknown) {
+        if (!ignore) {
+          const message =
+            error instanceof Error ? error.message : "Failed to load tasks";
+          setGlobalTasksError(message);
+        }
+      } finally {
+        if (!ignore) {
+          setGlobalTasksLoading(false);
+        }
+      }
+    };
 
-      setGlobalTasks(result.data);
-      setTotalPages(Math.ceil(result.count / pageSize));
-      setTotalItems(result.count);
-    } catch (error: any) {
-      setGlobalTasksError(error.message);
-    } finally {
-      setGlobalTasksLoading(false);
-    }
+    loadTasks();
+
+    return () => {
+      ignore = true;
+    };
   }, [isMounted, page, pageSize]);
-
-  // Fetch tasks
-  useEffect(() => {
-    fetchTasksData();
-  }, [fetchTasksData]);
 
   // Optimized task addition with batch operations
   const handleAddSuccess = useCallback(
@@ -161,8 +169,14 @@ export function CreateShareTab() {
     [setLocalTasks, pageSize],
   );
 
+  const handlePageChange = useCallback((newPage: number) => {
+    setGlobalTasksLoading(true);
+    setPage(newPage);
+  }, []);
+
   // Optimized page size change handler
   const handlePageSizeChange = useCallback((newSize: number) => {
+    setGlobalTasksLoading(true);
     setPageSize(newSize);
     setPage(1); // Reset to first page when changing page size
   }, []);
@@ -184,7 +198,7 @@ export function CreateShareTab() {
         totalPages={totalPages}
         totalItems={totalItems}
         pageSize={pageSize}
-        onPageChange={setPage}
+        onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
         nextTaskStatusUpdate={nextTaskStatusUpdate}
       />

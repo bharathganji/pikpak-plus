@@ -68,7 +68,8 @@ export default function GlobalError({
               type="button"
               onClick={() => {
                 if (typeof window !== "undefined") {
-                  window.location.href = "/";
+                  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+                  window.location.assign(`${window.location.origin}/`);
                 }
               }}
               className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg font-medium text-sm transition-colors"

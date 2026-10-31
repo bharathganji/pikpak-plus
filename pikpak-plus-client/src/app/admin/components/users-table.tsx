@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import {
   Table,
@@ -51,46 +51,65 @@ export function UsersTable() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const pageSize = 10;
 
-  const [selectedUser, setSelectedUser] = useState<AuthUser | null>(null);
   const [userDetails, setUserDetails] = useState<{
     user: AuthUser;
     stats: UserStats;
   } | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
-  const fetchUsers = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await getUsers(page, pageSize, undefined, search);
-      setUsers(res.data);
-      setTotalCount(res.count);
-      setTotalPages(Math.ceil(res.count / pageSize));
-    } catch (error) {
-      console.error("Failed to fetch users", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, search]);
-
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    let ignore = false;
+
+    async function loadUsers() {
+      try {
+        const res = await getUsers(page, pageSize, undefined, appliedSearch || undefined);
+        if (!ignore) {
+          setUsers(res.data);
+          setTotalCount(res.count);
+          setTotalPages(Math.ceil(res.count / pageSize));
+        }
+      } catch (error) {
+        if (!ignore) {
+          console.error("Failed to fetch users", error);
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadUsers();
+
+    return () => {
+      ignore = true;
+    };
+  }, [page, appliedSearch, refreshTrigger]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     setPage(1);
-    fetchUsers();
+    setAppliedSearch(search);
+    setRefreshTrigger((prev) => prev + 1);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setLoading(true);
+    setPage(newPage);
   };
 
   const handleBlock = async (email: string) => {
     if (!confirm(`Are you sure you want to block ${email}?`)) return;
     try {
       await blockUser(email);
-      // Refresh list
-      fetchUsers();
+      setLoading(true);
+      setRefreshTrigger((prev) => prev + 1);
     } catch (error) {
       console.error("Failed to block user", error);
       alert("Failed to block user");
@@ -100,7 +119,8 @@ export function UsersTable() {
   const handleUnblock = async (email: string) => {
     try {
       await unblockUser(email);
-      fetchUsers();
+      setLoading(true);
+      setRefreshTrigger((prev) => prev + 1);
     } catch (error) {
       console.error("Failed to unblock user", error);
     }
@@ -210,7 +230,6 @@ export function UsersTable() {
                           <DialogTrigger asChild>
                             <DropdownMenuItem
                               onClick={() => {
-                                setSelectedUser(user);
                                 loadUserDetails(user.email);
                               }}
                             >
@@ -321,7 +340,7 @@ export function UsersTable() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          onClick={() => handlePageChange(Math.max(1, page - 1))}
           disabled={page === 1 || loading}
         >
           Previous
@@ -332,7 +351,7 @@ export function UsersTable() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages || loading}
         >
           Next

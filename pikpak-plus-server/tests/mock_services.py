@@ -236,13 +236,14 @@ class MemorySupabaseService:
         }
 
     def delete_user_share(self, email: str, action_id_or_share_id: str) -> bool:
-        normalized = email.strip().lower() if email else ""
+        del email  # Unused in mock implementation
         target_str = str(action_id_or_share_id).strip()
         before = len(self.shares)
         if target_str.isdigit():
+            target_id = int(target_str)
             self.shares = [
                 s for s in self.shares
-                if not (s.get("id") == int(target_str))
+                if s.get("id") != target_id
             ]
         else:
             self.shares = [

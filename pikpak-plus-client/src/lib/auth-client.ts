@@ -1,6 +1,6 @@
 import axios from "axios";
 import { getApiUrl, getAuthHeaders } from "./api-utils";
-import { AuthUser, AuthResponse } from "@/types/api";
+import { AuthResponse } from "@/types/api";
 
 // Create an axio instance for auth requests
 const createAuthClient = () => {
@@ -51,7 +51,7 @@ export const logout = async (): Promise<void> => {
   if (headers.Authorization) {
     try {
       await authClient.post("logout");
-    } catch (e) {
+    } catch {
       // Ignore logout errors
     }
   }

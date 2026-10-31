@@ -39,73 +39,95 @@ export function MyActivityTab() {
   const [clearAllSharesDialogOpen, setClearAllSharesDialogOpen] =
     useState(false);
 
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
   // Sync tasks and shares from backend Supabase
-  const syncServerActivity = useCallback(async () => {
+  const syncServerActivity = useCallback(() => {
     setLoading(true);
     setError(null);
-    try {
-      const [taskResponse, shareResponse] = await Promise.all([
-        taskService.getTasks(1, 100),
-        shareService.getShares(1, 100),
-      ]);
-
-      const records: SupabaseTaskRecord[] = taskResponse?.data || [];
-      const mappedTasks: LocalTask[] = (records || []).map((record) => {
-        const taskData = record.data.task?.task;
-        const whatslink = record.data.whatslink;
-        const phase = taskData?.phase;
-
-        let status = "running";
-        if (phase === "PHASE_TYPE_COMPLETE") status = "completed";
-        else if (phase === "PHASE_TYPE_ERROR") status = "failed";
-        else if (taskData?.progress === 100) status = "completed";
-
-        return {
-          id: String(record.id),
-          url: record.data.url,
-          status,
-          timestamp: new Date(record.created_at).getTime(),
-          name:
-            taskData?.file_name ||
-            whatslink?.name ||
-            record.data.meta?.title ||
-            "Download Task",
-          file_size:
-            taskData?.file_size ||
-            (whatslink?.size ? String(whatslink.size) : undefined),
-          file_type: whatslink?.file_type,
-          file_id: taskData?.file_id,
-        };
-      });
-
-      setServerTasks(mappedTasks);
-
-      const shareRecords = shareResponse?.data || [];
-      const mappedShares: LocalShare[] = (shareRecords || []).map((record) => {
-        const sData = record.data || {};
-        return {
-          id: String(record.id),
-          file_name: sData.file_name || sData.title || "Shared Content",
-          share_url: sData.share_url || "",
-          pass_code: sData.pass_code,
-          timestamp: record.created_at
-            ? new Date(record.created_at).getTime()
-            : Date.now(),
-          file_id: sData.file_id || "",
-        };
-      });
-
-      setShares(mappedShares);
-    } catch (err: any) {
-      setError(err.message || "Failed to sync activity from server");
-    } finally {
-      setLoading(false);
-    }
+    setRefreshTrigger((prev) => prev + 1);
   }, []);
 
   useEffect(() => {
-    syncServerActivity();
-  }, [syncServerActivity]);
+    let ignore = false;
+
+    const loadData = async () => {
+      try {
+        const [taskResponse, shareResponse] = await Promise.all([
+          taskService.getTasks(1, 100),
+          shareService.getShares(1, 100),
+        ]);
+
+        if (ignore) return;
+
+        const records: SupabaseTaskRecord[] = taskResponse?.data || [];
+        const mappedTasks: LocalTask[] = (records || []).map((record) => {
+          const taskData = record.data.task?.task;
+          const whatslink = record.data.whatslink;
+          const phase = taskData?.phase;
+
+          let status = "running";
+          if (phase === "PHASE_TYPE_COMPLETE") status = "completed";
+          else if (phase === "PHASE_TYPE_ERROR") status = "failed";
+          else if (taskData?.progress === 100) status = "completed";
+
+          return {
+            id: String(record.id),
+            url: record.data.url,
+            status,
+            timestamp: new Date(record.created_at).getTime(),
+            name:
+              taskData?.file_name ||
+              whatslink?.name ||
+              record.data.meta?.title ||
+              "Download Task",
+            file_size:
+              taskData?.file_size ||
+              (whatslink?.size ? String(whatslink.size) : undefined),
+            file_type: whatslink?.file_type,
+            file_id: taskData?.file_id,
+          };
+        });
+
+        setServerTasks(mappedTasks);
+
+        const shareRecords = shareResponse?.data || [];
+        const mappedShares: LocalShare[] = (shareRecords || []).map((record) => {
+          const sData = record.data || {};
+          return {
+            id: String(record.id),
+            file_name: sData.file_name || sData.title || "Shared Content",
+            share_url: sData.share_url || "",
+            pass_code: sData.pass_code,
+            timestamp: record.created_at
+              ? new Date(record.created_at).getTime()
+              : Date.now(),
+            file_id: sData.file_id || "",
+          };
+        });
+
+        setShares(mappedShares);
+      } catch (err: unknown) {
+        if (!ignore) {
+          const msg =
+            err instanceof Error
+              ? err.message
+              : "Failed to sync activity from server";
+          setError(msg);
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      ignore = true;
+    };
+  }, [refreshTrigger]);
 
   // Combine server tasks and local tasks without duplicates
   const taskMap = new Map<string, LocalTask>();

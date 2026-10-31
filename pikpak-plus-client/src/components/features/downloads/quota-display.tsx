@@ -13,37 +13,51 @@ import { QuotaRefreshInfo } from "./quota-refresh-info";
 
 export function QuotaDisplay() {
   const [quotaData, setQuotaData] = useState<QuotaResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchQuota = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const apiUrl = getApiUrl();
-      const response = await axios.get<QuotaResponse>(`${apiUrl}/quota`);
-      setQuotaData(response.data);
-    } catch (err: any) {
-      let errorMsg = "Unknown error";
-
-      // Check if it's a network error (backend not running)
-      if (err.code === "ERR_NETWORK" || err.message === "Network Error") {
-        errorMsg =
-          "Cannot connect to server. Please ensure the backend is running.";
-      } else if (err.response?.data?.error) {
-        errorMsg = err.response.data.error;
-      } else if (err.message) {
-        errorMsg = err.message;
-      }
-
-      setError(errorMsg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    let ignore = false;
+
+    const fetchQuota = async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const response = await axios.get<QuotaResponse>(`${apiUrl}/quota`);
+        if (!ignore) {
+          setQuotaData(response.data);
+        }
+      } catch (err: unknown) {
+        if (!ignore) {
+          let errorMsg = "Unknown error";
+
+          // Check if it's a network error (backend not running)
+          if (axios.isAxiosError(err)) {
+            if (err.code === "ERR_NETWORK" || err.message === "Network Error") {
+              errorMsg =
+                "Cannot connect to server. Please ensure the backend is running.";
+            } else if (err.response?.data?.error) {
+              errorMsg = String(err.response.data.error);
+            } else if (err.message) {
+              errorMsg = err.message;
+            }
+          } else if (err instanceof Error) {
+            errorMsg = err.message;
+          }
+
+          setError(errorMsg);
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
     fetchQuota();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   if (error) {

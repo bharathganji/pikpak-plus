@@ -134,8 +134,8 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         localStorage.removeItem("token");
-        if (!isPublicRoute) {
-          window.location.href = "/login";
+        if (!isPublicRoute && typeof window !== "undefined") {
+          window.location.replace(`${window.location.origin}/login`);
         }
         return Promise.reject(
           new ApiError(message, status, error.response?.data),
