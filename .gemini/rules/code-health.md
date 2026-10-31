@@ -3,6 +3,7 @@
 This rule guides autonomous agents and engineers when identifying, planning, refactoring, and verifying code health issues across the codebase.
 
 ## Objective
+
 The mission of code health improvements is to enhance the maintainability, readability, type safety, and architectural elegance of the codebase **without changing existing functional behavior**.
 
 When in doubt, **preserve functionality over cleanliness**.
@@ -17,11 +18,13 @@ Use the following standardized template when formulating, delegating, or executi
 ## Task: {{TASK_NAME}}
 
 **Details:**
+
 - File: `{{FILE_PATH}}`
 - Description: {{TASK_DESCRIPTION_AND_GOAL}}
 - Language: {{PROGRAMMING_LANGUAGE}}
 
 **Context:**
+
 ```{{PROGRAMMING_LANGUAGE}}
 {{CURRENT_CODE_OR_CONTEXT_SNIPPET}}
 ```
@@ -56,3 +59,9 @@ Please focus on delivering a complete, working solution for this item.
 3. **Focused Diff Scope**
    - Keep diffs localized and atomic to the specific code health candidate.
    - Do not bundle unrelated refactorings or style debates into one change.
+
+4. **Exception Handling & Linter Rules (`BLE001`)**
+   - **HTTP Route Handlers (`app/api/routes/*.py`)**: Catch `Exception`, log error details, and return structured JSON 500. Annotate with `# noqa: BLE001` to denote intentional boundary containment.
+   - **Core/Utils/Parsers (`app/core/`, `app/utils/`)**: Catch only specific, expected exceptions (`(ValueError, TypeError)`, `KeyError`). Never catch blind `Exception`.
+   - **Service Layer (`app/services/`)**: Fail fast. Wrap low-level network errors into domain exceptions (`raise DomainError(...) from err`). Never swallow with `except Exception: pass`.
+   - **Optional Subsystem Bootstrap (`app/__init__.py`)**: Catch `Exception` around non-critical services (Redis, WebDAV manager) with `# noqa: BLE001` to enable degraded-mode server operation.
