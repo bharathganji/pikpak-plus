@@ -9,6 +9,7 @@
     "preview": "next build && next start",
     "start": "next start",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "lint-staged": "lint-staged",
     "release": "semantic-release",
     "prettier:check": "prettier --check .",

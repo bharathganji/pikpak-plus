@@ -6,7 +6,16 @@
     "prepare": "husky",
     "release": "semantic-release",
     "lint:commits": "commitlint --from=HEAD~1 --to=HEAD --verbose",
-    "sync-versions": "node scripts/sync-version.js"
+    "sync-versions": "node scripts/sync-version.js",
+    "lint": "npm run lint:client && npm run lint:server",
+    "lint:fix": "npm run lint:client:fix && npm run lint:server:fix",
+    "lint:client": "npm --prefix pikpak-plus-client run lint",
+    "lint:client:fix": "npm --prefix pikpak-plus-client run lint:fix && prettier --write \"pikpak-plus-client/src/**/*.{js,jsx,ts,tsx}\"",
+    "lint:server": "uvx ruff check pikpak-plus-server",
+    "lint:server:fix": "uvx ruff check --fix pikpak-plus-server && uvx ruff format pikpak-plus-server",
+    "format": "prettier --check . && uvx ruff format --check pikpak-plus-server",
+    "format:fix": "prettier --write . && uvx ruff format pikpak-plus-server",
+    "fix": "npm run lint:fix && npm run format:fix"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.2.0",
