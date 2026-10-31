@@ -14,22 +14,25 @@ from app.services.user_service import UserService
 
 def test_email_service_unconfigured_fallback(caplog):
     """When SMTP credentials are not configured, log dev fallback and return False."""
-    service = EmailService(
-        smtp_host=None,
-        smtp_user=None,
-        smtp_password=None,
-        frontend_url="http://localhost:3000",
-    )
-    assert service.is_configured is False
+    with patch.object(EmailService, "is_configured", False):
+        service = EmailService(
+            smtp_host=None,
+            smtp_user=None,
+            smtp_password=None,
+            frontend_url="http://localhost:3000",
+        )
+        assert service.is_configured is False
 
-    with caplog.at_level("INFO"):
-        res = service.send_password_reset_email("user@example.com", "test_token_123")
-    assert res is False
-    assert (
-        "SMTP is not fully configured" in caplog.text
-        or "Reset token (dev only)" in caplog.text
-    )
-    assert "test_token_123" in caplog.text
+        with caplog.at_level("INFO"):
+            res = service.send_password_reset_email(
+                "user@example.com", "test_token_123"
+            )
+        assert res is False
+        assert (
+            "SMTP is not fully configured" in caplog.text
+            or "Reset token (dev only)" in caplog.text
+        )
+        assert "test_token_123" in caplog.text
 
 
 def test_email_service_smtp_tls_success():

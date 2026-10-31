@@ -2,6 +2,7 @@
 Integration tests for Authentication API routes.
 Covers: /register, /login, /logout, /me, /forgot-password, /reset-password.
 """
+
 from __future__ import annotations
 
 
@@ -26,12 +27,16 @@ def test_register_validation_failures(test_client):
     assert "Missing required fields" in res.get_json()["error"]
 
     # Invalid email format
-    res = test_client.post("/register", json={"email": "not-an-email", "password": "securePassword123!"})
+    res = test_client.post(
+        "/register", json={"email": "not-an-email", "password": "securePassword123!"}
+    )
     assert res.status_code == 400
     assert "Invalid email" in res.get_json()["error"]
 
     # Weak password (< 6 characters)
-    res = test_client.post("/register", json={"email": "valid@example.com", "password": "123"})
+    res = test_client.post(
+        "/register", json={"email": "valid@example.com", "password": "123"}
+    )
     assert res.status_code == 400
     assert "Weak password" in res.get_json()["error"]
 
@@ -48,7 +53,7 @@ def test_register_duplicate_email(test_client):
 
 
 def test_login_success(test_client):
-    """Test user login with valid credentials."""
+    """Test user login with valid credentials sets secure cookie and returns payload."""
     res = test_client.post(
         "/login",
         json={"email": "user@example.com", "password": "userPassword123"},
@@ -58,6 +63,13 @@ def test_login_success(test_client):
     assert "token" in data
     assert data["message"] == "Login successful"
     assert data["user"]["email"] == "user@example.com"
+
+    # Verify HttpOnly cookie header
+    set_cookie = res.headers.get("Set-Cookie", "")
+    assert "access_token=" in set_cookie
+    assert "HttpOnly" in set_cookie
+    assert "Path=/" in set_cookie
+    assert "SameSite=Lax" in set_cookie
 
 
 def test_login_invalid_credentials(test_client):
@@ -90,10 +102,30 @@ def test_login_blocked_account(test_client):
 
 
 def test_logout(test_client, auth_headers):
-    """Test user logout."""
+    """Test user logout clears cookies and emits Clear-Site-Data header."""
     res = test_client.post("/logout", headers=auth_headers)
     assert res.status_code == 200
     assert res.get_json()["message"] == "Logout successful"
+    assert res.headers.get("Clear-Site-Data") == '"cookies", "storage", "cache"'
+    set_cookie = res.headers.get("Set-Cookie", "")
+    assert "access_token=;" in set_cookie or "access_token=" in set_cookie
+
+
+def test_get_current_user_me_via_cookie(test_client):
+    """Test GET /me endpoint using HttpOnly cookie without Authorization header."""
+    # First log in to obtain cookie
+    login_res = test_client.post(
+        "/login",
+        json={"email": "user@example.com", "password": "userPassword123"},
+    )
+    assert login_res.status_code == 200
+
+    # Request /me using cookie stored in test_client session
+    res = test_client.get("/me")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["user"]["email"] == "user@example.com"
+    assert data["user"]["is_admin"] is False
 
 
 def test_get_current_user_me(test_client, auth_headers):
@@ -110,7 +142,9 @@ def test_get_current_user_unauthorized(test_client):
     res = test_client.get("/me")
     assert res.status_code == 401
 
-    res = test_client.get("/me", headers={"Authorization": "Bearer invalid_tampered_token"})
+    res = test_client.get(
+        "/me", headers={"Authorization": "Bearer invalid_tampered_token"}
+    )
     assert res.status_code == 401
 
 
@@ -147,7 +181,10 @@ def test_reset_password_invalid_token(test_client):
     """Test reset-password with invalid or missing token."""
     res = test_client.post(
         "/reset-password",
-        json={"token": "completely_invalid_token", "new_password": "NewSecurePassword456!"},
+        json={
+            "token": "completely_invalid_token",
+            "new_password": "NewSecurePassword456!",
+        },
     )
     assert res.status_code == 400
     assert "Invalid or expired token" in res.get_json()["error"]
