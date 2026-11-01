@@ -1,9 +1,19 @@
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export function Footer() {
+interface FooterProps {
+  className?: string;
+}
+
+export function Footer({ className }: Readonly<FooterProps> = {}) {
   return (
-    <footer className="w-full max-w-6xl mt-12 mb-6 text-center text-sm text-muted-foreground">
+    <footer
+      className={cn(
+        "w-full max-w-6xl mt-12 mb-6 text-center text-sm text-muted-foreground",
+        className,
+      )}
+    >
       <div className="flex flex-col items-center gap-3">
         <div className="flex flex-wrap justify-center gap-4 mb-2">
           <Link

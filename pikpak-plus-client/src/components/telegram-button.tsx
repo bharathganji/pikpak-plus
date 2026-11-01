@@ -1,13 +1,23 @@
 import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface TelegramButtonProps {
   url: string;
+  className?: string;
 }
 
-export function TelegramButton({ url }: Readonly<TelegramButtonProps>) {
+export function TelegramButton({
+  url,
+  className,
+}: Readonly<TelegramButtonProps>) {
   return (
-    <Button variant="outline" size="sm" asChild className="gap-2 h-9">
+    <Button
+      variant="outline"
+      size="sm"
+      asChild
+      className={cn("gap-2 h-9", className)}
+    >
       <a
         href={url}
         target="_blank"

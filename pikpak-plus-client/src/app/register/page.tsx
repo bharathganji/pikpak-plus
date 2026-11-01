@@ -15,7 +15,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import Image from "next/image";
+import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
 import { Loader2 } from "lucide-react";
 
 export default function RegisterPage() {
@@ -57,22 +58,16 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-between bg-background px-3 sm:px-6 relative overflow-x-hidden w-full selection:bg-primary/20">
       {/* Background Gradient */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.15),transparent_70%)] pointer-events-none" />
       <div className="absolute inset-0 bg-linear-to-bl from-background via-background to-primary/5 pointer-events-none" />
 
-      <div className="w-full max-w-md flex flex-col items-center gap-8 relative z-10 animate-fade-in">
-        <Image
-          src="/pikpak-plus.png"
-          alt="PikPak Plus"
-          width={280}
-          height={70}
-          className="h-14 sm:h-16 w-auto drop-shadow-2xl transition-transform duration-500 hover:scale-105"
-          priority
-        />
+      <Header />
 
-        <Card className="w-full border border-border/60 bg-card/85 backdrop-blur-xl shadow-2xl transition-all hover:shadow-primary/10">
+      <main className="w-full flex-1 flex flex-col items-center justify-center py-8 sm:py-12 z-10">
+        <div className="w-full max-w-md flex flex-col items-center animate-fade-in">
+          <Card className="w-full border border-border/60 bg-card/85 backdrop-blur-xl shadow-2xl transition-all hover:shadow-primary/10">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center bg-linear-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent">
               Create Account
@@ -168,7 +163,10 @@ export default function RegisterPage() {
             </div>
           </CardFooter>
         </Card>
-      </div>
+        </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }

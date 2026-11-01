@@ -16,7 +16,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import Image from "next/image";
+import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
 import { Loader2 } from "lucide-react";
 
 function LoginForm() {
@@ -149,30 +150,28 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-between bg-background px-3 sm:px-6 relative overflow-x-hidden w-full selection:bg-primary/20">
       {/* Background Gradient */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.15),transparent_70%)] pointer-events-none" />
       <div className="absolute inset-0 bg-linear-to-br from-background via-background to-primary/5 pointer-events-none" />
 
-      <div className="w-full max-w-md flex flex-col items-center gap-8 relative z-10 animate-fade-in">
-        <Image
-          src="/pikpak-plus.png"
-          alt="PikPak Plus"
-          width={280}
-          height={70}
-          className="h-14 sm:h-16 w-auto drop-shadow-2xl transition-transform duration-500 hover:scale-105"
-          priority
-        />
-        <Suspense
-          fallback={
-            <Card className="w-full border border-border/60 bg-card/85 backdrop-blur-xl shadow-2xl h-80 flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </Card>
-          }
-        >
-          <LoginForm />
-        </Suspense>
-      </div>
+      <Header />
+
+      <main className="w-full flex-1 flex flex-col items-center justify-center py-8 sm:py-12 z-10">
+        <div className="w-full max-w-md flex flex-col items-center animate-fade-in">
+          <Suspense
+            fallback={
+              <Card className="w-full border border-border/60 bg-card/85 backdrop-blur-xl shadow-2xl h-80 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </Card>
+            }
+          >
+            <LoginForm />
+          </Suspense>
+        </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }

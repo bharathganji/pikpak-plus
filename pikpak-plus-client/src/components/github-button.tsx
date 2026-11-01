@@ -3,15 +3,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { Github, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface GitHubButtonProps {
   repo: string; // Format: "owner/repo"
   showCount?: boolean;
+  className?: string;
 }
 
 export function GitHubButton({
   repo,
   showCount = true,
+  className,
 }: Readonly<GitHubButtonProps>) {
   const { data: stars = null, isLoading: loading } = useQuery({
     queryKey: ["github-stars", repo],
@@ -36,7 +39,12 @@ export function GitHubButton({
   };
 
   return (
-    <Button variant="outline" size="sm" asChild className="gap-2 h-9">
+    <Button
+      variant="outline"
+      size="sm"
+      asChild
+      className={cn("gap-2 h-9", className)}
+    >
       <a
         href={`https://github.com/${repo}`}
         target="_blank"
