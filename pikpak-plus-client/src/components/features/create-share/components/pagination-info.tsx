@@ -25,14 +25,15 @@ export const PaginationInfo = React.memo(function PaginationInfo({
   }
 
   return (
-    <div className="flex items-center gap-4 flex-wrap justify-center w-full text-xs text-muted-foreground">
-      <span>
-        Showing {itemRange.start}-{itemRange.end} of {itemRange.total} tasks
+    <div className="flex items-center gap-3.5 flex-wrap justify-center w-full text-xs text-muted-foreground">
+      <span className="font-medium">
+        Showing <span className="text-foreground font-semibold">{itemRange.start}</span>–<span className="text-foreground font-semibold">{itemRange.end}</span> of{" "}
+        <span className="text-foreground font-semibold">{itemRange.total}</span> tasks
       </span>
       <select
         value={pageSize}
         onChange={(e) => onPageSizeChange(Number(e.target.value))}
-        className="h-8 rounded-md border border-input bg-background px-2 text-xs hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        className="h-7.5 rounded-lg border border-border/60 bg-card px-2.5 text-xs text-foreground shadow-xs hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 transition-all cursor-pointer"
       >
         <option value={25}>25 / page</option>
         <option value={50}>50 / page</option>
