@@ -36,26 +36,20 @@ function ConfirmationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md rounded-2xl border-border/60 bg-card shadow-lg">
         <DialogHeader className="space-y-3">
           <div className="flex items-center space-x-3">
             <div
-              className={`flex h-12 w-12 items-center justify-center rounded-full border ${
+              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${
                 variant === "destructive"
-                  ? "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
-                  : "bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800"
+                  ? "bg-destructive/10 border-destructive/20 text-destructive"
+                  : "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
               }`}
             >
-              <IconComponent
-                className={`h-6 w-6 ${
-                  variant === "destructive"
-                    ? "text-red-700 dark:text-red-300"
-                    : "text-amber-700 dark:text-amber-300"
-                }`}
-              />
+              <IconComponent className="h-6 w-6" />
             </div>
             <div className="flex-1">
-              <DialogTitle className="text-left text-lg font-semibold">
+              <DialogTitle className="text-left text-lg font-semibold tracking-tight">
                 {title}
               </DialogTitle>
             </div>
@@ -64,18 +58,18 @@ function ConfirmationDialog({
             {description}
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter className="flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+        <DialogFooter className="flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2 pt-2">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto rounded-lg"
           >
             Cancel
           </Button>
           <Button
             variant={variant}
             onClick={onConfirm}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto rounded-lg shadow-2xs"
           >
             {confirmLabel}
           </Button>

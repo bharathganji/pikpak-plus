@@ -32,7 +32,7 @@ export default function Loading() {
         </div>
 
         {/* Content Card Skeleton */}
-        <Card className="w-full border-primary/20 shadow-lg shadow-primary/5">
+        <Card className="w-full rounded-2xl border-border/60 bg-card shadow-xs">
           <CardHeader className="space-y-3 pb-4 border-b border-border/40">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="space-y-1.5">
@@ -47,9 +47,11 @@ export default function Loading() {
 
             {/* Breadcrumb / Filter row skeleton */}
             <div className="flex items-center gap-2 pt-2">
-              <Skeleton className="h-4 w-12" />
-              <Skeleton className="h-4 w-4" />
-              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-14 rounded-full" />
+              <span className="text-muted-foreground/40 text-xs">/</span>
+              <Skeleton className="h-4 w-4 rounded-full" />
+              <span className="text-muted-foreground/40 text-xs">/</span>
+              <Skeleton className="h-4 w-24 rounded-full" />
             </div>
 
             <Skeleton className="h-9 w-full rounded-md" />

@@ -201,12 +201,12 @@ export function MyActivityTab() {
   };
 
   return (
-    <Card className="border-primary/20 shadow-lg shadow-primary/5 w-full max-w-full">
-      <CardContent className="pl-2 pr-2 w-full pt-4">
+    <Card className="rounded-2xl border border-border/60 bg-card shadow-xs w-full max-w-full">
+      <CardContent className="p-4 sm:p-6 w-full">
         {error && (
           <Alert
             variant="destructive"
-            className="mb-4 mx-3 sm:mx-4 md:mx-6 text-xs"
+            className="mb-4 text-xs rounded-xl border border-destructive/20 bg-destructive/10 text-destructive"
           >
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="flex items-center justify-between">
@@ -215,7 +215,7 @@ export function MyActivityTab() {
                 variant="outline"
                 size="sm"
                 onClick={syncServerActivity}
-                className="h-6 text-[11px] ml-2"
+                className="h-6 text-[11px] ml-2 shadow-2xs"
               >
                 Retry
               </Button>
@@ -224,11 +224,11 @@ export function MyActivityTab() {
         )}
 
         {/* Tasks Section */}
-        <div className="border-b border-border/50 pb-6 mb-6 w-full">
-          <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 mb-4">
+        <div className="border-b border-border/40 pb-6 mb-6 w-full">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-semibold">My Tasks</h2>
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <h2 className="text-lg sm:text-xl font-semibold tracking-tight">My Tasks</h2>
+              <span className="text-xs text-muted-foreground flex items-center gap-1 font-normal">
                 (Server Synced)
               </span>
             </div>
@@ -240,7 +240,7 @@ export function MyActivityTab() {
                 onClick={syncServerActivity}
                 disabled={isFetching}
                 title="Sync from server"
-                className="h-8 w-8"
+                className="h-8 w-8 rounded-lg"
               >
                 <RefreshCw
                   className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
@@ -252,7 +252,7 @@ export function MyActivityTab() {
                   variant="outline"
                   size="sm"
                   onClick={handleClearAllClick}
-                  className="text-destructive hover:text-destructive h-8 text-xs"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10 border-border/60 h-8 text-xs rounded-lg shadow-2xs"
                 >
                   <Trash2 className="h-3.5 w-3.5 mr-1" />
                   Clear All
@@ -262,17 +262,17 @@ export function MyActivityTab() {
           </div>
 
           {loading && allTasks.length === 0 ? (
-            <div className="space-y-2 px-3 sm:px-4 md:px-6">
+            <div className="space-y-2.5">
               {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-20 w-full rounded-md" />
+                <Skeleton key={i} className="h-20 w-full rounded-xl" />
               ))}
             </div>
           ) : allTasks.length === 0 ? (
-            <div className="px-3 sm:px-4 md:px-6">
+            <div>
               <EmptyState />
             </div>
           ) : (
-            <div className="space-y-2 px-3 sm:px-4 md:px-6 w-full max-w-full">
+            <div className="space-y-2.5 w-full max-w-full">
               {(allTasks || []).map((task) => (
                 <TaskItem
                   key={task.id}
@@ -286,10 +286,10 @@ export function MyActivityTab() {
 
         {/* Shares Section */}
         <div className="w-full">
-          <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 mb-4">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-semibold">Shares Created</h2>
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <h2 className="text-lg sm:text-xl font-semibold tracking-tight">Shares Created</h2>
+              <span className="text-xs text-muted-foreground flex items-center gap-1 font-normal">
                 (Server Synced)
               </span>
             </div>
@@ -299,7 +299,7 @@ export function MyActivityTab() {
                 variant="outline"
                 size="sm"
                 onClick={handleClearAllSharesClick}
-                className="text-destructive hover:text-destructive h-8 text-xs"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 border-border/60 h-8 text-xs rounded-lg shadow-2xs"
               >
                 <Trash2 className="h-3.5 w-3.5 mr-1" />
                 Clear All
@@ -308,8 +308,8 @@ export function MyActivityTab() {
           </div>
 
           {shares.length === 0 ? (
-            <div className="px-3 sm:px-4 md:px-6 flex flex-col items-center justify-center py-8 text-center">
-              <p className="text-muted-foreground mb-2 text-sm">
+            <div className="flex flex-col items-center justify-center py-8 text-center rounded-xl border border-dashed border-border/60 bg-muted/20">
+              <p className="text-muted-foreground mb-1 text-sm font-medium">
                 No share links yet
               </p>
               <p className="text-xs text-muted-foreground">
@@ -317,7 +317,7 @@ export function MyActivityTab() {
               </p>
             </div>
           ) : (
-            <div className="space-y-2 px-3 sm:px-4 md:px-6 w-full max-w-full">
+            <div className="space-y-2.5 w-full max-w-full">
               {(shares || []).map((share) => (
                 <ShareItem
                   key={share.id}
