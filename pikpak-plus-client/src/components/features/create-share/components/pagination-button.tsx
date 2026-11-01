@@ -29,14 +29,14 @@ export const PaginationButton = React.memo(function PaginationButton({
 }: Readonly<PaginationButtonProps>) {
   const isActive = page === currentPage;
   const baseClasses =
-    "h-8 px-3 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
+    "h-8 px-3 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-40";
 
   const pageClasses = isActive
-    ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm font-medium"
-    : "bg-background hover:bg-accent hover:text-accent-foreground border border-input";
+    ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs font-semibold border-primary ring-1 ring-primary/20"
+    : "bg-card hover:bg-accent hover:text-accent-foreground border border-border/60 hover:border-border";
 
   const navClasses =
-    "bg-background hover:bg-accent hover:text-accent-foreground border border-input hover:border-accent-foreground/20";
+    "bg-card hover:bg-accent hover:text-accent-foreground border border-border/60 hover:border-primary/40 shadow-xs";
 
   const classes = `${baseClasses} ${
     variant === "page" ? pageClasses : navClasses

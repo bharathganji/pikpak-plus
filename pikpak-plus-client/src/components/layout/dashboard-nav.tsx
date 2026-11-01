@@ -35,9 +35,9 @@ export function DashboardNav() {
   return (
     <nav
       aria-label="Dashboard views"
-      className="w-full max-w-6xl mb-6 border-b border-border/50"
+      className="w-full max-w-6xl mb-6 pb-2 border-b border-border/40"
     >
-      <div className="grid w-full grid-cols-3 max-w-2xl mx-auto p-1 bg-muted/60 rounded-xl">
+      <div className="grid w-full grid-cols-3 max-w-2xl mx-auto p-1 bg-muted/60 rounded-xl border border-border/50 shadow-xs backdrop-blur-xs">
         {DASHBOARD_NAV_ITEMS.map((item) => {
           const isActive = item.exact
             ? pathname === item.href
@@ -54,10 +54,10 @@ export function DashboardNav() {
                 "inline-flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200 select-none",
                 isActive
                   ? "bg-background text-foreground shadow-xs font-semibold ring-1 ring-border/20"
-                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/60"
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <Icon className="h-4 w-4 shrink-0 transition-transform duration-200" />
               <span className="hidden sm:inline">{item.label}</span>
               <span className="sm:hidden">{item.shortLabel}</span>
             </Link>

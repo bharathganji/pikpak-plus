@@ -44,15 +44,17 @@ export function QuotaDisplay() {
 
   if (error) {
     return (
-      <Card className="border-destructive/50">
-        <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
-            <HardDrive className="h-4 w-4" />
+      <Card className="border-destructive/30 bg-destructive/5 shadow-xs">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2.5 text-destructive tracking-tight">
+            <div className="p-1 rounded-md bg-destructive/10 text-destructive">
+              <HardDrive className="h-4 w-4" />
+            </div>
             Quota Information
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-destructive">{getErrorMessage(error)}</p>
+          <p className="text-sm text-destructive/90">{getErrorMessage(error)}</p>
         </CardContent>
       </Card>
     );
@@ -60,18 +62,30 @@ export function QuotaDisplay() {
 
   if (isLoading || !quotaData) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
-            <HardDrive className="h-4 w-4" />
+      <Card className="border-border/60 bg-card/60 backdrop-blur-xs shadow-xs">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2.5 tracking-tight">
+            <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+              <HardDrive className="h-4 w-4" />
+            </div>
             Quota Information
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <div className="animate-pulse space-y-2">
-              <div className="h-4 bg-muted rounded w-3/4"></div>
-              <div className="h-2 bg-muted rounded"></div>
+          <div className="space-y-4">
+            <div className="animate-pulse space-y-2.5">
+              <div className="flex justify-between items-center">
+                <div className="h-3.5 bg-muted/80 rounded w-24"></div>
+                <div className="h-3.5 bg-muted/80 rounded w-32"></div>
+              </div>
+              <div className="h-2.5 bg-muted/70 rounded-full w-full"></div>
+            </div>
+            <div className="animate-pulse space-y-2.5 pt-2 border-t border-dashed border-border/50">
+              <div className="flex justify-between items-center">
+                <div className="h-3 bg-muted/80 rounded w-20"></div>
+                <div className="h-3 bg-muted/80 rounded w-16"></div>
+              </div>
+              <div className="h-2 bg-muted/70 rounded-full w-full"></div>
             </div>
           </div>
         </CardContent>
@@ -88,10 +102,12 @@ export function QuotaDisplay() {
   );
 
   return (
-    <Card className="border-primary/20 transition-all duration-300 hover:shadow-md">
+    <Card className="border-border/60 bg-card/60 backdrop-blur-xs shadow-xs transition-smooth hover:border-primary/30 hover:shadow-md">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <HardDrive className="h-4 w-4 text-primary" />
+        <CardTitle className="text-sm font-semibold flex items-center gap-2.5 tracking-tight">
+          <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+            <HardDrive className="h-4 w-4" />
+          </div>
           Quota Information
         </CardTitle>
       </CardHeader>

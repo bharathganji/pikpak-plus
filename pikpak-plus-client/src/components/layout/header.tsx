@@ -36,7 +36,7 @@ export function Header() {
   };
 
   return (
-    <div className="w-full max-w-6xl flex items-center justify-between pb-4 pt-2 px-2 sm:px-4">
+    <header className="sticky top-0 z-50 w-full max-w-6xl flex items-center justify-between pb-4 pt-2 px-2 sm:px-4 border-b border-border/60 bg-background/80 backdrop-blur-md transition-colors">
       <Link href="/" className="flex items-center focus:outline-hidden group">
         {/* Desktop logo */}
         <Image
@@ -61,7 +61,7 @@ export function Header() {
         {user ? (
           <>
             <Link href="/dashboard" className="hidden sm:inline-flex">
-              <Button variant="ghost" size="sm" className="gap-1.5 font-medium">
+              <Button variant="ghost" size="sm" className="gap-1.5 font-medium hover:bg-accent/80 transition-colors">
                 <LayoutDashboard className="h-4 w-4" />
                 <span>Dashboard</span>
               </Button>
@@ -69,13 +69,17 @@ export function Header() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-medium border border-primary/20">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+                >
+                  <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-medium border border-primary/20 shadow-xs ring-1 ring-primary/10 transition-colors hover:bg-primary/15">
                     {user.email?.charAt(0).toUpperCase()}
                   </div>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-56 glass-card shadow-lg border border-border/60">
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">Account</p>
@@ -86,19 +90,22 @@ export function Header() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <Link href="/dashboard">
-                  <DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer">
                     <LayoutDashboard className="mr-2 h-4 w-4" />
                     App Dashboard
                   </DropdownMenuItem>
                 </Link>
                 {isAdmin && (
-                  <DropdownMenuItem onClick={() => router.push("/admin")}>
+                  <DropdownMenuItem
+                    onClick={() => router.push("/admin")}
+                    className="cursor-pointer"
+                  >
                     <ShieldCheck className="mr-2 h-4 w-4" />
                     Admin Panel
                   </DropdownMenuItem>
                 )}
                 <Link href="/statistics">
-                  <DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer">
                     <BarChart className="mr-2 h-4 w-4" />
                     Statistics
                   </DropdownMenuItem>
@@ -123,7 +130,7 @@ export function Header() {
               </Button>
             </Link>
             <Link href="/register">
-              <Button size="sm" className="hidden xs:inline-flex">
+              <Button size="sm" className="hidden xs:inline-flex shadow-xs hover:shadow-sm transition-shadow">
                 Sign Up
               </Button>
             </Link>
@@ -140,6 +147,6 @@ export function Header() {
         <GitHubButton repo="bharathganji/pikpak-plus" />
         <ModeToggle />
       </div>
-    </div>
+    </header>
   );
 }

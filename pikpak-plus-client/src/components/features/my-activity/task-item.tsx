@@ -23,16 +23,16 @@ export function TaskItem({ task, onDelete }: Readonly<TaskItemProps>) {
   };
 
   return (
-    <div className="flex items-start gap-2.5 p-3 rounded-md border transition-colors hover:bg-accent/50 bg-muted/30 border-border/30 w-full">
-      <div className="shrink-0 mt-0.5">
-        <FileIcon className="h-7 w-7 text-blue-500" />
+    <div className="flex items-start gap-3 p-3 sm:p-3.5 rounded-xl border border-border/60 hover:border-primary/30 hover:bg-accent/40 shadow-xs transition-colors w-full bg-card">
+      <div className="shrink-0 mt-0.5 p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+        <FileIcon className="h-5 w-5" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="w-full space-y-2">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <h4
-                className="font-medium text-sm truncate leading-tight"
+                className="font-medium text-sm truncate leading-tight tracking-tight"
                 title={task.name || "Processing..."}
               >
                 {task.name || "Processing..."}
@@ -48,7 +48,7 @@ export function TaskItem({ task, onDelete }: Readonly<TaskItemProps>) {
                 )}
                 <Badge
                   variant={isCompleted ? "default" : "secondary"}
-                  className="text-[10px] h-4 px-1.5 whitespace-nowrap"
+                  className="text-[10px] h-4 px-1.5 whitespace-nowrap font-medium"
                 >
                   {task.status}
                 </Badge>
@@ -61,7 +61,7 @@ export function TaskItem({ task, onDelete }: Readonly<TaskItemProps>) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-lg"
                 onClick={() => onDelete(task.id)}
                 title="Delete Task"
               >
@@ -72,10 +72,10 @@ export function TaskItem({ task, onDelete }: Readonly<TaskItemProps>) {
 
           {/* Magnet Link */}
           <div className="w-full">
-            <div className="flex items-center gap-1.5 w-full">
-              <div className="flex-1 min-w-0 text-xs font-mono bg-muted p-1.5 rounded overflow-hidden">
+            <div className="flex items-center gap-1.5 w-full rounded-lg border border-border/50 bg-muted/40 p-1">
+              <div className="flex-1 min-w-0 text-xs font-mono px-2 py-0.5 overflow-hidden">
                 <span
-                  className="block truncate text-muted-foreground"
+                  className="block truncate text-foreground/85"
                   title={task.url}
                 >
                   {task.url}
@@ -85,10 +85,10 @@ export function TaskItem({ task, onDelete }: Readonly<TaskItemProps>) {
                 variant="outline"
                 size="sm"
                 onClick={() => copyToClipboard(task.url)}
-                className="shrink-0 h-7 text-xs"
+                className="shrink-0 h-7 text-xs shadow-2xs"
               >
                 {copied ? (
-                  <span className="text-xs">Copied!</span>
+                  <span className="text-xs font-medium">Copied!</span>
                 ) : (
                   <Copy className="h-3 w-3" />
                 )}

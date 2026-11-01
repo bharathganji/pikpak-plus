@@ -21,36 +21,36 @@ export function WebDAVClientCard({ client }: WebDAVClientCardProps) {
   };
 
   return (
-    <Card className="relative overflow-hidden transition-all hover:shadow-lg hover:scale-[1.02] duration-300">
+    <Card className="relative overflow-hidden transition-smooth border-border/60 hover:border-primary/40 hover-lift hover:shadow-lg">
       {/* Gradient background overlay */}
       <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-transparent to-primary/10 pointer-events-none" />
 
       <CardHeader className="relative pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <span className="text-2xl">{client.planetEmoji}</span>
-          <span>{client.planetName}</span>
+        <CardTitle className="flex items-center gap-2.5 text-base font-semibold">
+          <span className="text-2xl drop-shadow-xs select-none">{client.planetEmoji}</span>
+          <span className="tracking-tight text-foreground">{client.planetName}</span>
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="relative space-y-3">
+      <CardContent className="relative space-y-3.5">
         {/* Username */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            <User className="h-3 w-3" />
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <User className="h-3.5 w-3.5" />
             <span>Username</span>
           </div>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 bg-muted/50 px-3 py-2 rounded text-xs font-mono truncate">
+          <div className="flex items-center gap-1.5">
+            <code className="flex-1 bg-muted/60 dark:bg-muted/40 font-mono text-xs border border-border/50 rounded-lg px-3 py-2 truncate shadow-2xs select-all text-foreground">
               {client.username}
             </code>
             <Button
               size="sm"
               variant="ghost"
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 shrink-0 transition-smooth hover:bg-muted active:scale-95 text-muted-foreground hover:text-foreground"
               onClick={() => copyToClipboard(client.username, "username")}
             >
               {copiedField === "username" ? (
-                <Check className="h-4 w-4 text-green-500" />
+                <Check className="h-4 w-4 text-emerald-500 dark:text-emerald-400 animate-scale-in" />
               ) : (
                 <Copy className="h-4 w-4" />
               )}
@@ -59,23 +59,23 @@ export function WebDAVClientCard({ client }: WebDAVClientCardProps) {
         </div>
 
         {/* Password */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            <Key className="h-3 w-3" />
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <Key className="h-3.5 w-3.5" />
             <span>Password</span>
           </div>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 bg-muted/50 px-3 py-2 rounded text-xs font-mono truncate">
+          <div className="flex items-center gap-1.5">
+            <code className="flex-1 bg-muted/60 dark:bg-muted/40 font-mono text-xs border border-border/50 rounded-lg px-3 py-2 truncate shadow-2xs select-all text-foreground">
               {client.password}
             </code>
             <Button
               size="sm"
               variant="ghost"
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 shrink-0 transition-smooth hover:bg-muted active:scale-95 text-muted-foreground hover:text-foreground"
               onClick={() => copyToClipboard(client.password, "password")}
             >
               {copiedField === "password" ? (
-                <Check className="h-4 w-4 text-green-500" />
+                <Check className="h-4 w-4 text-emerald-500 dark:text-emerald-400 animate-scale-in" />
               ) : (
                 <Copy className="h-4 w-4" />
               )}

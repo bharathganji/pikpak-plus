@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Copy,
   Share2,
@@ -113,26 +114,26 @@ export function ShareSection({
   };
 
   return (
-    <div className="border-t pt-4">
+    <div className="border-t border-border/60 pt-4">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-sm font-semibold">Share File</h4>
+        <h4 className="text-sm font-semibold tracking-tight">Share File</h4>
       </div>
 
       {/* Visual Status Indicator - Fix 4 */}
       <div className="mb-3">
         {isError ? (
-          <div className="flex items-center gap-2 text-sm text-red-950 dark:text-red-100 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 p-2.5 rounded-md">
-            <XCircle className="h-4 w-4 shrink-0 text-red-700 dark:text-red-300" />
+          <div className="flex items-center gap-2 text-sm bg-destructive/10 text-destructive border border-destructive/20 p-2.5 rounded-lg shadow-2xs">
+            <XCircle className="h-4 w-4 shrink-0 text-destructive" />
             <span className="font-medium">Task Failed</span>
           </div>
         ) : hasFileId ? (
-          <div className="flex items-center gap-2 text-sm text-emerald-950 dark:text-emerald-100 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 p-2.5 rounded-md">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-700 dark:text-emerald-300" />
+          <div className="flex items-center gap-2 text-sm bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 p-2.5 rounded-lg shadow-2xs">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
             <span className="font-medium">Ready to Share</span>
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-sm text-amber-950 dark:text-amber-100 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-2.5 rounded-md">
-            <Clock className="h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300" />
+          <div className="flex items-center gap-2 text-sm bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 p-2.5 rounded-lg shadow-2xs">
+            <Clock className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
             <div className="flex-1">
               <span className="font-medium">Task in Progress</span>
               {taskProgress > 0 && (
@@ -177,7 +178,7 @@ export function ShareSection({
                 variant="outline"
                 size="sm"
                 onClick={handleRetry}
-                className="h-7 text-xs"
+                className="h-7 text-xs shadow-2xs"
               >
                 Retry
               </Button>
@@ -189,16 +190,21 @@ export function ShareSection({
       {/* Share Link Display - Above Button */}
       {shareData && (
         <div className="space-y-2 mb-3">
-          {/* Indicator for existing vs new share */}
+          {/* Indicator for existing vs new share - Active Deduplicated Share Pill */}
           {shareData.is_existing && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-              <Info className="h-3 w-3" />
-              <span>Existing share link</span>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Badge
+                variant="secondary"
+                className="gap-1 border border-border/60 text-[11px] font-normal"
+              >
+                <Info className="h-3 w-3" />
+                <span>Existing share link</span>
+              </Badge>
             </div>
           )}
 
-          <div className="flex items-center gap-2">
-            <p className="text-xs text-muted-foreground break-all flex-1 font-mono bg-muted p-2 rounded">
+          <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/40 p-1.5 shadow-2xs">
+            <p className="text-xs text-foreground/90 break-all flex-1 font-mono px-2 py-1">
               {shareData.share_url}
             </p>
             <Button
@@ -207,19 +213,19 @@ export function ShareSection({
               onClick={() => {
                 copyToClipboard(shareData.share_url, task.id + 1000);
               }}
-              className="shrink-0 h-8"
+              className="shrink-0 h-8 shadow-2xs"
             >
               {copiedId === task.id + 1000 ? (
-                <span className="text-xs">Copied!</span>
+                <span className="text-xs font-medium">Copied!</span>
               ) : (
-                <Copy className="h-3 w-3" />
+                <Copy className="h-3.5 w-3.5" />
               )}
             </Button>
           </div>
           {shareData.pass_code && (
-            <div className="text-sm">
-              <span className="font-semibold">Password: </span>
-              <span className="font-mono bg-muted px-2 py-1 rounded">
+            <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-xs">
+              <span className="font-medium text-muted-foreground">Password:</span>
+              <span className="font-mono font-semibold text-foreground bg-background/80 px-2 py-0.5 rounded border border-border/50">
                 {shareData.pass_code}
               </span>
             </div>
@@ -229,15 +235,15 @@ export function ShareSection({
 
       {/* Share Options */}
       {hasFileId && !shareData && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3 p-3 bg-muted/30 rounded-md border text-xs">
-          <label className="flex items-center gap-2 cursor-pointer">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3 p-3 bg-muted/30 rounded-lg border border-border/60 text-xs">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={needPassword}
               onChange={(e) => setNeedPassword(e.target.checked)}
-              className="h-3.5 w-3.5 rounded border-gray-300"
+              className="h-3.5 w-3.5 rounded border-input text-primary focus:ring-primary/20"
             />
-            <span>Require Passcode</span>
+            <span className="font-medium">Require Passcode</span>
           </label>
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground whitespace-nowrap">
@@ -246,7 +252,7 @@ export function ShareSection({
             <select
               value={expirationDays}
               onChange={(e) => setExpirationDays(Number(e.target.value))}
-              className="h-7 w-full rounded border border-input bg-background px-2 text-xs"
+              className="h-7 w-full rounded-md border border-input bg-background px-2 text-xs focus:ring-2 focus:ring-primary/20 focus:outline-none"
             >
               <option value={-1}>Permanent</option>
               <option value={1}>1 Day</option>
@@ -263,16 +269,16 @@ export function ShareSection({
         size="sm"
         onClick={handleShare}
         disabled={shareLoading || !hasFileId}
-        className="gap-2 w-full"
+        className="gap-2 w-full shadow-2xs"
       >
         {shareLoading ? (
           <>
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Creating...
           </>
         ) : (
           <>
-            <Share2 className="h-3 w-3" />
+            <Share2 className="h-3.5 w-3.5" />
             {shareData?.is_existing
               ? "View Existing Share"
               : shareData

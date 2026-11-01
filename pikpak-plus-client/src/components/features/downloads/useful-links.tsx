@@ -68,35 +68,41 @@ const links: UsefulLink[] = [
 
 export function UsefulLinks() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Useful Links</CardTitle>
-        <CardDescription>
+    <Card className="border-border/60 bg-card/60 backdrop-blur-xs shadow-xs transition-smooth hover:border-primary/20">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-base font-semibold tracking-tight">Useful Links</CardTitle>
+        <CardDescription className="text-xs text-muted-foreground">
           Helpful resources and tools for downloading and managing content
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {links.map((link) => (
             <Button
               key={link.url}
               variant="outline"
-              className="h-auto flex-col items-start p-4 text-left hover:bg-accent"
+              className="group h-auto flex-col items-start p-3.5 text-left transition-smooth hover-lift border-border/60 hover:border-primary/40 hover:bg-accent/40"
               asChild
             >
-              <a href={link.url} target="_blank" rel="noopener noreferrer">
-                <div className="flex items-center gap-2 w-full mb-1">
-                  {link.icon}
-                  <span className="font-medium text-sm flex-1">
-                    {link.title}
-                  </span>
-                  <ExternalLink className="h-3 w-3 text-muted-foreground" />
+              <a href={link.url} target="_blank" rel="noopener noreferrer" className="w-full">
+                <div className="flex items-start gap-2.5 w-full">
+                  <div className="p-1.5 rounded-md bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground shrink-0 mt-0.5">
+                    {link.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1 mb-0.5">
+                      <span className="font-medium text-sm truncate text-foreground group-hover:text-primary transition-colors">
+                        {link.title}
+                      </span>
+                      <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                    </div>
+                    {link.description && (
+                      <span className="text-xs text-muted-foreground line-clamp-1 block">
+                        {link.description}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                {link.description && (
-                  <span className="text-xs text-muted-foreground">
-                    {link.description}
-                  </span>
-                )}
               </a>
             </Button>
           ))}

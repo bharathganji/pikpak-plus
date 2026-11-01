@@ -42,14 +42,14 @@ export function TaskPreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Task Details</DialogTitle>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col rounded-2xl border-border/60 bg-card shadow-lg">
+        <DialogHeader className="pb-2 border-b border-border/40">
+          <DialogTitle className="tracking-tight">Task Details</DialogTitle>
           <DialogDescription>
             Detailed information about this download task
           </DialogDescription>
         </DialogHeader>
-        <div className="overflow-y-auto pr-2 space-y-4">
+        <div className="overflow-y-auto pr-2 space-y-4 py-2">
           <FileDetails
             task={task}
             copyToClipboard={copyToClipboard}
@@ -62,11 +62,11 @@ export function TaskPreviewDialog({
             copiedId={copiedId}
           />
         </div>
-        <DialogFooter>
+        <DialogFooter className="pt-3 border-t border-border/40">
           <Button
             variant="destructive"
             onClick={() => onOpenChange(false)}
-            className="gap-2"
+            className="gap-2 rounded-lg shadow-2xs"
           >
             <XIcon className="h-4 w-4" />
             Close

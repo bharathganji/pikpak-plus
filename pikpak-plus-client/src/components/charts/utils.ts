@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 export const formatBytes = (bytes: number, decimals = 2) => {
   if (bytes === 0) return "0 B";
   const k = 1024;
@@ -9,11 +11,15 @@ export const formatBytes = (bytes: number, decimals = 2) => {
   );
 };
 
-export const tooltipStyle = {
-  backgroundColor: "rgba(255, 255, 255, 0.8)",
+export const tooltipStyle: CSSProperties = {
+  backgroundColor: "hsl(var(--card) / 0.85)",
   borderRadius: "12px",
-  border: "1px solid rgba(255, 255, 255, 0.3)",
-  boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.15)",
-  backdropFilter: "blur(8px)",
-  color: "#333",
+  border: "1px solid hsl(var(--border) / 0.6)",
+  boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+  backdropFilter: "blur(12px)",
+  WebkitBackdropFilter: "blur(12px)",
+  color: "hsl(var(--card-foreground))",
+  fontSize: "12px",
+  padding: "8px 12px",
 };
+

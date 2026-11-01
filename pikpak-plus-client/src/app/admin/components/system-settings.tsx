@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { SystemConfig } from "@/types/api";
 import {
   getConfig,
@@ -117,7 +118,7 @@ export function SystemSettings() {
   if (loading) {
     return (
       <div className="flex justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -125,26 +126,26 @@ export function SystemSettings() {
   return (
     <div className="space-y-6">
       {(error || configQuery.error || schedulerQuery.error) && (
-        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          <AlertCircle className="h-4 w-4" />
-          {error || "Failed to load system settings"}
+        <div className="flex items-center gap-2 rounded-xl border border-destructive/25 bg-destructive/10 p-4 text-sm text-destructive shadow-xs font-medium">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>{error || "Failed to load system settings"}</span>
         </div>
       )}
       {success && (
-        <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 p-4 text-sm text-green-700">
-          <CheckCircle className="h-4 w-4" />
-          {success}
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-300 shadow-xs font-medium">
+          <CheckCircle className="h-4 w-4 shrink-0" />
+          <span>{success}</span>
         </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Scheduler Configuration</CardTitle>
+      <Card className="border border-border/60 bg-card/80 backdrop-blur-sm shadow-xs rounded-xl">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base sm:text-lg font-semibold">Scheduler Configuration</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <label className="text-sm font-medium">
+              <label className="text-xs sm:text-sm font-medium text-foreground">
                 Cleanup Interval (hours)
               </label>
               <Input
@@ -157,10 +158,11 @@ export function SystemSettings() {
                     cleanup_interval_hours: Number(e.target.value),
                   }))
                 }
+                className="bg-background/60 focus:bg-background border-border/70 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-all shadow-xs"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">
+              <label className="text-xs sm:text-sm font-medium text-foreground">
                 Task Status Update Interval (minutes)
               </label>
               <Input
@@ -173,10 +175,11 @@ export function SystemSettings() {
                     task_status_update_interval_minutes: Number(e.target.value),
                   }))
                 }
+                className="bg-background/60 focus:bg-background border-border/70 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-all shadow-xs"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">
+              <label className="text-xs sm:text-sm font-medium text-foreground">
                 WebDAV Generation Interval (hours)
               </label>
               <Input
@@ -189,10 +192,11 @@ export function SystemSettings() {
                     webdav_generation_interval_hours: Number(e.target.value),
                   }))
                 }
+                className="bg-background/60 focus:bg-background border-border/70 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-all shadow-xs"
               />
             </div>
           </div>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving} className="gradient-primary hover:opacity-95 shadow-md shadow-primary/20 transition-all font-medium">
             {saving ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -203,13 +207,13 @@ export function SystemSettings() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Storage Settings</CardTitle>
+      <Card className="border border-border/60 bg-card/80 backdrop-blur-sm shadow-xs rounded-xl">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base sm:text-lg font-semibold">Storage Settings</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="max-w-xs space-y-2">
-            <label className="text-sm font-medium">Max File Size (GB)</label>
+            <label className="text-xs sm:text-sm font-medium text-foreground">Max File Size (GB)</label>
             <Input
               type="number"
               min={0}
@@ -221,20 +225,22 @@ export function SystemSettings() {
                   max_file_size_gb: Number(e.target.value),
                 }))
               }
+              className="bg-background/60 focus:bg-background border-border/70 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-all shadow-xs"
             />
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Manual Actions</CardTitle>
+      <Card className="border border-border/60 bg-card/80 backdrop-blur-sm shadow-xs rounded-xl">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base sm:text-lg font-semibold">Manual Actions</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
           <Button
             variant="default"
             onClick={handleTriggerCleanup}
             disabled={triggering}
+            className="gradient-primary hover:opacity-95 shadow-md shadow-primary/20 transition-all font-medium"
           >
             {triggering ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -247,6 +253,7 @@ export function SystemSettings() {
             variant="outline"
             onClick={handleRefreshScheduler}
             disabled={refreshing}
+            className="border-border/80 hover:bg-muted/60 transition-colors shadow-xs"
           >
             {refreshing ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -258,10 +265,10 @@ export function SystemSettings() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
+      <Card className="border border-border/60 bg-card/80 backdrop-blur-sm shadow-xs rounded-xl">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-semibold">
+            <Clock className="h-4 w-4 text-primary" />
             Scheduler Status
           </CardTitle>
         </CardHeader>
@@ -271,21 +278,21 @@ export function SystemSettings() {
               No scheduler jobs found.
             </p>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {scheduler.jobs.map((job) => (
-                <div key={job.name} className="rounded-md border p-4">
+                <div key={job.name} className="rounded-xl border border-border/60 p-4 bg-muted/20 hover:bg-muted/30 transition-colors shadow-xs">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <SettingsIcon className="h-4 w-4" />
-                      <span className="font-medium">{job.name}</span>
+                      <SettingsIcon className="h-4 w-4 text-primary" />
+                      <span className="font-semibold text-sm sm:text-base text-foreground">{job.name}</span>
                     </div>
                     {job.status && (
-                      <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium">
+                      <Badge variant="secondary" className="bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
                         {job.status}
-                      </span>
+                      </Badge>
                     )}
                   </div>
-                  <div className="mt-3 grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
+                  <div className="mt-3 grid gap-2 text-xs sm:text-sm text-muted-foreground md:grid-cols-2">
                     <div>
                       <span className="font-medium text-foreground">
                         Last Run:

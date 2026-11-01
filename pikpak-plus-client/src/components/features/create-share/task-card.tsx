@@ -30,25 +30,53 @@ interface TaskCardProps {
  */
 function getFileIcon(task: SupabaseTaskRecord, isFolderType: boolean) {
   if (isFolderType) {
-    return <FolderIcon className="h-7 w-7 text-yellow-500" />;
+    return (
+      <div className="p-2 rounded-lg bg-muted/60 dark:bg-muted/40 shrink-0">
+        <FolderIcon className="h-6 w-6 text-yellow-500" />
+      </div>
+    );
   }
 
   const fileType = task.data.whatslink?.file_type;
 
   switch (fileType) {
     case "video":
-      return <VideoIcon className="h-7 w-7 text-purple-500" />;
+      return (
+        <div className="p-2 rounded-lg bg-muted/60 dark:bg-muted/40 shrink-0">
+          <VideoIcon className="h-6 w-6 text-purple-500" />
+        </div>
+      );
     case "audio":
-      return <MusicIcon className="h-7 w-7 text-green-500" />;
+      return (
+        <div className="p-2 rounded-lg bg-muted/60 dark:bg-muted/40 shrink-0">
+          <MusicIcon className="h-6 w-6 text-green-500" />
+        </div>
+      );
     case "archive":
-      return <ArchiveIcon className="h-7 w-7 text-orange-500" />;
+      return (
+        <div className="p-2 rounded-lg bg-muted/60 dark:bg-muted/40 shrink-0">
+          <ArchiveIcon className="h-6 w-6 text-orange-500" />
+        </div>
+      );
     case "image":
-      return <ImageIcon className="h-7 w-7 text-pink-500" />;
+      return (
+        <div className="p-2 rounded-lg bg-muted/60 dark:bg-muted/40 shrink-0">
+          <ImageIcon className="h-6 w-6 text-pink-500" />
+        </div>
+      );
     case "document":
     case "text":
-      return <FileTextIcon className="h-7 w-7 text-blue-400" />;
+      return (
+        <div className="p-2 rounded-lg bg-muted/60 dark:bg-muted/40 shrink-0">
+          <FileTextIcon className="h-6 w-6 text-blue-400" />
+        </div>
+      );
     default:
-      return <FileIcon className="h-7 w-7 text-blue-500" />;
+      return (
+        <div className="p-2 rounded-lg bg-muted/60 dark:bg-muted/40 shrink-0">
+          <FileIcon className="h-6 w-6 text-blue-500" />
+        </div>
+      );
   }
 }
 
@@ -70,8 +98,8 @@ export function TaskCard({ task, isLocal, onClick }: Readonly<TaskCardProps>) {
   return (
     <button
       type="button"
-      className={`flex items-center gap-2.5 p-2.5 rounded-md border transition-all duration-200 hover:bg-accent/50 hover:shadow-md hover:-translate-y-0.5 cursor-pointer w-full text-left ${
-        isLocal ? "bg-primary/5 border-primary/20" : ""
+      className={`flex items-center gap-3 p-3 rounded-xl border border-border/60 hover:border-primary/40 hover:bg-accent/40 shadow-xs hover:shadow-sm transition-all duration-200 cursor-pointer w-full text-left ${
+        isLocal ? "bg-primary/5 border-primary/30 ring-1 ring-primary/10" : "bg-card"
       }`}
       onClick={onClick}
       onKeyDown={handleKeyDown}
@@ -87,7 +115,7 @@ export function TaskCard({ task, isLocal, onClick }: Readonly<TaskCardProps>) {
               {name}
             </h4>
           </div>
-          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
             <span className="text-[11px] text-muted-foreground whitespace-nowrap">
               {fileSize}
             </span>
@@ -102,7 +130,7 @@ export function TaskCard({ task, isLocal, onClick }: Readonly<TaskCardProps>) {
             <span className="text-[11px] text-muted-foreground">•</span>
             <Badge
               variant={status.variant}
-              className="text-[10px] h-4 px-1.5 whitespace-nowrap"
+              className="text-[10px] h-4.5 px-2 font-medium whitespace-nowrap shadow-xs"
             >
               {status.label}
             </Badge>
@@ -111,7 +139,7 @@ export function TaskCard({ task, isLocal, onClick }: Readonly<TaskCardProps>) {
                 <span className="text-[11px] text-muted-foreground">•</span>
                 <Badge
                   variant="secondary"
-                  className="text-[10px] h-4 px-1.5 whitespace-nowrap"
+                  className="text-[10px] h-4.5 px-2 font-medium whitespace-nowrap shadow-xs"
                 >
                   My Task
                 </Badge>
@@ -125,8 +153,8 @@ export function TaskCard({ task, isLocal, onClick }: Readonly<TaskCardProps>) {
             })}
           </div>
           {!isTaskCompleted(task) && (
-            <div className="mt-2">
-              <Progress value={taskData?.progress || 0} className="h-1" />
+            <div className="mt-2.5">
+              <Progress value={taskData?.progress || 0} className="h-1.5 rounded-full overflow-hidden" />
             </div>
           )}
         </div>
