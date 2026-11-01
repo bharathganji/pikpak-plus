@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
 
 export default function FAQLayout({ children }: { children: ReactNode }) {
   return (
@@ -7,6 +8,7 @@ export default function FAQLayout({ children }: { children: ReactNode }) {
       <div className="flex flex-col items-center p-2 md:p-4 lg:p-8 w-full max-w-6xl mx-auto">
         <Header />
         {children}
+        <Footer />
       </div>
     </div>
   );

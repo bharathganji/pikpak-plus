@@ -14,6 +14,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
 import { Loader2 } from "lucide-react";
 import { forgotPassword } from "@/lib/auth-client";
 
@@ -46,11 +48,15 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-between bg-background px-3 sm:px-6 relative overflow-x-hidden w-full selection:bg-primary/20">
       {/* Background Gradient */}
       <div className="absolute inset-0 bg-linear-to-tr from-cyan-500/15 via-blue-500/15 to-purple-500/15 pointer-events-none" />
 
-      <Card className="w-full max-w-md border border-border/60 bg-card/85 backdrop-blur-xl shadow-2xl relative z-10 transition-all hover:shadow-primary/10">
+      <Header />
+
+      <main className="w-full flex-1 flex flex-col items-center justify-center py-8 sm:py-12 z-10">
+        <div className="w-full max-w-md flex flex-col items-center animate-fade-in">
+          <Card className="w-full border border-border/60 bg-card/85 backdrop-blur-xl shadow-2xl transition-all hover:shadow-primary/10">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center bg-linear-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent">
             Forgot Password
@@ -115,7 +121,11 @@ export default function ForgotPasswordPage() {
             Back to Sign In
           </Link>
         </CardFooter>
-      </Card>
+        </Card>
+        </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }

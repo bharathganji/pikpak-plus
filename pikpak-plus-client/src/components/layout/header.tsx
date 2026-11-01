@@ -3,9 +3,19 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { BarChart, LogOut, LayoutDashboard, ShieldCheck, Search } from "lucide-react";
+import {
+  BarChart,
+  LogOut,
+  LayoutDashboard,
+  ShieldCheck,
+  Search,
+  LogIn,
+  UserPlus,
+  Send,
+  Github,
+} from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { GitHubButton } from "@/components/github-button";
 import { TelegramButton } from "@/components/telegram-button";
@@ -22,6 +32,7 @@ import {
 export function Header() {
   const { user, isAdmin, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -35,8 +46,16 @@ export function Header() {
     }
   };
 
+  const isLoginPage = pathname === "/login";
+  const isRegisterPage = pathname === "/register";
+  const isAuthPage =
+    isLoginPage ||
+    isRegisterPage ||
+    pathname === "/forgot-password" ||
+    pathname === "/reset-password";
+
   return (
-    <header className="sticky top-0 z-50 w-full max-w-6xl flex items-center justify-between pb-4 pt-2 px-2 sm:px-4 border-b border-border/60 bg-background/80 backdrop-blur-md transition-colors">
+    <header className="sticky top-0 z-50 w-full max-w-6xl flex items-center justify-between py-2.5 sm:py-3 px-3 sm:px-4 border-b border-border/60 bg-background/80 backdrop-blur-md transition-colors">
       <Link href="/" className="flex items-center focus:outline-hidden group">
         {/* Desktop logo */}
         <Image
@@ -61,7 +80,11 @@ export function Header() {
         {user ? (
           <>
             <Link href="/dashboard" className="hidden sm:inline-flex">
-              <Button variant="ghost" size="sm" className="gap-1.5 font-medium hover:bg-accent/80 transition-colors">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 font-medium hover:bg-accent/80 transition-colors"
+              >
                 <LayoutDashboard className="h-4 w-4" />
                 <span>Dashboard</span>
               </Button>
@@ -124,6 +147,27 @@ export function Header() {
                   </DropdownMenuItem>
                 </a>
                 <DropdownMenuSeparator className="my-1 border-border/50" />
+                <a
+                  href="https://t.me/pikpak_plus"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <DropdownMenuItem className="cursor-pointer rounded-lg px-2.5 py-2 text-sm font-medium transition-colors hover:bg-accent/80 focus:bg-accent/80">
+                    <Send className="mr-2 h-4 w-4" />
+                    Telegram Channel
+                  </DropdownMenuItem>
+                </a>
+                <a
+                  href="https://github.com/bharathganji/pikpak-plus"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <DropdownMenuItem className="cursor-pointer rounded-lg px-2.5 py-2 text-sm font-medium transition-colors hover:bg-accent/80 focus:bg-accent/80">
+                    <Github className="mr-2 h-4 w-4" />
+                    GitHub Repository
+                  </DropdownMenuItem>
+                </a>
+                <DropdownMenuSeparator className="my-1 border-border/50" />
                 <DropdownMenuItem
                   onClick={handleLogout}
                   disabled={loggingOut}
@@ -136,45 +180,93 @@ export function Header() {
             </DropdownMenu>
           </>
         ) : (
-          <div className="flex items-center gap-1.5">
-            <Link href="/login">
-              <Button variant="ghost" size="sm">
-                Sign In
-              </Button>
-            </Link>
-            <Link href="/register">
-              <Button size="sm" className="hidden xs:inline-flex shadow-xs hover:shadow-sm transition-shadow">
-                Sign Up
-              </Button>
-            </Link>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {isLoginPage ? (
+              <Link href="/register">
+                <Button
+                  size="sm"
+                  className="gap-1.5 font-medium shadow-xs hover:shadow-sm transition-shadow"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  <span>Sign Up</span>
+                </Button>
+              </Link>
+            ) : isRegisterPage || isAuthPage ? (
+              <Link href="/login">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 font-medium border-border/80 hover:bg-accent/80 hover:text-foreground shadow-2xs transition-all"
+                >
+                  <LogIn className="h-4 w-4" />
+                  <span>Sign In</span>
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 font-medium border-border/80 hover:bg-accent/80 hover:text-foreground shadow-2xs transition-all"
+                  >
+                    <LogIn className="h-4 w-4" />
+                    <span>Sign In</span>
+                  </Button>
+                </Link>
+                <Link href="/register" className="hidden sm:inline-flex">
+                  <Button
+                    size="sm"
+                    className="gap-1.5 font-medium shadow-xs hover:shadow-sm transition-shadow"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    <span>Sign Up</span>
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         )}
 
-        <Button
-          variant="ghost"
-          size="sm"
-          asChild
-          className="gap-1.5 text-xs sm:text-sm font-medium hover:bg-accent/80 transition-colors"
-        >
-          <a
-            href="https://jackett.pikpak-plus.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Search Torrents (Jackett)"
+        {!isAuthPage && (
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="hidden sm:inline-flex gap-1.5 text-xs sm:text-sm font-medium hover:bg-accent/80 transition-colors"
           >
-            <Search className="h-4 w-4" />
-            <span className="hidden md:inline">Search Torrents</span>
-          </a>
-        </Button>
-
-        <Link href="/statistics" className="hidden md:inline-flex">
-          <Button variant="ghost" size="icon" title="Statistics">
-            <BarChart className="h-[1.2rem] w-[1.2rem]" />
+            <a
+              href="https://jackett.pikpak-plus.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Search Torrents (Jackett)"
+            >
+              <Search className="h-4 w-4" />
+              <span className="hidden md:inline">Search Torrents</span>
+            </a>
           </Button>
-        </Link>
+        )}
 
-        <TelegramButton url="https://t.me/pikpak_plus" />
-        <GitHubButton repo="bharathganji/pikpak-plus" />
+        {!isAuthPage && (
+          <Link href="/statistics" className="hidden md:inline-flex">
+            <Button variant="ghost" size="icon" title="Statistics">
+              <BarChart className="h-[1.2rem] w-[1.2rem]" />
+            </Button>
+          </Link>
+        )}
+
+        <TelegramButton
+          url="https://t.me/pikpak_plus"
+          className={
+            isAuthPage ? "hidden md:inline-flex" : "hidden sm:inline-flex"
+          }
+        />
+        <GitHubButton
+          repo="bharathganji/pikpak-plus"
+          className={
+            isAuthPage ? "hidden md:inline-flex" : "hidden sm:inline-flex"
+          }
+        />
         <ModeToggle />
       </div>
     </header>
