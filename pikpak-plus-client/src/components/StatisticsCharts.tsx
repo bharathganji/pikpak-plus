@@ -90,7 +90,7 @@ export function StatisticsCharts({ data }: Readonly<StatisticsChartsProps>) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 w-full">
       <TasksAddedChart chartData={chartData} />
       <StorageUtilizationChart chartData={chartData} />
       <CloudDownloadUsageChart chartData={chartData} />

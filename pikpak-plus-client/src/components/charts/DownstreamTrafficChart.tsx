@@ -14,6 +14,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { tooltipStyle, formatBytes } from "./utils";
+import { Activity } from "lucide-react";
 
 interface DownstreamTrafficChartProps {
   chartData: Array<Record<string, unknown>>;
@@ -23,11 +24,14 @@ export function DownstreamTrafficChart({
   chartData,
 }: Readonly<DownstreamTrafficChartProps>) {
   return (
-    <Card className="col-span-1 md:col-span-2 lg:col-span-1 transition-all duration-300 hover:shadow-lg">
-      <CardHeader>
-        <CardTitle>Downstream Traffic</CardTitle>
+    <Card className="col-span-1 md:col-span-2 lg:col-span-1 rounded-xl border-border/60 bg-card shadow-xs transition-all duration-300 hover:shadow-md hover:border-border/80">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+        <CardTitle className="text-base font-semibold tracking-tight flex items-center gap-2">
+          <Activity className="h-4 w-4 text-amber-500" />
+          <span>Downstream Traffic</span>
+        </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-2">
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
