@@ -142,19 +142,21 @@ export function MyActivityTab() {
   };
 
   const confirmClearAll = async () => {
-    for (const t of serverTasks) {
-      if (/^\d+$/.test(t.id)) {
-        try {
-          await taskService.deleteTask(t.id);
-        } catch (err) {
-          console.error("Failed to delete task on server:", err);
-        }
+    const validIds = serverTasks
+      .map((t) => t.id)
+      .filter((id) => /^\d+$/.test(id));
+    if (validIds.length > 0) {
+      try {
+        await taskService.deleteTasks(validIds);
+      } catch (err) {
+        console.error("Failed to bulk delete tasks on server:", err);
       }
     }
     queryClient.setQueryData<ActivityData>(["user-activity"], (old) => {
       if (!old) return old;
       return { ...old, serverTasks: [] };
     });
+    queryClient.invalidateQueries({ queryKey: ["user-activity"] });
     setClearAllDialogOpen(false);
   };
 
@@ -180,19 +182,21 @@ export function MyActivityTab() {
   };
 
   const confirmClearAllShares = async () => {
-    for (const s of shares) {
-      if (/^\d+$/.test(s.id)) {
-        try {
-          await shareService.deleteShare(s.id);
-        } catch (err) {
-          console.error("Failed to delete share on server:", err);
-        }
+    const validIds = shares
+      .map((s) => s.id)
+      .filter((id) => /^\d+$/.test(id));
+    if (validIds.length > 0) {
+      try {
+        await shareService.deleteShares(validIds);
+      } catch (err) {
+        console.error("Failed to bulk delete shares on server:", err);
       }
     }
     queryClient.setQueryData<ActivityData>(["user-activity"], (old) => {
       if (!old) return old;
       return { ...old, shares: [] };
     });
+    queryClient.invalidateQueries({ queryKey: ["user-activity"] });
     setClearAllSharesDialogOpen(false);
   };
 

@@ -1,5 +1,11 @@
 import apiClient from "./api-client";
-import { PaginatedResponse, SupabaseTaskRecord } from "@/types/api";
+import {
+  BulkDeleteResponse,
+  PaginatedResponse,
+  SupabaseTaskRecord,
+} from "@/types/api";
+
+export type { BulkDeleteResponse };
 
 export interface AddTaskResponse {
   message: string;
@@ -46,6 +52,16 @@ export const taskService = {
     const res = await apiClient.delete<{ success: boolean; message?: string }>(
       `/tasks/${id}`,
     );
+    return res.data;
+  },
+
+  /**
+   * Delete multiple tasks in a single bulk request
+   */
+  async deleteTasks(ids: (number | string)[]): Promise<BulkDeleteResponse> {
+    const res = await apiClient.delete<BulkDeleteResponse>("/tasks/bulk", {
+      data: { ids },
+    });
     return res.data;
   },
 };

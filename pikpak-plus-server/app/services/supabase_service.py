@@ -1,8 +1,9 @@
 """Supabase Service Module"""
 import logging
+from collections.abc import Sequence
 from typing import Any, cast
-from postgrest.types import CountMethod
 
+from postgrest.types import CountMethod
 from supabase import Client
 
 logger = logging.getLogger(__name__)
@@ -858,6 +859,62 @@ class SupabaseService:
             logger.error(f"Error deleting action {action_id}: {e}")
             raise
 
+    def delete_user_tasks_bulk(self, email: str, task_ids: Sequence[int | str]) -> int:
+        """Delete multiple tasks belonging to a specific user in a single query.
+
+        Args:
+            email: User's email address
+            task_ids: List of action record IDs
+
+        Returns:
+            Number of records deleted
+        """
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        normalized_email = email.strip().lower() if email else ""
+        if not normalized_email:
+            return 0
+
+        numeric_ids: list[int] = []
+        for item in task_ids:
+            if isinstance(item, bool):
+                continue
+            if isinstance(item, int):
+                numeric_ids.append(item)
+            elif isinstance(item, str) and item.strip().isdigit():
+                numeric_ids.append(int(item.strip()))
+
+        if not numeric_ids:
+            return 0
+
+        try:
+            response = self.client.table("public_actions") \
+                .delete() \
+                .eq("action", "add") \
+                .eq("user_email", normalized_email) \
+                .in_("id", numeric_ids) \
+                .execute()
+
+            deleted_count = len(response.data) if response.data else 0
+            logger.info(f"Bulk deleted {deleted_count} tasks for user {email}")
+            return deleted_count
+        except Exception as e:
+            logger.error(f"Error bulk deleting tasks for user {email}: {e}")
+            raise
+
+    def delete_user_task(self, email: str, task_id: int | str) -> bool:
+        """Delete a single task belonging to a specific user.
+
+        Args:
+            email: User's email address
+            task_id: Action record ID
+
+        Returns:
+            True if deleted successfully
+        """
+        return self.delete_user_tasks_bulk(email, [task_id]) > 0
+
     def get_user_shares(self, email: str, offset: int = 0, limit: int = 50) -> dict[str, Any]:
         """Get user's shares from public_actions (filtered by user_email)
 
@@ -938,6 +995,50 @@ class SupabaseService:
             return True
         except Exception as e:
             logger.error(f"Error deleting user share {action_id_or_share_id} for user {email}: {e}")
+            raise
+
+    def delete_user_shares_bulk(self, email: str, share_ids: Sequence[int | str]) -> int:
+        """Delete multiple shares belonging to a specific user in a single query.
+
+        Args:
+            email: User's email address
+            share_ids: List of action record IDs
+
+        Returns:
+            Number of records deleted
+        """
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        normalized_email = email.strip().lower() if email else ""
+        if not normalized_email:
+            return 0
+
+        numeric_ids: list[int] = []
+        for item in share_ids:
+            if isinstance(item, bool):
+                continue
+            if isinstance(item, int):
+                numeric_ids.append(item)
+            elif isinstance(item, str) and item.strip().isdigit():
+                numeric_ids.append(int(item.strip()))
+
+        if not numeric_ids:
+            return 0
+
+        try:
+            response = self.client.table("public_actions") \
+                .delete() \
+                .eq("action", "share") \
+                .eq("user_email", normalized_email) \
+                .in_("id", numeric_ids) \
+                .execute()
+
+            deleted_count = len(response.data) if response.data else 0
+            logger.info(f"Bulk deleted {deleted_count} shares for user {email}")
+            return deleted_count
+        except Exception as e:
+            logger.error(f"Error bulk deleting shares for user {email}: {e}")
             raise
 
     def get_admin_statistics(self) -> dict[str, Any]:

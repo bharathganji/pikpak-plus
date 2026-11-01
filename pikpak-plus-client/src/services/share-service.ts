@@ -1,5 +1,7 @@
 import apiClient from "./api-client";
-import { ShareData } from "@/types/api";
+import { BulkDeleteResponse, ShareData } from "@/types/api";
+
+export type { BulkDeleteResponse };
 
 export interface SupabaseShareRecord {
   id: number;
@@ -92,6 +94,23 @@ export const shareService = {
     shareId: string | number,
   ): Promise<{ success: boolean; message?: string }> {
     return this.deleteShare(shareId);
+  },
+
+  /**
+   * Delete multiple share links in a single bulk request
+   */
+  async deleteShares(ids: (number | string)[]): Promise<BulkDeleteResponse> {
+    const res = await apiClient.delete<BulkDeleteResponse>("/shares/bulk", {
+      data: { ids },
+    });
+    return res.data;
+  },
+
+  /**
+   * Alias for deleteShares for backward compatibility
+   */
+  async revokeShares(ids: (number | string)[]): Promise<BulkDeleteResponse> {
+    return this.deleteShares(ids);
   },
 };
 
