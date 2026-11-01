@@ -2,8 +2,8 @@
 import logging
 from collections.abc import Sequence
 from typing import Any, cast
-from postgrest.types import CountMethod
 
+from postgrest.types import CountMethod
 from supabase import Client
 
 logger = logging.getLogger(__name__)
