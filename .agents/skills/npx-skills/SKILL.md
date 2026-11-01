@@ -98,6 +98,6 @@ Whenever a new skill is installed:
    - Project skills reside in `.agents/skills/<skill-name>/`
    - Global skills reside in `~/.gemini/antigravity-cli/skills/<skill-name>/`
 2. **Review `SKILL.md`**:
-   - Inspect the installed `SKILL.md` to ensure frontmatter (`name`, `description`) is accurate and instructions do not contradict workspace rules ([`AGENTS.md`](file:///home/ubuntu/projects/pikpak-plus/AGENTS.md)).
+   - Inspect the installed `SKILL.md` to ensure frontmatter (`name`, `description`) is accurate and instructions do not contradict workspace rules `AGENTS.md`.
 3. **Commit to Git**:
    - For project skills intended to be shared with teammates, ensure the skill directory in `.agents/skills/` is committed to version control.
