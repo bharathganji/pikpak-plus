@@ -19,8 +19,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <AuthGuard>
       <main
-        className="flex min-h-screen flex-col items-center p-2 md:p-4 lg:p-8 
-        bg-linear-to-b from-background to-muted/20 overflow-x-hidden w-full"
+        className="flex min-h-screen flex-col items-center px-2 sm:px-4 md:px-6 lg:px-8 py-2 md:py-4 lg:py-6 bg-linear-to-b from-background via-background to-muted/20 overflow-x-hidden w-full selection:bg-primary/20"
       >
         <Header />
         <DashboardNav />
