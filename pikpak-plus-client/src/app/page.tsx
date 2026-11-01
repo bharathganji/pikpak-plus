@@ -15,6 +15,7 @@ import {
   BarChart3,
   ArrowRight,
   ExternalLink,
+  Search,
 } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -65,6 +66,22 @@ export default function Home() {
                 <span>Sign Up</span>
               </Button>
             </Link>
+            <Button
+              size="lg"
+              variant="outline"
+              asChild
+              className="text-base px-5 h-11 border-border/80 hover:bg-muted/60 transition-all gap-2"
+            >
+              <a
+                href="https://jackett.pikpak-plus.com"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Search className="h-4 w-4" />
+                <span>Search Torrents</span>
+                <ExternalLink className="h-3.5 w-3.5 opacity-60" />
+              </a>
+            </Button>
             <Link href="/statistics">
               <Button size="lg" variant="ghost" className="text-base px-4 h-11 text-muted-foreground hover:text-foreground gap-1.5 transition-all">
                 <BarChart3 className="h-4 w-4" />
@@ -176,6 +193,14 @@ export default function Home() {
             An educational open-source project. For actual cloud file storage, please use the official PikPak service.
           </p>
           <div className="flex items-center gap-4">
+            <a
+              href="https://jackett.pikpak-plus.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-primary transition-colors inline-flex items-center gap-1 font-medium"
+            >
+              Search Torrents <ExternalLink className="h-3 w-3" />
+            </a>
             <a
               href="https://github.com/bharathganji/pikpak-plus"
               target="_blank"

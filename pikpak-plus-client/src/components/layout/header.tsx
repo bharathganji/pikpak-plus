@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { BarChart, LogOut, LayoutDashboard, ShieldCheck } from "lucide-react";
+import { BarChart, LogOut, LayoutDashboard, ShieldCheck, Search } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { GitHubButton } from "@/components/github-button";
 import { TelegramButton } from "@/components/telegram-button";
@@ -79,8 +79,11 @@ export function Header() {
                   </div>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 glass-card shadow-lg border border-border/60">
-                <DropdownMenuLabel className="font-normal">
+              <DropdownMenuContent
+                align="end"
+                className="w-60 bg-popover text-popover-foreground border border-border/80 shadow-2xl rounded-xl p-1.5 z-50 backdrop-blur-none"
+              >
+                <DropdownMenuLabel className="font-normal px-2 py-1.5">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">Account</p>
                     <p className="text-xs leading-none text-muted-foreground truncate">
@@ -88,9 +91,9 @@ export function Header() {
                     </p>
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="my-1 border-border/50" />
                 <Link href="/dashboard">
-                  <DropdownMenuItem className="cursor-pointer">
+                  <DropdownMenuItem className="cursor-pointer rounded-lg px-2.5 py-2 text-sm font-medium transition-colors hover:bg-accent/80 focus:bg-accent/80">
                     <LayoutDashboard className="mr-2 h-4 w-4" />
                     App Dashboard
                   </DropdownMenuItem>
@@ -98,23 +101,33 @@ export function Header() {
                 {isAdmin && (
                   <DropdownMenuItem
                     onClick={() => router.push("/admin")}
-                    className="cursor-pointer"
+                    className="cursor-pointer rounded-lg px-2.5 py-2 text-sm font-medium transition-colors hover:bg-accent/80 focus:bg-accent/80"
                   >
                     <ShieldCheck className="mr-2 h-4 w-4" />
                     Admin Panel
                   </DropdownMenuItem>
                 )}
                 <Link href="/statistics">
-                  <DropdownMenuItem className="cursor-pointer">
+                  <DropdownMenuItem className="cursor-pointer rounded-lg px-2.5 py-2 text-sm font-medium transition-colors hover:bg-accent/80 focus:bg-accent/80">
                     <BarChart className="mr-2 h-4 w-4" />
                     Statistics
                   </DropdownMenuItem>
                 </Link>
-                <DropdownMenuSeparator />
+                <a
+                  href="https://jackett.pikpak-plus.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <DropdownMenuItem className="cursor-pointer rounded-lg px-2.5 py-2 text-sm font-medium transition-colors hover:bg-accent/80 focus:bg-accent/80">
+                    <Search className="mr-2 h-4 w-4" />
+                    Search Torrents
+                  </DropdownMenuItem>
+                </a>
+                <DropdownMenuSeparator className="my-1 border-border/50" />
                 <DropdownMenuItem
                   onClick={handleLogout}
                   disabled={loggingOut}
-                  className="text-destructive focus:text-destructive cursor-pointer"
+                  className="text-destructive focus:text-destructive cursor-pointer rounded-lg px-2.5 py-2 text-sm font-medium transition-colors hover:bg-destructive/10 focus:bg-destructive/10"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
                   {loggingOut ? "Logging out..." : "Log out"}
@@ -136,6 +149,23 @@ export function Header() {
             </Link>
           </div>
         )}
+
+        <Button
+          variant="ghost"
+          size="sm"
+          asChild
+          className="gap-1.5 text-xs sm:text-sm font-medium hover:bg-accent/80 transition-colors"
+        >
+          <a
+            href="https://jackett.pikpak-plus.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Search Torrents (Jackett)"
+          >
+            <Search className="h-4 w-4" />
+            <span className="hidden md:inline">Search Torrents</span>
+          </a>
+        </Button>
 
         <Link href="/statistics" className="hidden md:inline-flex">
           <Button variant="ghost" size="icon" title="Statistics">
