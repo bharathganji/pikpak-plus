@@ -68,18 +68,20 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <Card className="w-full max-w-md backdrop-blur-sm bg-card/80 border-t-white/10 shadow-xl">
+      <Card className="w-full max-w-md border border-destructive/30 bg-card/85 backdrop-blur-xl shadow-2xl">
         <CardHeader>
-          <CardTitle className="text-destructive text-center">
+          <CardTitle className="text-destructive text-center text-xl font-bold">
             Invalid Link
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-center">
-          <p className="mb-4">
+        <CardContent className="text-center space-y-4">
+          <p className="text-muted-foreground text-sm">
             The password reset link is invalid or missing the token.
           </p>
           <Link href="/forgot-password">
-            <Button variant="outline">Request New Link</Button>
+            <Button variant="outline" className="border-border/80 hover:bg-muted/60">
+              Request New Link
+            </Button>
           </Link>
         </CardContent>
       </Card>
@@ -88,29 +90,31 @@ function ResetPasswordForm() {
 
   if (success) {
     return (
-      <Card className="w-full max-w-md backdrop-blur-sm bg-card/80 border-t-white/10 shadow-xl">
+      <Card className="w-full max-w-md border border-emerald-500/30 bg-card/85 backdrop-blur-xl shadow-2xl">
         <CardHeader>
-          <CardTitle className="text-green-600 text-center">
+          <CardTitle className="text-emerald-600 dark:text-emerald-400 text-center text-xl font-bold">
             Password Reset Successful
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-center">
-          <p className="mb-4">
+        <CardContent className="text-center space-y-4">
+          <p className="text-muted-foreground text-sm">
             Your password has been updated. Redirecting to login...
           </p>
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+          <div className="flex justify-center pt-2">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="w-full max-w-md backdrop-blur-sm bg-card/80 border-t-white/10 shadow-xl relative z-10 transition-all hover:shadow-2xl hover:border-primary/20">
+    <Card className="w-full max-w-md border border-border/60 bg-card/85 backdrop-blur-xl shadow-2xl relative z-10 transition-all hover:shadow-primary/10">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold text-center bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
+        <CardTitle className="text-2xl font-bold text-center bg-linear-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent">
           Reset Password
         </CardTitle>
-        <CardDescription className="text-center">
+        <CardDescription className="text-center text-muted-foreground">
           Enter your new password below
         </CardDescription>
       </CardHeader>
@@ -119,15 +123,15 @@ function ResetPasswordForm() {
           {error && (
             <Alert
               variant="destructive"
-              className="bg-destructive/10 text-destructive border-destructive/20"
+              className="bg-destructive/10 text-destructive border-destructive/25 rounded-lg shadow-xs"
             >
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription className="text-sm font-medium">{error}</AlertDescription>
             </Alert>
           )}
           <div className="space-y-2">
             <label
               htmlFor="password"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              className="text-sm font-medium leading-none text-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
               New Password
             </label>
@@ -137,14 +141,14 @@ function ResetPasswordForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="bg-background/50 focus:bg-background transition-colors"
+              className="bg-background/60 focus:bg-background border-border/70 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-all"
               placeholder="New password"
             />
           </div>
           <div className="space-y-2">
             <label
               htmlFor="confirmPassword"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              className="text-sm font-medium leading-none text-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
               Confirm New Password
             </label>
@@ -154,12 +158,12 @@ function ResetPasswordForm() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              className="bg-background/50 focus:bg-background transition-colors"
+              className="bg-background/60 focus:bg-background border-border/70 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-all"
               placeholder="Confirm new password"
             />
           </div>
           <Button
-            className="w-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 transition-all duration-300"
+            className="w-full gradient-primary hover:opacity-95 transition-all duration-300 shadow-md shadow-primary/25 active:scale-[0.99] font-medium"
             type="submit"
             disabled={loading}
           >
@@ -182,12 +186,12 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
       {/* Background Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 via-teal-500/20 to-cyan-500/20 bg-size-200 animate-gradient-xy pointer-events-none" />
+      <div className="absolute inset-0 bg-linear-to-br from-green-500/15 via-teal-500/15 to-cyan-500/15 pointer-events-none" />
       <Suspense
         fallback={
-          <Card className="w-full max-w-md p-6">
+          <Card className="w-full max-w-md p-6 border border-border/60 bg-card/85 backdrop-blur-xl shadow-2xl">
             <div className="flex justify-center items-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           </Card>
         }

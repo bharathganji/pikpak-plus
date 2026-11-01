@@ -60,7 +60,7 @@ export default function RegisterPage() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 relative overflow-hidden">
       {/* Background Gradient */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.15),transparent_70%)] pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-to-bl from-background via-background to-primary/5 pointer-events-none" />
+      <div className="absolute inset-0 bg-linear-to-bl from-background via-background to-primary/5 pointer-events-none" />
 
       <div className="w-full max-w-md flex flex-col items-center gap-8 relative z-10 animate-fade-in">
         <Image
@@ -72,12 +72,12 @@ export default function RegisterPage() {
           priority
         />
 
-        <Card className="w-full glass-card shadow-2xl transition-all hover:shadow-primary/10 border-white/10">
+        <Card className="w-full border border-border/60 bg-card/85 backdrop-blur-xl shadow-2xl transition-all hover:shadow-primary/10">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            <CardTitle className="text-2xl font-bold text-center bg-linear-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent">
               Create Account
             </CardTitle>
-            <CardDescription className="text-center">
+            <CardDescription className="text-center text-muted-foreground">
               Enter your email below to create your account
             </CardDescription>
           </CardHeader>
@@ -86,15 +86,15 @@ export default function RegisterPage() {
               {error && (
                 <Alert
                   variant="destructive"
-                  className="bg-destructive/10 text-destructive border-destructive/20"
+                  className="bg-destructive/10 text-destructive border-destructive/25 rounded-lg shadow-xs"
                 >
-                  <AlertDescription>{error}</AlertDescription>
+                  <AlertDescription className="text-sm font-medium">{error}</AlertDescription>
                 </Alert>
               )}
               <div className="space-y-2">
                 <label
                   htmlFor="email"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  className="text-sm font-medium leading-none text-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
                   Email
                 </label>
@@ -105,13 +105,13 @@ export default function RegisterPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="bg-background/50 focus:bg-background transition-colors"
+                  className="bg-background/60 focus:bg-background border-border/70 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-all"
                 />
               </div>
               <div className="space-y-2">
                 <label
                   htmlFor="password"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  className="text-sm font-medium leading-none text-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
                   Password
                 </label>
@@ -121,13 +121,13 @@ export default function RegisterPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="bg-background/50 focus:bg-background transition-colors"
+                  className="bg-background/60 focus:bg-background border-border/70 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-all"
                 />
               </div>
               <div className="space-y-2">
                 <label
                   htmlFor="confirmPassword"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  className="text-sm font-medium leading-none text-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
                   Confirm Password
                 </label>
@@ -137,11 +137,11 @@ export default function RegisterPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  className="bg-background/50 focus:bg-background transition-colors"
+                  className="bg-background/60 focus:bg-background border-border/70 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-all"
                 />
               </div>
               <Button
-                className="w-full gradient-primary hover:opacity-90 transition-all duration-300 shadow-lg shadow-primary/20"
+                className="w-full gradient-primary hover:opacity-95 transition-all duration-300 shadow-md shadow-primary/25 active:scale-[0.99] font-medium"
                 type="submit"
                 disabled={loading}
               >
@@ -161,7 +161,7 @@ export default function RegisterPage() {
               Already have an account?{" "}
               <Link
                 href="/login"
-                className="font-medium text-primary hover:text-primary/80 transition-colors"
+                className="font-medium text-primary hover:text-primary/80 transition-colors underline-offset-4 hover:underline"
               >
                 Sign in
               </Link>

@@ -40,11 +40,12 @@ export default function Home() {
       <main className="w-full max-w-5xl px-4 py-8 md:py-16 flex flex-col items-center">
         {/* Hero Section directly matching README */}
         <section className="text-center max-w-3xl mx-auto flex flex-col items-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 mb-4 rounded-full border border-primary/20 bg-primary/5 text-primary text-xs sm:text-sm font-medium">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 mb-5 rounded-full border border-primary/25 bg-primary/10 text-primary text-xs sm:text-sm font-medium shadow-xs">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
             <span>Unofficial Implementation of PikPak</span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-balance">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-balance bg-linear-to-b from-foreground via-foreground to-foreground/80 bg-clip-text">
             Share your PikPak [Premium] with your friends and family!
           </h1>
 
@@ -54,18 +55,18 @@ export default function Home() {
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link href="/login">
-              <Button size="lg" className="gap-2 text-base px-6 h-11">
+              <Button size="lg" className="gap-2 text-base px-6 h-11 shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/30 transition-all">
                 <span>Get Started</span>
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
             <Link href="/register">
-              <Button size="lg" variant="outline" className="text-base px-6 h-11">
+              <Button size="lg" variant="outline" className="text-base px-6 h-11 border-border/80 hover:bg-muted/60 transition-all">
                 <span>Sign Up</span>
               </Button>
             </Link>
             <Link href="/statistics">
-              <Button size="lg" variant="ghost" className="text-base px-4 h-11 text-muted-foreground hover:text-foreground gap-1.5">
+              <Button size="lg" variant="ghost" className="text-base px-4 h-11 text-muted-foreground hover:text-foreground gap-1.5 transition-all">
                 <BarChart3 className="h-4 w-4" />
                 <span>Statistics</span>
               </Button>
@@ -83,85 +84,85 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Card className="border border-border/60 bg-card/50">
+            <Card className="border border-border/60 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md hover:border-primary/40 hover:-translate-y-0.5">
               <CardHeader className="pb-2">
-                <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-2">
+                <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-2 ring-1 ring-primary/20">
                   <ShieldCheck className="h-5 w-5" />
                 </div>
                 <CardTitle className="text-base font-semibold">Secure Authentication</CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription className="text-xs sm:text-sm leading-relaxed">
+                <CardDescription className="text-xs sm:text-sm leading-relaxed text-muted-foreground">
                   Uses Supabase for user authentication without storing PikPak passwords.
                 </CardDescription>
               </CardContent>
             </Card>
 
-            <Card className="border border-border/60 bg-card/50">
+            <Card className="border border-border/60 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md hover:border-primary/40 hover:-translate-y-0.5">
               <CardHeader className="pb-2">
-                <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-2">
+                <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-2 ring-1 ring-primary/20">
                   <Download className="h-5 w-5" />
                 </div>
                 <CardTitle className="text-base font-semibold">Task Management</CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription className="text-xs sm:text-sm leading-relaxed">
+                <CardDescription className="text-xs sm:text-sm leading-relaxed text-muted-foreground">
                   Create and monitor download tasks from magnet links with real-time status updates.
                 </CardDescription>
               </CardContent>
             </Card>
 
-            <Card className="border border-border/60 bg-card/50">
+            <Card className="border border-border/60 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md hover:border-primary/40 hover:-translate-y-0.5">
               <CardHeader className="pb-2">
-                <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-2">
+                <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-2 ring-1 ring-primary/20">
                   <Share2 className="h-5 w-5" />
                 </div>
                 <CardTitle className="text-base font-semibold">Smart Share Links</CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription className="text-xs sm:text-sm leading-relaxed">
+                <CardDescription className="text-xs sm:text-sm leading-relaxed text-muted-foreground">
                   Global share deduplication ensures one link per file, reused by all users.
                 </CardDescription>
               </CardContent>
             </Card>
 
-            <Card className="border border-border/60 bg-card/50">
+            <Card className="border border-border/60 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md hover:border-primary/40 hover:-translate-y-0.5">
               <CardHeader className="pb-2">
-                <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-2">
+                <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-2 ring-1 ring-primary/20">
                   <FolderSync className="h-5 w-5" />
                 </div>
                 <CardTitle className="text-base font-semibold">WebDAV Support</CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription className="text-xs sm:text-sm leading-relaxed">
+                <CardDescription className="text-xs sm:text-sm leading-relaxed text-muted-foreground">
                   Auto-generate WebDAV clients for easy access from any WebDAV-compatible application.
                 </CardDescription>
               </CardContent>
             </Card>
 
-            <Card className="border border-border/60 bg-card/50">
+            <Card className="border border-border/60 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md hover:border-primary/40 hover:-translate-y-0.5">
               <CardHeader className="pb-2">
-                <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-2">
+                <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-2 ring-1 ring-primary/20">
                   <Trash2 className="h-5 w-5" />
                 </div>
                 <CardTitle className="text-base font-semibold">Auto Cleanup</CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription className="text-xs sm:text-sm leading-relaxed">
+                <CardDescription className="text-xs sm:text-sm leading-relaxed text-muted-foreground">
                   Automated task cleanup after 24 hours to maintain account hygiene and storage health.
                 </CardDescription>
               </CardContent>
             </Card>
 
-            <Card className="border border-border/60 bg-card/50">
+            <Card className="border border-border/60 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md hover:border-primary/40 hover:-translate-y-0.5">
               <CardHeader className="pb-2">
-                <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-2">
+                <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-2 ring-1 ring-primary/20">
                   <BarChart3 className="h-5 w-5" />
                 </div>
                 <CardTitle className="text-base font-semibold">Quota Monitoring</CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription className="text-xs sm:text-sm leading-relaxed">
+                <CardDescription className="text-xs sm:text-sm leading-relaxed text-muted-foreground">
                   Real-time tracking of personal storage and bandwidth usage, with historical statistics charts.
                 </CardDescription>
               </CardContent>
@@ -170,7 +171,7 @@ export default function Home() {
         </section>
 
         {/* Quick Links / Community Bar */}
-        <section className="w-full mt-12 pt-8 border-t border-border/40 flex flex-wrap items-center justify-between gap-4 text-xs sm:text-sm text-muted-foreground">
+        <section className="w-full mt-12 pt-8 border-t border-border/50 flex flex-wrap items-center justify-between gap-4 text-xs sm:text-sm text-muted-foreground">
           <p>
             An educational open-source project. For actual cloud file storage, please use the official PikPak service.
           </p>
