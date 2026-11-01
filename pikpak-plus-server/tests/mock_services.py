@@ -7,6 +7,7 @@ MockPikPakService, and MockWebDAVManager without any external network calls.
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock
@@ -202,6 +203,31 @@ class MemorySupabaseService:
         self.actions = [a for a in self.actions if a.get("id") != action_id]
         return len(self.actions) < before
 
+    def delete_user_tasks_bulk(
+        self, email: str, task_ids: Sequence[int | str]
+    ) -> int:
+        normalized_email = email.strip().lower() if email else ""
+        if not normalized_email:
+            return 0
+        numeric_ids = {int(i) for i in task_ids if str(i).strip().isdigit()}
+        if not numeric_ids:
+            return 0
+
+        before = len(self.actions)
+        self.actions = [
+            a
+            for a in self.actions
+            if not (
+                a.get("action") == "add"
+                and a.get("user_email") == normalized_email
+                and a.get("id") in numeric_ids
+            )
+        ]
+        return before - len(self.actions)
+
+    def delete_user_task(self, email: str, task_id: int | str) -> bool:
+        return self.delete_user_tasks_bulk(email, [task_id]) > 0
+
     def check_existing_task_by_hash(self, file_hash: str) -> dict[str, Any] | None:
         for a in self.actions:
             url = a.get("url", "")
@@ -295,6 +321,28 @@ class MemorySupabaseService:
                 )
             ]
         return len(self.shares) < before
+
+    def delete_user_shares_bulk(
+        self, email: str, share_ids: Sequence[int | str]
+    ) -> int:
+        normalized_email = email.strip().lower() if email else ""
+        if not normalized_email:
+            return 0
+        numeric_ids = {int(i) for i in share_ids if str(i).strip().isdigit()}
+        if not numeric_ids:
+            return 0
+
+        before = len(self.shares)
+        self.shares = [
+            s
+            for s in self.shares
+            if not (
+                s.get("action") == "share"
+                and s.get("user_email") == normalized_email
+                and s.get("id") in numeric_ids
+            )
+        ]
+        return before - len(self.shares)
 
     # Statistics & Health
     def get_admin_statistics(self) -> dict[str, Any]:

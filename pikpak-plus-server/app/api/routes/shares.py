@@ -179,6 +179,79 @@ def list_shares():
         return jsonify({"error": str(e)}), 500
 
 
+@bp.route('/shares/bulk', methods=['DELETE'])
+@require_auth
+def delete_shares_bulk():
+    """Bulk delete multiple share links for the authenticated user"""
+    try:
+        user_data = get_current_user()
+        if not user_data:
+            return jsonify({"error": "Authentication required"}), 401
+
+        user_email = user_data.get('email')
+        if not user_email:
+            return jsonify({"error": "User email not found in token"}), 401
+
+        supabase_service = get_supabase_service()
+        if not supabase_service:
+            return jsonify({"error": "Database service unavailable"}), 503
+
+        user_service = UserService(supabase_service)
+        if user_service.is_user_blocked(user_email):
+            return jsonify({
+                "error": "Account blocked",
+                "message": "Your account has been blocked. You cannot perform this action."
+            }), 403
+
+        data, err = get_json_body(request, required_fields=["ids"], field_types={"ids": list})
+        if err or data is None:
+            return (err[0], err[1]) if err else (jsonify({"error": "Bad Request"}), 400)
+
+        ids = data.get("ids")
+        if not isinstance(ids, list) or len(ids) == 0:
+            return jsonify({
+                "error": "Invalid payload",
+                "message": "'ids' must be a non-empty list"
+            }), 400
+
+        if len(ids) > 500:
+            return jsonify({
+                "error": "Invalid payload",
+                "message": "Cannot delete more than 500 items at once"
+            }), 400
+
+        valid_ids: list[int] = []
+        for item in ids:
+            if isinstance(item, bool):
+                return jsonify({
+                    "error": "Invalid payload",
+                    "message": "All elements in 'ids' must be valid numeric IDs"
+                }), 400
+            if isinstance(item, int) and item > 0:
+                valid_ids.append(item)
+            elif isinstance(item, str) and item.strip().isdigit() and int(item.strip()) > 0:
+                valid_ids.append(int(item.strip()))
+            else:
+                return jsonify({
+                    "error": "Invalid payload",
+                    "message": "All elements in 'ids' must be valid numeric IDs"
+                }), 400
+
+        deleted_count = supabase_service.delete_user_shares_bulk(user_email, valid_ids)
+
+        return jsonify({
+            "success": True,
+            "count": deleted_count,
+            "message": f"{deleted_count} share links deleted successfully"
+        }), 200
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Failed to bulk delete shares: {e}")
+        return jsonify({
+            "error": "Internal server error",
+            "message": "Failed to delete share links"
+        }), 500
+
+
 @bp.route('/shares/<share_id>', methods=['DELETE'])
 @require_auth
 def delete_share(share_id: str):
