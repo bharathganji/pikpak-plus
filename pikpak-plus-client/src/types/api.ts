@@ -102,6 +102,12 @@ export type DownloadListResponse = {
   expires_in: number;
 };
 
+export interface BulkDeleteResponse {
+  success: boolean;
+  count: number;
+  message?: string;
+}
+
 // ============================================================================
 // File Types
 // ============================================================================
