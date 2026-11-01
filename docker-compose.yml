@@ -1,4 +1,4 @@
-version: "3.9"
+# PikPak Plus Docker Compose Configuration
 services:
   web:
     build:
@@ -6,10 +6,11 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
         API_URL_INTERNAL: ${API_URL_INTERNAL:-http://server:5000}
+    restart: unless-stopped
     depends_on:
       - server
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "${HOST_IP:+${HOST_IP}:}${APP_PORT:-${PORT:-${WEB_PORT:-3000}}}:3000"
     volumes:
       - ./pikpak-plus-client:/user/src/app
     environment:
@@ -39,7 +40,7 @@ services:
     depends_on:
       - redis
     # ports:
-    # - '5000:5000'
+    #   - "${HOST_IP:+${HOST_IP}:}${SERVER_PORT:-${API_PORT:-5000}}:5000"
     # volumes:
     #   - ./pikpak-plus-server:/app
     environment:
@@ -67,6 +68,15 @@ services:
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - PASSWORD_RESET_TOKEN_EXPIRATION_HOURS=${PASSWORD_RESET_TOKEN_EXPIRATION_HOURS:-1}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_USE_TLS=${SMTP_USE_TLS:-true}
+      - SMTP_USE_SSL=${SMTP_USE_SSL:-false}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-}
+      - SMTP_FROM_NAME=${SMTP_FROM_NAME:-PikPak Plus}
+      - FRONTEND_URL=${FRONTEND_URL:-}
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health/ready"]
@@ -105,6 +115,15 @@ services:
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - PASSWORD_RESET_TOKEN_EXPIRATION_HOURS=${PASSWORD_RESET_TOKEN_EXPIRATION_HOURS:-1}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_USE_TLS=${SMTP_USE_TLS:-true}
+      - SMTP_USE_SSL=${SMTP_USE_SSL:-false}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-}
+      - SMTP_FROM_NAME=${SMTP_FROM_NAME:-PikPak Plus}
+      - FRONTEND_URL=${FRONTEND_URL:-}
 
   beat:
     build: ./pikpak-plus-server
@@ -136,11 +155,21 @@ services:
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - PASSWORD_RESET_TOKEN_EXPIRATION_HOURS=${PASSWORD_RESET_TOKEN_EXPIRATION_HOURS:-1}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_USE_TLS=${SMTP_USE_TLS:-true}
+      - SMTP_USE_SSL=${SMTP_USE_SSL:-false}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-}
+      - SMTP_FROM_NAME=${SMTP_FROM_NAME:-PikPak Plus}
+      - FRONTEND_URL=${FRONTEND_URL:-}
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     # ports:
-    #   - "6379:6379"
+    #   - "${HOST_IP:+${HOST_IP}:}${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Github, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -9,82 +9,24 @@ interface GitHubButtonProps {
   showCount?: boolean;
 }
 
-interface CachedStars {
-  count: number;
-  timestamp: number;
-}
-
-const CACHE_KEY_PREFIX = "github_stars_";
-const CACHE_DURATION = 1000 * 60 * 60 * 24; // 24 hours in milliseconds
-
 export function GitHubButton({
   repo,
   showCount = true,
 }: Readonly<GitHubButtonProps>) {
-  const cacheKey = `${CACHE_KEY_PREFIX}${repo}`;
-  const [stars, setStars] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!showCount) {
-      setLoading(false);
-      return;
-    }
-
-    // Check cache first
-    const checkCache = () => {
-      const stored = localStorage.getItem(cacheKey);
-      if (stored) {
-        try {
-          const parsed: CachedStars = JSON.parse(stored);
-          const now = Date.now();
-          if (now - parsed.timestamp < CACHE_DURATION) {
-            setStars(parsed.count);
-            setLoading(false);
-            return true;
-          } else {
-            // Cache expired, remove it
-            localStorage.removeItem(cacheKey);
-          }
-        } catch (e) {
-          // Invalid cache, remove it
-          console.error("Failed to parse cached GitHub stars:", e);
-          localStorage.removeItem(cacheKey);
-        }
+  const { data: stars = null, isLoading: loading } = useQuery({
+    queryKey: ["github-stars", repo],
+    queryFn: async () => {
+      const response = await fetch(`https://api.github.com/repos/${repo}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch GitHub stars");
       }
-      return false;
-    };
-
-    // If cache is valid, use it and skip fetch
-    if (checkCache()) {
-      return;
-    }
-
-    // Otherwise fetch from API
-    const fetchStars = async () => {
-      try {
-        const response = await fetch(`https://api.github.com/repos/${repo}`);
-        if (response.ok) {
-          const data = await response.json();
-          const starCount = data.stargazers_count;
-          setStars(starCount);
-
-          // Cache the result
-          const cacheData = {
-            count: starCount,
-            timestamp: Date.now(),
-          };
-          localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-        }
-      } catch (error) {
-        console.error("Failed to fetch GitHub stars:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStars();
-  }, [repo, showCount, cacheKey]);
+      const data = await response.json();
+      return (data.stargazers_count as number) ?? null;
+    },
+    enabled: showCount,
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    gcTime: 1000 * 60 * 60 * 24,
+  });
 
   const formatStars = (count: number) => {
     if (count >= 1000) {

@@ -1,8 +1,10 @@
 """Statistics Routes"""
-import logging
 import json
+import logging
+
 import redis
 from flask import Blueprint, jsonify, request
+
 from app.api.utils.dependencies import get_supabase_service
 from app.core.config import AppConfig
 
@@ -41,7 +43,20 @@ def _get_statistics_schedule_info():
 def get_statistics():
     """Get daily statistics history with schedule info"""
     try:
-        limit = int(request.args.get('limit', 30))
+        limit_raw = request.args.get('limit', 30)
+        try:
+            limit = int(limit_raw)
+            if limit < 1 or limit > 365:
+                return jsonify({
+                    "error": "Invalid limit parameter",
+                    "message": "Limit must be an integer between 1 and 365"
+                }), 400
+        except (ValueError, TypeError):
+            return jsonify({
+                "error": "Invalid limit parameter",
+                "message": "Limit must be a valid integer"
+            }), 400
+
         supabase_service = get_supabase_service()
 
         stats = supabase_service.get_daily_stats(limit)

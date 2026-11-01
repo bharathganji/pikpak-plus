@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import withPWA from "@ducanh2912/next-pwa";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
@@ -27,7 +26,7 @@ const nextConfig = {
   async rewrites() {
     // Use server hostname for Docker internal communication
     // Falls back to localhost for local development
-    const apiUrl = process.env.API_URL_INTERNAL || "http://localhost:5000";
+    const apiUrl = process.env.API_URL_INTERNAL || "http://127.0.0.1:5000";
 
     return [
       {

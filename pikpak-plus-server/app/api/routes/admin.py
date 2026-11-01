@@ -1,14 +1,20 @@
 """Admin API Routes - User Management, Content Moderation, Analytics"""
-from app.api.utils.dependencies import get_supabase_service
+import logging
+
+from flask import Blueprint, jsonify, request
+from marshmallow import EXCLUDE, Schema, ValidationError, fields
+
+from app.api.utils.async_helpers import run_async
+from app.api.utils.dependencies import get_pikpak_service, get_supabase_service
+from app.core.auth import get_current_user, require_admin
+from app.core.config import AppConfig
 from app.services.pikpak_service import PikPakService
 from app.services.user_service import UserService
-from app.api.utils.async_helpers import run_async
-import logging
-from flask import Blueprint, request, jsonify
-from marshmallow import Schema, fields, EXCLUDE, ValidationError
-
-from app.core.config import AppConfig
-from app.core.auth import require_admin, get_current_user
+from app.utils.validators import (
+    get_json_body,
+    validate_email,
+    validate_pagination,
+)
 
 
 class SystemConfigSchema(Schema):
@@ -44,8 +50,10 @@ def get_users():
         - search: Search by email (optional)
     """
     try:
-        page = int(request.args.get('page', 1))
-        limit = int(request.args.get('limit', 25))
+        page, limit, err = validate_pagination(request.args, default_page=1, default_limit=25, max_limit=100)
+        if err:
+            return err[0], err[1]
+
         blocked_param = request.args.get('blocked')
         search = request.args.get('search', '').strip()
 
@@ -70,7 +78,9 @@ def get_users():
 
         return jsonify({
             "data": result['data'],
+            "users": result['data'],
             "count": result['count'],
+            "total": result['count'],
             "page": page,
             "limit": limit
         }), 200
@@ -88,6 +98,13 @@ def get_users():
 def get_user_details(email: str):
     """Get specific user details and statistics"""
     try:
+        is_valid, email, _ = validate_email(email)
+        if not is_valid:
+            return jsonify({
+                "error": "Bad Request",
+                "message": "Invalid email format"
+            }), 400
+
         supabase_service = get_supabase_service()
         user_service = UserService(supabase_service)
 
@@ -121,6 +138,13 @@ def get_user_details(email: str):
 def block_user(email: str):
     """Block a user account"""
     try:
+        is_valid, email, _ = validate_email(email)
+        if not is_valid:
+            return jsonify({
+                "error": "Bad Request",
+                "message": "Invalid email format"
+            }), 400
+
         supabase_service = get_supabase_service()
         user_service = UserService(supabase_service)
 
@@ -160,6 +184,13 @@ def block_user(email: str):
 def unblock_user(email: str):
     """Unblock a user account"""
     try:
+        is_valid, email, _ = validate_email(email)
+        if not is_valid:
+            return jsonify({
+                "error": "Bad Request",
+                "message": "Invalid email format"
+            }), 400
+
         supabase_service = get_supabase_service()
         user_service = UserService(supabase_service)
 
@@ -203,17 +234,21 @@ def create_user():
         - is_admin: Optional boolean, default False
     """
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({
-                "error": "Bad Request",
-                "message": "Request body is required"
-            }), 400
+        data, err = get_json_body(request, required_fields=['email', 'password'])
+        if err:
+            return err[0], err[1]
 
-        email = data.get('email', '').strip()
+        email = data.get('email', '')
         password = data.get('password', '')
         is_admin = data.get('is_admin', False)
 
+        if not isinstance(email, str) or not isinstance(password, str):
+            return jsonify({
+                "error": "Bad Request",
+                "message": "Email and password must be strings"
+            }), 400
+
+        email = email.strip()
         if not email or not password:
             return jsonify({
                 "error": "Bad Request",
@@ -329,12 +364,9 @@ def update_user_role(email: str):
         - is_admin: Boolean indicating new admin status
     """
     try:
-        data = request.get_json()
-        if not data or 'is_admin' not in data:
-            return jsonify({
-                "error": "Bad Request",
-                "message": "is_admin field is required in request body"
-            }), 400
+        data, err = get_json_body(request, required_fields=['is_admin'])
+        if err:
+            return err[0], err[1]
 
         is_admin = data.get('is_admin')
         if not isinstance(is_admin, bool):
@@ -385,15 +417,12 @@ def update_user_password(email: str):
         - new_password: New plain text password (min 6 characters)
     """
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({
-                "error": "Bad Request",
-                "message": "Request body is required"
-            }), 400
+        data, err = get_json_body(request, required_fields=['new_password'])
+        if err:
+            return err[0], err[1]
 
         new_password = data.get('new_password', '')
-        if not new_password:
+        if not new_password or not isinstance(new_password, str):
             return jsonify({
                 "error": "Bad Request",
                 "message": "new_password is required"
@@ -454,8 +483,10 @@ def get_logs():
         - user_email: Filter by user email (optional)
     """
     try:
-        page = int(request.args.get('page', 1))
-        limit = int(request.args.get('limit', 25))
+        page, limit, err = validate_pagination(request.args, default_page=1, default_limit=25, max_limit=100)
+        if err:
+            return err[0], err[1]
+
         action_filter = request.args.get('action')
         user_email_filter = request.args.get('user_email')
 
@@ -504,8 +535,10 @@ def get_user_logs(email: str):
         - limit: Items per page (default: 25)
     """
     try:
-        page = int(request.args.get('page', 1))
-        limit = int(request.args.get('limit', 25))
+        page, limit, err = validate_pagination(request.args, default_page=1, default_limit=25, max_limit=100)
+        if err:
+            return err[0], err[1]
+
         offset = (page - 1) * limit
 
         supabase_service = get_supabase_service()
@@ -563,7 +596,7 @@ def delete_task(task_id: int):
             if p_task_id or p_file_id:
                 async def _cleanup_pikpak():
                     success = True
-                    pikpak_service = PikPakService(
+                    pikpak_service = get_pikpak_service() or PikPakService(
                         AppConfig.PIKPAK_USER,
                         AppConfig.PIKPAK_PASS
                     )
@@ -638,7 +671,12 @@ def get_stats_overview():
     try:
         supabase_service = get_supabase_service()
 
-        stats = supabase_service.get_admin_statistics()
+        if hasattr(supabase_service, "get_admin_statistics"):
+            stats = supabase_service.get_admin_statistics()
+        elif hasattr(supabase_service, "get_stats_overview"):
+            stats = supabase_service.get_stats_overview()
+        else:
+            stats = {}
 
         return jsonify(stats), 200
 
@@ -659,7 +697,13 @@ def get_stats_daily():
         - limit: Number of days to retrieve (default: 30)
     """
     try:
-        limit = int(request.args.get('limit', 30))
+        limit_str = request.args.get('limit', '30')
+        try:
+            limit = int(limit_str)
+            if limit < 1 or limit > 365:
+                limit = 30
+        except (ValueError, TypeError):
+            limit = 30
 
         supabase_service = get_supabase_service()
 
@@ -692,15 +736,19 @@ def bulk_user_action():
         - action: 'block' | 'unblock' | 'delete'
     """
     try:
-        data = request.get_json()
-        if not data or 'emails' not in data or 'action' not in data:
-            return jsonify({
-                "error": "Bad Request",
-                "message": "emails list and action are required in request body"
-            }), 400
+        data, err = get_json_body(request, required_fields=['emails', 'action'])
+        if err:
+            return err[0], err[1]
 
         emails = data.get('emails', [])
-        action = data.get('action', '').lower()
+        action_raw = data.get('action', '')
+        if not isinstance(action_raw, str):
+            return jsonify({
+                "error": "Bad Request",
+                "message": "action must be a string"
+            }), 400
+
+        action = action_raw.strip().lower()
 
         if not isinstance(emails, list) or len(emails) == 0:
             return jsonify({
@@ -885,7 +933,9 @@ def update_config():
                 "message": "Configuration storage (Redis) is unavailable"
             }), 503
 
-        data = request.get_json()
+        data, err = get_json_body(request)
+        if err:
+            return err[0], err[1]
         if not data:
             return jsonify({
                 "error": "Bad Request",

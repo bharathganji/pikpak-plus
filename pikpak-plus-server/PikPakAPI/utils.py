@@ -1,26 +1,76 @@
+import asyncio
 import hashlib
-from uuid import uuid4
 import time
+from typing import Any, Self
+from uuid import uuid4
+
+
+class AsyncRLock:
+    """
+    Reentrant asyncio lock.
+    Allows the same asyncio Task to acquire the lock multiple times
+    without deadlocking, while serializing concurrent tasks.
+    """
+
+    def __init__(self) -> None:
+        self._lock = asyncio.Lock()
+        self._owner: asyncio.Task[Any] | None = None
+        self._count: int = 0
+
+    def locked(self) -> bool:
+        """Return True if the lock is held, False otherwise."""
+        return self._lock.locked()
+
+    async def acquire(self) -> bool:
+        """Acquire the lock with reentrancy for the owning task."""
+        current = asyncio.current_task()
+        if self._owner is not None and self._owner == current:
+            self._count += 1
+            return True
+        await self._lock.acquire()
+        self._owner = current
+        self._count = 1
+        return True
+
+    def release(self) -> None:
+        """Release the lock, decrementing recursion depth."""
+        current = asyncio.current_task()
+        if self._owner != current:
+            raise RuntimeError("Cannot release un-acquired lock")
+        self._count -= 1
+        if self._count == 0:
+            self._owner = None
+            self._lock.release()
+
+    async def __aenter__(self) -> Self:
+        await self.acquire()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: object,
+    ) -> None:
+        self.release()
+
 
 CLIENT_ID = "YNxT9w7GMdWvEOKa"
 CLIENT_SECRET = "dbw2OtmVEeuUvIptb1Coyg"
 CLIENT_VERSION = "1.47.1"
-PACKAG_ENAME = "com.pikcloud.pikpak"
-SDK_VERSION = "2.0.4.204000 "
-APP_NAME = PACKAG_ENAME
+PACKAGE_NAME = "com.pikcloud.pikpak"
+PACKAG_ENAME = PACKAGE_NAME  # Backward compatibility alias
+SDK_VERSION = "2.0.4.204000"
+APP_NAME = PACKAGE_NAME
 
 
 def get_timestamp() -> int:
-    """
-    Get current timestamp.
-    """
+    """Get current timestamp in milliseconds."""
     return int(time.time() * 1000)
 
 
 def device_id_generator() -> str:
-    """
-    Generate a random device id.
-    """
+    """Generate a random 32-character hexadecimal device id."""
     return str(uuid4()).replace("-", "")
 
 
@@ -44,38 +94,31 @@ SALTS = [
 
 
 def captcha_sign(device_id: str, timestamp: str) -> str:
-    """
-    Generate a captcha sign.
-
-    在网页端的js中, 搜索 captcha_sign, 可以找到对应的js代码
-
-    """
-    sign = CLIENT_ID + CLIENT_VERSION + PACKAG_ENAME + device_id + timestamp
+    """Generate a captcha sign hash."""
+    sign = CLIENT_ID + CLIENT_VERSION + PACKAGE_NAME + device_id + timestamp
     for salt in SALTS:
         sign = hashlib.md5((sign + salt).encode()).hexdigest()
     return f"1.{sign}"
 
 
-def generate_device_sign(device_id, package_name):
+def generate_device_sign(device_id: str, package_name: str) -> str:
+    """Generate device signature for custom User-Agent."""
     signature_base = f"{device_id}{package_name}1appkey"
 
-    # 计算 SHA-1 哈希
     sha1_hash = hashlib.sha1()
     sha1_hash.update(signature_base.encode("utf-8"))
     sha1_result = sha1_hash.hexdigest()
 
-    # 计算 MD5 哈希
     md5_hash = hashlib.md5()
     md5_hash.update(sha1_result.encode("utf-8"))
     md5_result = md5_hash.hexdigest()
 
-    device_sign = f"div101.{device_id}{md5_result}"
-
-    return device_sign
+    return f"div101.{device_id}{md5_result}"
 
 
-def build_custom_user_agent(device_id, user_id):
-    device_sign = generate_device_sign(device_id, PACKAG_ENAME)
+def build_custom_user_agent(device_id: str, user_id: str) -> str:
+    """Construct a full Android client User-Agent header string."""
+    device_sign = generate_device_sign(device_id, PACKAGE_NAME)
 
     user_agent_parts = [
         f"ANDROID-{APP_NAME}/{CLIENT_VERSION}",

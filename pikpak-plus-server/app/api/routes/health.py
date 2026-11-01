@@ -1,5 +1,10 @@
 from flask import Blueprint
-from app.api.utils.dependencies import get_redis_client, get_supabase_service, get_pikpak_service
+
+from app.api.utils.dependencies import (
+    get_pikpak_service,
+    get_redis_client,
+    get_supabase_service,
+)
 
 bp = Blueprint('health', __name__)
 

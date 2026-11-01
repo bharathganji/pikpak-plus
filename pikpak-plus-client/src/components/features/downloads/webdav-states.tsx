@@ -13,8 +13,10 @@ export function WebDAVLoadingState({ onRetry, loading }: LoadingStateProps) {
   return (
     <div className="flex items-center justify-center py-12">
       <div className="flex flex-col items-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">
+        <div className="p-3 rounded-full bg-primary/10 text-primary animate-pulse-slow">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+        <p className="text-sm font-medium text-muted-foreground">
           Loading WebDAV clients...
         </p>
         <Button
@@ -22,6 +24,7 @@ export function WebDAVLoadingState({ onRetry, loading }: LoadingStateProps) {
           size="sm"
           onClick={onRetry}
           disabled={loading}
+          className="transition-smooth active:scale-95"
         >
           Retry
         </Button>
@@ -36,9 +39,9 @@ interface ErrorStateProps {
 
 export function WebDAVErrorState({ error }: ErrorStateProps) {
   return (
-    <Alert variant="destructive">
-      <AlertCircle className="h-4 w-4" />
-      <AlertDescription>
+    <Alert variant="destructive" className="border-destructive/30 bg-destructive/5 text-destructive shadow-xs">
+      <AlertCircle className="h-4 w-4 text-destructive" />
+      <AlertDescription className="text-sm font-medium">
         Failed to load WebDAV clients: {error}
       </AlertDescription>
     </Alert>
@@ -58,18 +61,22 @@ export function WebDAVEmptyState({
     <Alert
       className={
         isTrafficIssue
-          ? "border-orange-200 bg-orange-50 dark:bg-orange-950/20"
-          : ""
+          ? "border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100 shadow-xs"
+          : "border-border/60 bg-card/60 shadow-xs"
       }
       variant={isTrafficIssue ? undefined : "default"}
     >
       {isTrafficIssue ? (
-        <WifiOff className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+        <WifiOff className="h-4 w-4 text-amber-600 dark:text-amber-400" />
       ) : (
-        <AlertCircle className="h-4 w-4" />
+        <AlertCircle className="h-4 w-4 text-muted-foreground" />
       )}
       <AlertDescription
-        className={isTrafficIssue ? "text-orange-900 dark:text-orange-200" : ""}
+        className={
+          isTrafficIssue
+            ? "text-amber-950 dark:text-amber-100 text-sm font-medium"
+            : "text-muted-foreground text-sm font-medium"
+        }
       >
         {message ||
           "No WebDAV clients currently active. They will be created on the next scheduled run."}
@@ -84,9 +91,9 @@ interface TrafficWarningProps {
 
 export function WebDAVTrafficWarning({ message }: TrafficWarningProps) {
   return (
-    <Alert className="border-orange-200 bg-orange-50 dark:bg-orange-950/20">
-      <WifiOff className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-      <AlertDescription className="text-orange-900 dark:text-orange-200">
+    <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100 shadow-xs">
+      <WifiOff className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+      <AlertDescription className="text-amber-950 dark:text-amber-100 text-sm font-medium">
         {message}
       </AlertDescription>
     </Alert>

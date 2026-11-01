@@ -39,7 +39,7 @@ export function FileDetails({
     <div className="space-y-4">
       {/* File Name */}
       <div>
-        <h4 className="text-sm font-semibold mb-1">File Name</h4>
+        <h4 className="text-sm font-semibold tracking-tight mb-1">File Name</h4>
         <p className="text-sm text-muted-foreground break-all">
           {taskData?.file_name || "N/A"}
         </p>
@@ -49,12 +49,12 @@ export function FileDetails({
       {whatslink && (whatslink.file_type || whatslink.count) && (
         <div className="flex items-center gap-2 flex-wrap">
           {whatslink.file_type && (
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs border-border/60">
               {formatFileType(whatslink.file_type)}
             </Badge>
           )}
           {whatslink.count && whatslink.count > 1 && (
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-xs border border-border/50">
               {whatslink.count} files
             </Badge>
           )}
@@ -64,7 +64,7 @@ export function FileDetails({
       {/* Size */}
       {taskData?.file_size && (
         <div>
-          <h4 className="text-sm font-semibold mb-1">Size</h4>
+          <h4 className="text-sm font-semibold tracking-tight mb-1">Size</h4>
           <p className="text-sm text-muted-foreground">
             {formatFileSize(taskData.file_size)}
           </p>
@@ -74,16 +74,16 @@ export function FileDetails({
       {/* Screenshots Gallery */}
       {hasScreenshots && (
         <div>
-          <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+          <h4 className="text-sm font-semibold tracking-tight mb-2 flex items-center gap-1.5">
             <ImageIcon className="h-4 w-4" />
             Preview Screenshots
           </h4>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2.5">
             {screenshots.slice(0, 6).map((url, index) => (
               <Button
                 key={url}
                 variant="ghost"
-                className="relative aspect-video rounded-md overflow-hidden border hover:border-primary p-0 h-auto"
+                className="relative aspect-video rounded-lg overflow-hidden border border-border/60 hover:border-primary/60 p-0 h-auto transition-all shadow-2xs group"
                 onClick={() => window.open(url, "_blank")}
               >
                 <Image
@@ -91,7 +91,7 @@ export function FileDetails({
                   alt={`Screenshot ${index + 1}`}
                   fill
                   sizes="(max-width: 768px) 33vw, 150px"
-                  className="object-cover hover:scale-105 transition-transform"
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               </Button>
             ))}
@@ -106,9 +106,9 @@ export function FileDetails({
 
       {/* Magnet URL */}
       <div>
-        <h4 className="text-sm font-semibold mb-1">Magnet URL</h4>
-        <div className="flex items-center gap-2">
-          <p className="text-xs text-muted-foreground break-all flex-1 font-mono">
+        <h4 className="text-sm font-semibold tracking-tight mb-1">Magnet URL</h4>
+        <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/40 p-1.5 shadow-2xs">
+          <p className="text-xs text-foreground/90 break-all flex-1 font-mono px-2 py-1">
             {task.data.url}
           </p>
           <Button
@@ -117,12 +117,12 @@ export function FileDetails({
             onClick={() => {
               copyToClipboard(task.data.url, task.id);
             }}
-            className="shrink-0 h-8"
+            className="shrink-0 h-8 shadow-2xs"
           >
             {copiedId === task.id ? (
-              <span className="text-xs">Copied!</span>
+              <span className="text-xs font-medium">Copied!</span>
             ) : (
-              <Copy className="h-3 w-3" />
+              <Copy className="h-3.5 w-3.5" />
             )}
           </Button>
         </div>
@@ -130,7 +130,7 @@ export function FileDetails({
 
       {/* Added */}
       <div>
-        <h4 className="text-sm font-semibold mb-1">Added</h4>
+        <h4 className="text-sm font-semibold tracking-tight mb-1">Added</h4>
         <p className="text-sm text-muted-foreground">
           {formatDistanceToNow(new Date(task.created_at), {
             addSuffix: true,

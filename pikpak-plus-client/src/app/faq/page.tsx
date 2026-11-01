@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { ChevronDown, HelpCircle } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Frequently Asked Questions - PikPak Plus",
@@ -63,25 +64,41 @@ export default function FAQPage() {
   ];
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-2 md:p-4 lg:p-8 bg-gradient-to-b from-background to-muted/20 overflow-x-hidden w-full">
+    <main className="flex min-h-screen flex-col items-center p-4 md:p-8 bg-linear-to-b from-background to-muted/20 overflow-x-hidden w-full">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="mb-12 text-center">
-          <h1 className="text-4xl font-bold mb-4 text-foreground">
+        <div className="mb-10 text-center">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 mb-4 rounded-full border border-primary/25 bg-primary/10 text-primary text-xs sm:text-sm font-medium shadow-xs">
+            <HelpCircle className="h-3.5 w-3.5" />
+            <span>Knowledge Base</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3 text-balance bg-linear-to-b from-foreground to-foreground/80 bg-clip-text">
             Frequently Asked Questions
           </h1>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto">
             Find answers to common questions about using PikPak Plus
           </p>
         </div>
 
-        <div className="space-y-6">
-          {faqs.map((faq) => (
-            <div key={faq.question} className="border-b border-border pb-6">
-              <h2 className="text-xl font-semibold mb-3 text-foreground">
-                {faq.question}
-              </h2>
-              <p className="text-muted-foreground">{faq.answer}</p>
-            </div>
+        <div className="space-y-3.5">
+          {faqs.map((faq, index) => (
+            <details
+              key={faq.question}
+              open={index === 0}
+              className="group border border-border/60 bg-card/70 backdrop-blur-sm rounded-xl p-5 hover:border-primary/40 transition-all duration-200 shadow-xs open:bg-card/95 open:shadow-md"
+            >
+              <summary className="flex items-center justify-between cursor-pointer list-none [&::-webkit-details-marker]:hidden font-semibold text-foreground text-base sm:text-lg select-none">
+                <div className="flex items-center gap-3 pr-2">
+                  <span className="flex items-center justify-center h-7 w-7 rounded-lg bg-primary/10 text-primary text-xs font-bold font-mono shrink-0 ring-1 ring-primary/20">
+                    Q{index + 1}
+                  </span>
+                  <span>{faq.question}</span>
+                </div>
+                <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 group-open:rotate-180 shrink-0" />
+              </summary>
+              <div className="pt-3.5 mt-3.5 border-t border-border/40 text-sm sm:text-base text-muted-foreground leading-relaxed pl-10">
+                <p>{faq.answer}</p>
+              </div>
+            </details>
           ))}
         </div>
       </div>

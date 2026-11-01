@@ -1,11 +1,10 @@
 """System Routes (Health, Config)"""
 import logging
+
 from flask import Blueprint, jsonify
+
+from app.api.utils.dependencies import get_pikpak_service, get_supabase_service
 from app.core.config import AppConfig
-from app.api.utils.dependencies import (
-    get_pikpak_service,
-    get_supabase_service
-)
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +16,7 @@ bp = Blueprint('system', __name__)
 def get_config():
     """Get public configuration"""
     import json
+
     import redis
 
     result = {

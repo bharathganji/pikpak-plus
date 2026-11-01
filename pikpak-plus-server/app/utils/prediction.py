@@ -1,6 +1,7 @@
-from typing import List, Tuple
+from collections.abc import Sequence
 
-def calculate_linear_regression(x: List[float], y: List[float]) -> Tuple[float, float]:
+
+def calculate_linear_regression(x: Sequence[float], y: Sequence[float]) -> tuple[float, float]:
     """
     Calculates the slope (m) and y-intercept (b) of the best-fit line (y = mx + b).
     """
@@ -21,7 +22,7 @@ def calculate_linear_regression(x: List[float], y: List[float]) -> Tuple[float, 
     b = (sum_y - m * sum_x) / n
     return m, b
 
-def predict_next_values(data: List[float], num_predictions: int = 7) -> List[float]:
+def predict_next_values(data: list[float], num_predictions: int = 7) -> list[float]:
     """
     Predicts the next n values based on the input data series.
     Uses indices 0, 1, 2... as x values.

@@ -102,6 +102,12 @@ export type DownloadListResponse = {
   expires_in: number;
 };
 
+export interface BulkDeleteResponse {
+  success: boolean;
+  count: number;
+  message?: string;
+}
+
 // ============================================================================
 // File Types
 // ============================================================================
@@ -426,6 +432,7 @@ export interface SupabaseTaskRecord {
   id: number;
   created_at: string;
   action: string;
+  user_email?: string;
   data: {
     url: string;
     meta?: {
@@ -436,6 +443,7 @@ export interface SupabaseTaskRecord {
       url?: {
         kind: string;
       };
+      name?: string;
       task?: Task;
     };
     /** WhatsLink metadata from torrent analysis */

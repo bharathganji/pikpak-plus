@@ -1,6 +1,6 @@
 import logging
-from datetime import datetime, timezone
-from typing import Optional, Any
+from datetime import UTC, datetime
+
 from app.core.config import AppConfig
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ class TrafficChecker:
                 if quota_info_cached:
                     quota_info_cached["transfer"] = transfer_quota
                     quota_info_cached["cached_at"] = datetime.now(
-                        timezone.utc).isoformat()
+                        UTC).isoformat()
                     self.cache_manager.set(
                         "quota_info", quota_info_cached, ttl=AppConfig.QUOTA_CACHE_TTL)
 

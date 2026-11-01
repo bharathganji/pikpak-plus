@@ -48,13 +48,16 @@ export function QuotaTransfer({ transferData }: QuotaTransferProps) {
     downloadTotal > 0 ? (downloadUsed / downloadTotal) * 100 : 0;
 
   return (
-    <div className="space-y-4 pt-4 border-t border-dashed">
+    <div className="space-y-4 pt-4 border-t border-dashed border-border/60">
       <div className="flex items-center justify-between">
         <div className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
           Monthly Transfer
         </div>
         {transferData.base?.vip_status && (
-          <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
+          <Badge
+            variant="secondary"
+            className="text-[10px] h-5 px-2 font-medium tracking-wide border-primary/20 bg-primary/10 text-primary"
+          >
             {transferData.base.vip_status}
           </Badge>
         )}
@@ -64,20 +67,20 @@ export function QuotaTransfer({ transferData }: QuotaTransferProps) {
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground flex items-center gap-2">
-            <div className="p-1 rounded-md bg-green-500/10">
-              <Download className="h-3 w-3 text-green-600" />
+            <div className="p-1 rounded-md bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+              <Download className="h-3.5 w-3.5" />
             </div>
-            Cloud Download
+            <span className="font-medium text-foreground">Cloud Download</span>
           </span>
-          <span className="font-medium font-mono text-xs">
+          <span className="font-semibold font-mono text-xs text-foreground">
             {offlinePercent.toFixed(1)}%
           </span>
         </div>
         <Progress
           value={offlinePercent}
-          className={`h-2 ${getProgressColor(offlinePercent)}`}
+          className={`h-2 bg-muted/60 ${getProgressColor(offlinePercent)}`}
         />
-        <div className="flex justify-end text-[10px] text-muted-foreground">
+        <div className="flex justify-end text-[11px] font-mono text-muted-foreground">
           {formatBytes(offlineUsed)} / {formatBytes(offlineTotal)}
         </div>
       </div>
@@ -86,22 +89,22 @@ export function QuotaTransfer({ transferData }: QuotaTransferProps) {
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground flex items-center gap-2">
-            <div className="p-1 rounded-md bg-orange-500/10">
-              <Upload className="h-3 w-3 text-orange-600" />
+            <div className="p-1 rounded-md bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400">
+              <Upload className="h-3.5 w-3.5" />
             </div>
-            Downstream
+            <span className="font-medium text-foreground">Downstream</span>
           </span>
-          <span className="font-medium font-mono text-xs">
+          <span className="font-semibold font-mono text-xs text-foreground">
             {downloadPercent.toFixed(1)}%
           </span>
         </div>
         <Progress
           value={downloadPercent}
-          className={`h-2 ${getProgressColor(downloadPercent)}`}
+          className={`h-2 bg-muted/60 ${getProgressColor(downloadPercent)}`}
         />
-        <div className="flex justify-between items-center text-[10px] text-muted-foreground">
-          <span className="italic opacity-80">Streaming & Downloading</span>
-          <span>
+        <div className="flex justify-between items-center text-[11px] text-muted-foreground">
+          <span className="italic opacity-80 text-[10px]">Streaming & Downloading</span>
+          <span className="font-mono">
             {formatBytes(downloadUsed)} / {formatBytes(downloadTotal)}
           </span>
         </div>

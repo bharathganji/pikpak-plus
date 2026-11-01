@@ -2,15 +2,16 @@
 JWT Token Utility
 Decode and validate PikPak JWT tokens to check expiration
 """
-import jwt
-import time
-from typing import Optional, Dict, Any
 import logging
+import time
+from typing import Any
+
+import jwt
 
 logger = logging.getLogger(__name__)
 
 
-def decode_token(token: str) -> Optional[Dict[str, Any]]:
+def decode_token(token: str) -> dict[str, Any] | None:
     """
     Decode a JWT token without verification
 
@@ -66,7 +67,7 @@ def is_token_expired(token: str, buffer_seconds: int = 300) -> bool:
     return is_expired
 
 
-def get_token_info(token: str) -> Dict[str, Any]:
+def get_token_info(token: str) -> dict[str, Any]:
     """
     Get detailed information about a JWT token
 

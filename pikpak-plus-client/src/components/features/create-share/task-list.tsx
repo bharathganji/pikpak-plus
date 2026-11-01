@@ -2,6 +2,7 @@
 
 import React, { useMemo } from "react";
 import type { SupabaseTaskRecord } from "@/types";
+import { Skeleton } from "@/components/ui/skeleton";
 import { TaskPreviewDialog } from "./task-preview-dialog";
 
 // Import extracted components
@@ -91,8 +92,25 @@ export const TaskList = React.memo(function TaskList(
 
   if (loading) {
     content = (
-      <div className="text-center py-6 text-muted-foreground text-sm">
-        Loading tasks...
+      <div className="space-y-2">
+        {[1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="flex items-center justify-between p-3 rounded-lg border border-border/40 bg-card/40"
+          >
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
+              <div className="space-y-1.5 flex-1 max-w-sm">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <Skeleton className="h-4 w-16 hidden sm:block" />
+              <Skeleton className="h-7 w-20 rounded-md" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   } else if (error) {

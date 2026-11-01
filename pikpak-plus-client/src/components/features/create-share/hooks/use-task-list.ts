@@ -3,7 +3,7 @@
  */
 
 import { useState, useMemo, useCallback } from "react";
-import { useLocalStorage } from "primereact/hooks";
+import { useLocalStorage } from "@uidotdev/usehooks";
 import { isProfane } from "@/lib/nsfw-filter";
 import type { SupabaseTaskRecord } from "@/types";
 import { getTaskName } from "../task-utils";
@@ -12,8 +12,8 @@ import { calculateItemRange } from "../utils/pagination-utils";
 // Hook for managing NSFW filter state
 export function useNsfwFilter() {
   const [nsfwFilterEnabled, setNsfwFilterEnabled] = useLocalStorage(
-    true,
     "nsfwFilterEnabled",
+    true,
   );
 
   const toggleFilter = useCallback(() => {

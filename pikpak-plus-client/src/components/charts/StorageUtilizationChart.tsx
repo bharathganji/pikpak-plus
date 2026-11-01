@@ -14,20 +14,24 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { tooltipStyle, formatBytes } from "./utils";
+import { Database } from "lucide-react";
 
 interface StorageUtilizationChartProps {
-  chartData: any[];
+  chartData: Array<Record<string, unknown>>;
 }
 
 export function StorageUtilizationChart({
   chartData,
 }: Readonly<StorageUtilizationChartProps>) {
   return (
-    <Card className="col-span-1 md:col-span-2 lg:col-span-1 transition-all duration-300 hover:shadow-lg">
-      <CardHeader>
-        <CardTitle>Storage Utilization</CardTitle>
+    <Card className="col-span-1 md:col-span-2 lg:col-span-1 rounded-xl border-border/60 bg-card shadow-xs transition-all duration-300 hover:shadow-md hover:border-border/80">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+        <CardTitle className="text-base font-semibold tracking-tight flex items-center gap-2">
+          <Database className="h-4 w-4 text-purple-500" />
+          <span>Storage Utilization</span>
+        </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-2">
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData}>
@@ -59,9 +63,9 @@ export function StorageUtilizationChart({
                 dx={-10}
               />
               <Tooltip
-                labelFormatter={(date) => format(new Date(date), "PPP")}
-                formatter={(value: number, name: string) => [
-                  formatBytes(value),
+                labelFormatter={(date: unknown) => format(new Date(date as string | number | Date), "PPP")}
+                formatter={(value: unknown, name: unknown) => [
+                  formatBytes(typeof value === "number" ? value : 0),
                   name === "storage_used_predicted"
                     ? "Predicted Storage"
                     : "Storage Used",

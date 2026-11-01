@@ -13,6 +13,15 @@ export function Footer() {
             FAQ
           </Link>
           <a
+            href="https://jackett.pikpak-plus.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-muted-foreground hover:text-primary hover:underline transition-colors"
+          >
+            Search Torrents
+            <ExternalLink className="h-3 w-3" />
+          </a>
+          <a
             href="https://github.com/bharathganji/pikpak-plus"
             target="_blank"
             rel="noopener noreferrer"

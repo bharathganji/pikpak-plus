@@ -1,5 +1,4 @@
 import { ReactNode } from "react";
-import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/layout/header";
 
 export default function FAQLayout({ children }: { children: ReactNode }) {

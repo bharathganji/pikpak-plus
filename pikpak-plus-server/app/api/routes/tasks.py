@@ -1,18 +1,20 @@
 """Task Management Routes"""
 import logging
-from flask import Blueprint, request, jsonify
-from app.core.config import AppConfig
-from app.core.auth import require_auth, get_current_user
-from app.services import WhatsLinkService
-from app.services.user_service import UserService
+
+from flask import Blueprint, jsonify, request
+
 from app.api.utils.async_helpers import run_async
 from app.api.utils.dependencies import (
+    get_cache_manager,
     get_pikpak_service,
     get_supabase_service,
-    get_cache_manager,
-    get_scheduler
 )
-from app.utils.common import extract_magnet_hash, extract_e2dk_hash, validate_link
+from app.core.auth import get_current_user, require_auth
+from app.core.config import AppConfig
+from app.services import WhatsLinkService
+from app.services.user_service import UserService
+from app.utils.common import extract_e2dk_hash, extract_magnet_hash, validate_link
+from app.utils.validators import get_json_body, validate_pagination
 
 logger = logging.getLogger(__name__)
 
@@ -59,11 +61,17 @@ def add_task():
                 "message": "Your account has been blocked. You cannot perform this action."
             }), 403
 
-        data = request.json
+        data, err = get_json_body(request)
+        if err:
+            return err[0], err[1]
         url = data.get('url')
 
-        if not url:
+        if not url or not isinstance(url, str):
             return jsonify({"error": "No URL provided"}), 400
+
+        url = url.strip()
+        if len(url) > 4096:
+            return jsonify({"error": "URL length exceeds maximum limit of 4096 characters"}), 400
 
         logger.info(f"Received add request for: {url}")
 
@@ -103,7 +111,7 @@ def add_task():
         try:
             task_result = await pikpak_service.add_download(url)
         except Exception as e:
-            return jsonify({"error": f"PikPak Error: {str(e)}"}), 500
+            return jsonify({"error": f"PikPak Error: {e!s}"}), 500
 
         # Log to Supabase with WhatsLink metadata and user email
         supabase_service.log_action(
@@ -134,8 +142,15 @@ def get_tasks():
 
         user_email = user_data['email']
 
-        page = int(request.args.get('page', 1))
-        limit = int(request.args.get('limit', AppConfig.DEFAULT_PAGE_SIZE))
+        page, limit, err = validate_pagination(
+            request.args,
+            default_page=1,
+            default_limit=AppConfig.DEFAULT_PAGE_SIZE,
+            max_limit=100
+        )
+        if err:
+            return err[0], err[1]
+
         offset = (page - 1) * limit
 
         # Fetch user-specific tasks
@@ -168,3 +183,127 @@ def get_task_by_id(task_id: int):
     except Exception as e:
         logger.error(f"Failed to fetch task {task_id}: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+@bp.route('/tasks/bulk', methods=['DELETE'])
+@require_auth
+def delete_tasks_bulk():
+    """Bulk delete multiple tasks for the authenticated user"""
+    try:
+        user_data = get_current_user()
+        if not user_data:
+            return jsonify({"error": "Authentication required"}), 401
+
+        user_email = user_data.get('email')
+        if not user_email:
+            return jsonify({"error": "User email not found in token"}), 401
+
+        supabase_service = get_supabase_service()
+        if not supabase_service:
+            return jsonify({"error": "Database service unavailable"}), 503
+
+        user_service = UserService(supabase_service)
+        if user_service.is_user_blocked(user_email):
+            return jsonify({
+                "error": "Account blocked",
+                "message": "Your account has been blocked. You cannot perform this action."
+            }), 403
+
+        data, err = get_json_body(request, required_fields=["ids"], field_types={"ids": list})
+        if err or data is None:
+            return (err[0], err[1]) if err else (jsonify({"error": "Bad Request"}), 400)
+
+        ids = data.get("ids")
+        if not isinstance(ids, list) or len(ids) == 0:
+            return jsonify({
+                "error": "Invalid payload",
+                "message": "'ids' must be a non-empty list"
+            }), 400
+
+        if len(ids) > 500:
+            return jsonify({
+                "error": "Invalid payload",
+                "message": "Cannot delete more than 500 items at once"
+            }), 400
+
+        valid_ids: list[int] = []
+        for item in ids:
+            if isinstance(item, bool):
+                return jsonify({
+                    "error": "Invalid payload",
+                    "message": "All elements in 'ids' must be valid numeric IDs"
+                }), 400
+            if isinstance(item, int) and item > 0:
+                valid_ids.append(item)
+            elif isinstance(item, str) and item.strip().isdigit() and int(item.strip()) > 0:
+                valid_ids.append(int(item.strip()))
+            else:
+                return jsonify({
+                    "error": "Invalid payload",
+                    "message": "All elements in 'ids' must be valid numeric IDs"
+                }), 400
+
+        deleted_count = supabase_service.delete_user_tasks_bulk(user_email, valid_ids)
+
+        cache_manager = get_cache_manager()
+        if cache_manager:
+            cache_manager.invalidate_tasks()
+
+        return jsonify({
+            "success": True,
+            "count": deleted_count,
+            "message": f"{deleted_count} tasks deleted successfully"
+        }), 200
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Failed to bulk delete tasks: {e}")
+        return jsonify({
+            "error": "Internal server error",
+            "message": "Failed to delete tasks"
+        }), 500
+
+
+@bp.route('/tasks/<int:task_id>', methods=['DELETE'])
+@require_auth
+def delete_task_by_id(task_id: int):
+    """Delete a single task belonging to the authenticated user"""
+    try:
+        user_data = get_current_user()
+        if not user_data:
+            return jsonify({"error": "Authentication required"}), 401
+
+        user_email = user_data.get('email')
+        if not user_email:
+            return jsonify({"error": "User email not found in token"}), 401
+
+        supabase_service = get_supabase_service()
+        if not supabase_service:
+            return jsonify({"error": "Database service unavailable"}), 503
+
+        user_service = UserService(supabase_service)
+        if user_service.is_user_blocked(user_email):
+            return jsonify({
+                "error": "Account blocked",
+                "message": "Your account has been blocked. You cannot perform this action."
+            }), 403
+
+        deleted_count = supabase_service.delete_user_tasks_bulk(user_email, [task_id])
+        if deleted_count == 0:
+            return jsonify({
+                "error": "Task not found",
+                "message": f"Task {task_id} not found or does not belong to you"
+            }), 404
+
+        cache_manager = get_cache_manager()
+        if cache_manager:
+            cache_manager.invalidate_tasks()
+
+        return jsonify({
+            "success": True,
+            "message": "Task deleted successfully"
+        }), 200
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Failed to delete task {task_id}: {e}")
+        return jsonify({
+            "error": "Internal server error",
+            "message": "Failed to delete task"
+        }), 500

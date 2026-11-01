@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { getApiUrl } from "@/lib/api-utils";
 import { WebDAVClientCard } from "./webdav-client-card";
@@ -15,51 +15,49 @@ import {
   WebDAVTrafficWarning,
 } from "./webdav-states";
 
-export function WebDAVClientsGrid() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [webdavData, setWebdavData] = useState<WebDAVResponse | null>(null);
+const fetchClients = async (): Promise<WebDAVResponse> => {
+  const apiUrl = getApiUrl();
+  const response = await axios.get(`${apiUrl}/webdav/active-clients`);
+  return response.data;
+};
 
-  useEffect(() => {
-    fetchWebDAVClients();
-  }, []);
-
-  const fetchWebDAVClients = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const apiUrl = getApiUrl();
-      const response = await axios.get(`${apiUrl}/webdav/active-clients`);
-      const data: WebDAVResponse = response.data;
-      setWebdavData(data);
-    } catch (err: any) {
-      console.error("Failed to fetch WebDAV clients:", err);
-      let errorMsg = "Failed to load WebDAV clients";
-
-      if (err.code === "ERR_NETWORK" || err.message === "Network Error") {
-        errorMsg =
-          "Cannot connect to server. Please ensure the backend is running.";
-      } else if (err.response?.data?.error) {
-        errorMsg = err.response.data.error;
-      } else if (err.message) {
-        errorMsg = err.message;
-      }
-
-      setError(errorMsg);
-    } finally {
-      setLoading(false);
+function getErrorMessage(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    if (err.code === "ERR_NETWORK" || err.message === "Network Error") {
+      return "Cannot connect to server. Please ensure the backend is running.";
+    } else if (err.response?.data?.error) {
+      return String(err.response.data.error);
+    } else if (err.message) {
+      return err.message;
     }
+  } else if (err instanceof Error) {
+    return err.message;
+  }
+  return "Failed to load WebDAV clients";
+}
+
+export function WebDAVClientsGrid() {
+  const {
+    data: webdavData,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["webdav-active-clients"],
+    queryFn: fetchClients,
+  });
+
+  const handleRetry = () => {
+    refetch();
   };
 
-  if (loading) {
-    return (
-      <WebDAVLoadingState onRetry={fetchWebDAVClients} loading={loading} />
-    );
+  if (isLoading) {
+    return <WebDAVLoadingState onRetry={handleRetry} loading={isFetching} />;
   }
 
   if (error) {
-    return <WebDAVErrorState error={error} />;
+    return <WebDAVErrorState error={getErrorMessage(error)} />;
   }
 
   if (!webdavData?.clients || webdavData.clients.length === 0) {

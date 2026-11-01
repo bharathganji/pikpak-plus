@@ -7,7 +7,7 @@ export const fetchConfig = async (): Promise<ConfigResponse> => {
     const apiUrl = getApiUrl();
     const res = await axios.get(`${apiUrl}/config`);
     return res.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Failed to fetch config", error);
     // Return default values if config fetch fails
     return {
@@ -23,7 +23,7 @@ export const fetchCleanupStatus = async () => {
     const apiUrl = getApiUrl();
     const res = await axios.get(`${apiUrl}/cleanup/status`);
     return res.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Failed to fetch cleanup status", error);
     // Return null if cleanup status fetch fails
     return null;
@@ -33,28 +33,28 @@ export const fetchCleanupStatus = async () => {
 export const fetchGlobalTasks = async (page: number, pageSize: number) => {
   try {
     const apiUrl = getApiUrl();
-    const headers = getAuthHeaders();
     const res = await axios.get(`${apiUrl}/tasks`, {
       params: { page: page, limit: pageSize },
-      headers: headers.Authorization
-        ? { Authorization: headers.Authorization }
-        : {},
+      withCredentials: true,
     });
     return {
       data: res.data.data || [],
       count: res.data.count || 0,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Failed to fetch global tasks", error);
 
     let msg = "Failed to load tasks";
 
-    // Check if it's a network error (backend not running)
-    if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
-      msg = "Cannot connect to server. Please ensure the backend is running.";
-    } else if (error.response?.data?.error) {
-      msg = error.response.data.error;
-    } else if (error.message) {
+    if (axios.isAxiosError(error)) {
+      if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
+        msg = "Cannot connect to server. Please ensure the backend is running.";
+      } else if (error.response?.data?.error) {
+        msg = String(error.response.data.error);
+      } else if (error.message) {
+        msg = error.message;
+      }
+    } else if (error instanceof Error) {
       msg = error.message;
     }
 
@@ -76,26 +76,26 @@ export const addMagnetLink = async (url: string) => {
       },
     );
     return res.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     let errMsg = "Failed to add magnet link";
 
-    // Check if it's a network error (backend not running)
-    if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
-      errMsg =
-        "Cannot connect to server. Please ensure the backend is running.";
-    } else if (error.response?.data?.error) {
-      // API returned an error message
-      errMsg = error.response.data.error;
-    } else if (error.message) {
-      // Other error with message
+    if (axios.isAxiosError(error)) {
+      if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
+        errMsg =
+          "Cannot connect to server. Please ensure the backend is running.";
+      } else if (error.response?.data?.error) {
+        errMsg = String(error.response.data.error);
+      } else if (error.message) {
+        errMsg = error.message;
+      }
+
+      error.message = errMsg;
+      throw error;
+    } else if (error instanceof Error) {
       errMsg = error.message;
+      throw error;
     }
 
-    // Pass the extracted error message back in the error object so the component uses it
-    error.message = errMsg;
-
-    // Add the response data to the error for file info
-    (error as any).response = error.response;
-    throw error;
+    throw new Error(errMsg);
   }
 };

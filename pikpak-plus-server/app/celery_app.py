@@ -1,5 +1,5 @@
-import os
 from celery import Celery
+
 from app.core.config import AppConfig
 
 

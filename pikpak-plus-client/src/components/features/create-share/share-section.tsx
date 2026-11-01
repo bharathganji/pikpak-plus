@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useLocalStorage } from "primereact/hooks";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Copy,
   Share2,
@@ -14,10 +14,9 @@ import {
   XCircle,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getApiUrl, getAuthHeaders } from "@/lib/api-utils";
+import { getApiUrl } from "@/lib/api-utils";
 import axios from "axios";
 import type { SupabaseTaskRecord } from "@/types";
-import { LocalShare, LOCAL_SHARES_STORAGE_KEY } from "../my-activity/types";
 
 interface ShareSectionProps {
   task: SupabaseTaskRecord;
@@ -69,32 +68,13 @@ export function ShareSection({
     is_existing?: boolean;
   } | null>(null);
   const [shareError, setShareError] = useState<string | null>(null);
-  const [shares, setShares] = useLocalStorage<LocalShare[]>(
-    [],
-    LOCAL_SHARES_STORAGE_KEY,
-  );
+  const [needPassword, setNeedPassword] = useState(false);
+  const [expirationDays, setExpirationDays] = useState(-1);
 
   const taskData = task.data.task?.task;
   const hasFileId = !!taskData?.file_id;
   const taskProgress = taskData?.progress || 0;
   const isError = taskData?.phase === "PHASE_TYPE_ERROR";
-
-  const saveToLocalStorage = (shareResult: any, fileId: string) => {
-    const newShare: LocalShare = {
-      id: shareResult.share_id || `share-${Date.now()}`,
-      file_name: taskData?.file_name || "Unknown File",
-      share_url: shareResult.share_url,
-      pass_code: shareResult.pass_code,
-      timestamp: Date.now(),
-      file_id: fileId,
-    };
-
-    // Check if share already exists
-    const alreadyExists = shares.some((s) => s.file_id === fileId);
-    if (!alreadyExists) {
-      setShares([newShare, ...shares]);
-    }
-  };
 
   const handleShare = async () => {
     if (!taskData?.file_id) {
@@ -109,17 +89,17 @@ export function ShareSection({
       const apiUrl = getApiUrl();
       const response = await axios.post(
         `${apiUrl}/share`,
-        { id: taskData.file_id },
-        { headers: getAuthHeaders() },
+        {
+          id: taskData.file_id,
+          file_name: taskData?.file_name,
+          need_password: needPassword,
+          expiration_days: expirationDays,
+        },
+        { withCredentials: true },
       );
 
       const shareResult = response.data;
       setShareData(shareResult);
-
-      // Save to localStorage if it's a new share
-      if (!shareResult.is_existing) {
-        saveToLocalStorage(shareResult, taskData.file_id);
-      }
     } catch (error: any) {
       const friendlyError = getUserFriendlyError(error);
       setShareError(friendlyError);
@@ -134,30 +114,30 @@ export function ShareSection({
   };
 
   return (
-    <div className="border-t pt-4">
+    <div className="border-t border-border/60 pt-4">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-sm font-semibold">Share File</h4>
+        <h4 className="text-sm font-semibold tracking-tight">Share File</h4>
       </div>
 
       {/* Visual Status Indicator - Fix 4 */}
       <div className="mb-3">
         {isError ? (
-          <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-500 bg-red-50 dark:bg-red-950/30 p-2 rounded-md">
-            <XCircle className="h-4 w-4" />
+          <div className="flex items-center gap-2 text-sm bg-destructive/10 text-destructive border border-destructive/20 p-2.5 rounded-lg shadow-2xs">
+            <XCircle className="h-4 w-4 shrink-0 text-destructive" />
             <span className="font-medium">Task Failed</span>
           </div>
         ) : hasFileId ? (
-          <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-950/30 p-2 rounded-md">
-            <CheckCircle2 className="h-4 w-4" />
+          <div className="flex items-center gap-2 text-sm bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 p-2.5 rounded-lg shadow-2xs">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
             <span className="font-medium">Ready to Share</span>
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-sm text-orange-600 dark:text-orange-500 bg-orange-50 dark:bg-orange-950/30 p-2 rounded-md">
-            <Clock className="h-4 w-4" />
+          <div className="flex items-center gap-2 text-sm bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 p-2.5 rounded-lg shadow-2xs">
+            <Clock className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
             <div className="flex-1">
               <span className="font-medium">Task in Progress</span>
               {taskProgress > 0 && (
-                <span className="ml-2 text-xs opacity-80">
+                <span className="ml-2 text-xs opacity-90">
                   ({taskProgress}% complete)
                 </span>
               )}
@@ -198,7 +178,7 @@ export function ShareSection({
                 variant="outline"
                 size="sm"
                 onClick={handleRetry}
-                className="h-7 text-xs"
+                className="h-7 text-xs shadow-2xs"
               >
                 Retry
               </Button>
@@ -210,16 +190,21 @@ export function ShareSection({
       {/* Share Link Display - Above Button */}
       {shareData && (
         <div className="space-y-2 mb-3">
-          {/* Indicator for existing vs new share */}
+          {/* Indicator for existing vs new share - Active Deduplicated Share Pill */}
           {shareData.is_existing && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-              <Info className="h-3 w-3" />
-              <span>Existing share link</span>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Badge
+                variant="secondary"
+                className="gap-1 border border-border/60 text-[11px] font-normal"
+              >
+                <Info className="h-3 w-3" />
+                <span>Existing share link</span>
+              </Badge>
             </div>
           )}
 
-          <div className="flex items-center gap-2">
-            <p className="text-xs text-muted-foreground break-all flex-1 font-mono bg-muted p-2 rounded">
+          <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/40 p-1.5 shadow-2xs">
+            <p className="text-xs text-foreground/90 break-all flex-1 font-mono px-2 py-1">
               {shareData.share_url}
             </p>
             <Button
@@ -228,23 +213,53 @@ export function ShareSection({
               onClick={() => {
                 copyToClipboard(shareData.share_url, task.id + 1000);
               }}
-              className="shrink-0 h-8"
+              className="shrink-0 h-8 shadow-2xs"
             >
               {copiedId === task.id + 1000 ? (
-                <span className="text-xs">Copied!</span>
+                <span className="text-xs font-medium">Copied!</span>
               ) : (
-                <Copy className="h-3 w-3" />
+                <Copy className="h-3.5 w-3.5" />
               )}
             </Button>
           </div>
           {shareData.pass_code && (
-            <div className="text-sm">
-              <span className="font-semibold">Password: </span>
-              <span className="font-mono bg-muted px-2 py-1 rounded">
+            <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-xs">
+              <span className="font-medium text-muted-foreground">Password:</span>
+              <span className="font-mono font-semibold text-foreground bg-background/80 px-2 py-0.5 rounded border border-border/50">
                 {shareData.pass_code}
               </span>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Share Options */}
+      {hasFileId && !shareData && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3 p-3 bg-muted/30 rounded-lg border border-border/60 text-xs">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={needPassword}
+              onChange={(e) => setNeedPassword(e.target.checked)}
+              className="h-3.5 w-3.5 rounded border-input text-primary focus:ring-primary/20"
+            />
+            <span className="font-medium">Require Passcode</span>
+          </label>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground whitespace-nowrap">
+              Expires:
+            </span>
+            <select
+              value={expirationDays}
+              onChange={(e) => setExpirationDays(Number(e.target.value))}
+              className="h-7 w-full rounded-md border border-input bg-background px-2 text-xs focus:ring-2 focus:ring-primary/20 focus:outline-none"
+            >
+              <option value={-1}>Permanent</option>
+              <option value={1}>1 Day</option>
+              <option value={7}>7 Days</option>
+              <option value={30}>30 Days</option>
+            </select>
+          </div>
         </div>
       )}
 
@@ -254,16 +269,16 @@ export function ShareSection({
         size="sm"
         onClick={handleShare}
         disabled={shareLoading || !hasFileId}
-        className="gap-2 w-full"
+        className="gap-2 w-full shadow-2xs"
       >
         {shareLoading ? (
           <>
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Creating...
           </>
         ) : (
           <>
-            <Share2 className="h-3 w-3" />
+            <Share2 className="h-3.5 w-3.5" />
             {shareData?.is_existing
               ? "View Existing Share"
               : shareData

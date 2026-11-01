@@ -1,9 +1,11 @@
+import logging
+from datetime import UTC, datetime
+
+import redis
 from celery import shared_task
+
 from app.core.config import AppConfig
 from app.tasks.utils import update_redis_status
-from datetime import datetime, timezone
-import redis
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +16,7 @@ def scheduler_heartbeat(self):
     Update the scheduler heartbeat in Redis.
     This allows the API to know that the scheduler is running.
     """
-    run_time = datetime.now(timezone.utc)
+    run_time = datetime.now(UTC)
 
     try:
         redis_client = redis.from_url(

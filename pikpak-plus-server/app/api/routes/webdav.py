@@ -1,17 +1,20 @@
 """WebDAV Management Routes"""
-import logging
 import json
-from datetime import datetime, timedelta
+import logging
+from datetime import UTC, datetime, timedelta
+
 import redis
-from flask import Blueprint, request, jsonify
-from app.core.config import AppConfig
-from app.core.auth import internal_only
+from flask import Blueprint, jsonify, request
+
 from app.api.utils.async_helpers import run_async
 from app.api.utils.dependencies import (
+    get_cache_manager,
     get_pikpak_service,
     get_webdav_manager,
-    get_cache_manager
 )
+from app.core.auth import internal_only
+from app.core.config import AppConfig
+from app.utils.validators import get_json_body, sanitize_identifier
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +52,12 @@ def toggle_webdav():
     """
     async def _async_toggle_webdav():
         try:
-            data = request.json
+            data, err = get_json_body(request)
+            if err:
+                return jsonify({"error": "Missing 'enable' parameter"}), 400
             enable = data.get('enable')
 
-            if enable is None:
+            if enable is None or not isinstance(enable, bool):
                 return jsonify({"error": "Missing 'enable' parameter"}), 400
 
             pikpak_service = get_pikpak_service()
@@ -76,14 +81,20 @@ def create_webdav_application():
     """
     async def _async_create_webdav_application():
         try:
-            data = request.json
+            data, err = get_json_body(request)
+            if err:
+                return jsonify({"error": "Missing 'application_name' parameter"}), 400
             application_name = data.get('application_name')
 
-            if not application_name:
+            if not application_name or not isinstance(application_name, str) or not application_name.strip():
                 return jsonify({"error": "Missing 'application_name' parameter"}), 400
 
+            is_valid, sanitized_app_name, error_msg = sanitize_identifier(application_name, "application_name")
+            if not is_valid:
+                return jsonify({"error": "Invalid identifier", "message": error_msg}), 400
+
             pikpak_service = get_pikpak_service()
-            result = await pikpak_service.create_webdav_application(application_name)
+            result = await pikpak_service.create_webdav_application(sanitized_app_name)
             return jsonify(result)
         except Exception as e:
             logger.error(f"Failed to create WebDAV application: {e}")
@@ -103,7 +114,9 @@ def delete_webdav_application():
     """
     async def _async_delete_webdav_application():
         try:
-            data = request.json
+            data, err = get_json_body(request)
+            if err:
+                return jsonify({"error": "Missing 'username' or 'password' parameter"}), 400
             username = data.get('username')
             password = data.get('password')
 
@@ -130,12 +143,14 @@ def modify_webdav_application():
     """
     async def _async_modify_webdav_application():
         try:
-            data = request.json
+            data, err = get_json_body(request)
+            if err:
+                return jsonify({"error": "Missing 'username', 'password', or 'modify_props' parameter"}), 400
             username = data.get('username')
             password = data.get('password')
             modify_props = data.get('modify_props')
 
-            if not username or not password or not modify_props:
+            if not username or not password or not modify_props or not isinstance(modify_props, dict):
                 return jsonify({"error": "Missing 'username', 'password', or 'modify_props' parameter"}), 400
 
             pikpak_service = get_pikpak_service()
@@ -206,7 +221,7 @@ def get_active_webdav_clients():
                     "webdav_generation_interval_hours": AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS,
                     "webdav_next_refresh": None,
                     "quota_refresh_interval_seconds": AppConfig.QUOTA_CACHE_TTL,
-                    "quota_next_refresh": (datetime.utcnow() + timedelta(seconds=remaining_quota_ttl)).isoformat()
+                    "quota_next_refresh": (datetime.now(UTC) + timedelta(seconds=remaining_quota_ttl)).isoformat()
                 }
             }
 
@@ -228,7 +243,7 @@ def get_active_webdav_clients():
                         logger.info(f"Found scheduler info: {scheduler_info}")
                     except json.JSONDecodeError:
                         logger.warning("Failed to parse scheduler status JSON")
-                        pass  # Ignore if JSON parsing fails
+                        # Ignore if JSON parsing fails
             except Exception as redis_error:
                 logger.warning(
                     f"Error accessing Redis for WebDAV refresh info: {redis_error}")
@@ -239,7 +254,7 @@ def get_active_webdav_clients():
             logger.error(f"Failed to get active WebDAV clients: {e}")
             result = {
                 "available": False,
-                "message": f"Error: {str(e)}",
+                "message": f"Error: {e!s}",
                 "clients": []
             }
             return jsonify(result), 500
