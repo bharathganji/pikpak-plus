@@ -189,6 +189,7 @@ class AuthMixin(BaseClient):
             "expires_at": time.time() + float(expires_in),
         }
         self.captcha_token = captcha_token
+        self.captcha_action = action
         self.captcha_expires_at = time.time() + float(expires_in)
         return captcha_token
 

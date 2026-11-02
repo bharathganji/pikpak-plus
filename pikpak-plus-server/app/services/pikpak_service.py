@@ -102,8 +102,6 @@ class PikPakService:
 
         # Step 1: Check if we already have a valid token locally
         if not force_refresh and await self._try_use_existing_token():
-            # Ensure captcha token is valid before returning
-            await self._ensure_valid_captcha_token()
             return client
 
         # Step 2: Check if another worker has a valid token (via Redis)
@@ -112,7 +110,6 @@ class PikPakService:
             await self._reload_tokens_from_supabase()
             if await self._try_use_existing_token():
                 logger.info("Using token refreshed by another worker")
-                await self._ensure_valid_captcha_token()
                 return client
 
         # Step 3: Check cooldown - if a login or rate limit cooldown is active
@@ -121,7 +118,6 @@ class PikPakService:
             await self._reload_tokens_from_supabase()
             if await self._try_use_existing_token():
                 login_lock.clear_cooldown()
-                await self._ensure_valid_captcha_token()
                 return client
 
             # If still no valid token after cooldown reload, check if lock is held
@@ -131,7 +127,6 @@ class PikPakService:
                 await self._reload_tokens_from_supabase()
                 if await self._try_use_existing_token():
                     login_lock.clear_cooldown()
-                    await self._ensure_valid_captcha_token()
                     return client
 
             # If a refresh token is available, we CAN refresh even during signin cooldown!
@@ -141,7 +136,6 @@ class PikPakService:
                 try:
                     await self.refresh_token_if_needed()
                     login_lock.clear_cooldown()
-                    await self._ensure_valid_captcha_token()
                     return client
                 except Exception as ref_err:  # noqa: BLE001
                     logger.warning(f"Refresh during cooldown failed: {ref_err}")
@@ -152,7 +146,6 @@ class PikPakService:
                         await self._reload_tokens_from_supabase()
                         if await self._try_use_existing_token():
                             login_lock.clear_cooldown()
-                            await self._ensure_valid_captcha_token()
                             return client
 
             # Still in cooldown with no valid token or refresh token - abort and retry later
@@ -172,11 +165,6 @@ class PikPakService:
             await self._reload_tokens_from_supabase()
             if await self._try_use_existing_token():
                 logger.info("Using token from concurrent worker login")
-                # Force fresh captcha - shared captcha may have wrong action/meta
-                self.client.captcha_token = None
-                self.client.captcha_expires_at = None
-                self.client.captcha_tokens = {}  # Clear action-specific captcha tokens
-                await self._ensure_valid_captcha_token()
                 return client
 
             # If still no valid token, try to acquire lock again
@@ -189,7 +177,6 @@ class PikPakService:
                 # Double-check after acquiring lock
                 if not force_refresh and await self._try_use_existing_token():
                     logger.debug("Token refreshed while waiting for local lock")
-                    await self._ensure_valid_captcha_token()
                     return client
 
                 # Step 5a: PikPak OAuth Refresh: Try token refresh if refresh_token exists
@@ -202,7 +189,6 @@ class PikPakService:
                             decoded = decode_token(self.client.access_token)
                             if decoded and decoded.get("exp"):
                                 login_lock.set_token_valid_until(float(decoded["exp"]))
-                        await self._ensure_valid_captcha_token()
                         return client
                     except Exception as refresh_exc:  # noqa: BLE001
                         logger.warning(
@@ -215,7 +201,6 @@ class PikPakService:
                             await self._reload_tokens_from_supabase()
                             if await self._try_use_existing_token():
                                 login_lock.set_login_completed()
-                                await self._ensure_valid_captcha_token()
                                 return client
 
                 # Step 5b: Perform full login if refresh failed or no refresh token
@@ -480,8 +465,7 @@ class PikPakService:
         """Check if error is specifically related to authentication."""
         lower = error_str.lower()
         return (
-            "verification code is invalid" in lower
-            or "token is invalid" in lower
+            "token is invalid" in lower
             or "invalid_token" in lower
             or "token expired" in lower
             or "unauthorized" in lower
