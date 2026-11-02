@@ -64,14 +64,15 @@ class SupabaseService:
                 if whatslink_data:
                     data["whatslink"] = whatslink_data
 
-            # Insert with user_email
+            # Insert with normalized user_email
+            normalized_email = user_email.strip().lower() if user_email else None
             self.client.table("public_actions").insert({
                 "action": "add",
                 "data": data,
-                "user_email": user_email
+                "user_email": normalized_email
             }).execute()
             logger.info(
-                f"Logged action to Supabase for {url} (user: {user_email or 'anonymous'})")
+                f"Logged action to Supabase for {url} (user: {normalized_email or 'anonymous'})")
         except Exception as e:
             logger.error(f"Supabase Log Error for {url}: {e}")
             # Don't fail the request just because logging failed
@@ -220,6 +221,86 @@ class SupabaseService:
             return None
         except Exception as e:
             logger.error(f"Failed to check for existing task: {e}")
+            return None
+
+    def find_existing_task_record_by_hash(self, file_hash: str) -> dict[str, Any] | None:
+        """Find an existing task action by magnet/e2dk hash globally across all users."""
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        try:
+            response = self.client.table("public_actions") \
+                .select("id, data, user_email, created_at") \
+                .eq("action", "add") \
+                .filter("data->>url", "ilike", f"%{file_hash}%") \
+                .order("created_at", desc=True) \
+                .limit(1) \
+                .execute()
+
+            rows = cast(list[dict[str, Any]], response.data or [])
+            return rows[0] if rows else None
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"Failed to find existing task record for hash {file_hash}: {e}")
+            return None
+
+    def user_has_task_by_hash(self, user_email: str, file_hash: str) -> bool:
+        """Check if a specific user already has a task with the given hash."""
+        if not self.client:
+            raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
+
+        normalized_email = user_email.strip().lower() if user_email else ""
+        if not normalized_email:
+            return False
+
+        try:
+            response = self.client.table("public_actions") \
+                .select("id") \
+                .eq("action", "add") \
+                .ilike("user_email", normalized_email) \
+                .filter("data->>url", "ilike", f"%{file_hash}%") \
+                .limit(1) \
+                .execute()
+
+            rows = cast(list[dict[str, Any]], response.data or [])
+            return len(rows) > 0
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"Failed to check user task for hash {file_hash}: {e}")
+            return False
+
+    def link_existing_task_to_user(
+        self,
+        url: str,
+        existing_data: dict[str, Any],
+        user_email: str,
+    ) -> dict[str, Any] | None:
+        """Link an existing task to another user in public_actions table without duplicate download."""
+        if not self.client:
+            logger.warning("Supabase client not available, skipping linking task")
+            return None
+
+        normalized_email = user_email.strip().lower() if user_email else ""
+        if not normalized_email:
+            return None
+
+        try:
+            data_to_store = {
+                **existing_data,
+                "url": url,
+            }
+
+            res = self.client.table("public_actions").insert({
+                "action": "add",
+                "data": data_to_store,
+                "user_email": normalized_email,
+            }).execute()
+
+            rows = cast(list[dict[str, Any]], res.data or [])
+            logger.info(
+                f"Successfully linked existing task to user {normalized_email} for URL {url}"
+            )
+            return rows[0] if rows else None
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"Failed to link existing task to user {normalized_email}: {e}")
             return None
 
     def store_share(self, file_id: str, share_data: dict[str, Any], user_email: str | None = None, file_name: str | None = None):
@@ -819,10 +900,11 @@ class SupabaseService:
             raise RuntimeError(SUPABASE_CLIENT_NOT_INITIALIZED)
 
         try:
+            normalized_email = email.strip().lower() if email else ""
             response = self.client.table("public_actions") \
                 .select("*", count=CountMethod.exact) \
                 .eq("action", "add") \
-                .eq("user_email", email) \
+                .ilike("user_email", normalized_email) \
                 .order("created_at", desc=True) \
                 .range(offset, offset + limit - 1) \
                 .execute()

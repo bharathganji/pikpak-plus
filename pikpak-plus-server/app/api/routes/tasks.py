@@ -83,15 +83,57 @@ def add_task():
 
         logger.info(f"Processing {link_type} link: {url}")
 
-        # Check for existing task (deduplication)
-        existing_task = check_duplicate_task(url)
-        if existing_task:
-            logger.info(f"Duplicate task found for url {url}")
-            return jsonify({
-                "message": "Task already exists",
-                "task": existing_task,
-                "file_info": {}  # No need to re-fetch file info
-            })
+        # Check for existing task (mediator multi-user deduplication)
+        task_hash = extract_magnet_hash(url) or extract_e2dk_hash(url)
+        if task_hash:
+            # 1. Check if the current user already has this task
+            if supabase_service.user_has_task_by_hash(user_email, task_hash):
+                logger.info(f"Duplicate task already recorded for user {user_email} (hash: {task_hash})")
+                existing_record = supabase_service.find_existing_task_record_by_hash(task_hash)
+                existing_data = (existing_record or {}).get("data", {})
+                existing_task = existing_data.get("task", {})
+                existing_file_info = (
+                    existing_data.get("whatslink")
+                    or existing_data.get("file_info")
+                    or {}
+                )
+                return jsonify({
+                    "message": "Task already exists",
+                    "task": existing_task,
+                    "file_info": existing_file_info
+                })
+
+            # 2. Check if task exists globally (added previously by another user)
+            existing_record = supabase_service.find_existing_task_record_by_hash(task_hash)
+            if existing_record:
+                logger.info(
+                    f"Existing task found globally for hash {task_hash}. Linking to user {user_email}"
+                )
+                existing_data = existing_record.get("data", {})
+                existing_task = existing_data.get("task", {})
+                existing_file_info = (
+                    existing_data.get("whatslink")
+                    or existing_data.get("file_info")
+                    or {}
+                )
+
+                # Link existing task to user B so it appears in their tasks & recent activity
+                supabase_service.link_existing_task_to_user(
+                    url=url,
+                    existing_data=existing_data,
+                    user_email=user_email
+                )
+
+                # Invalidate cache so user's task list refreshes immediately
+                cache_manager = get_cache_manager()
+                if cache_manager:
+                    cache_manager.invalidate_tasks()
+
+                return jsonify({
+                    "message": "Task added successfully",
+                    "task": existing_task,
+                    "file_info": existing_file_info
+                })
 
         # Check file size using WhatsLink.info API
         is_valid, error_msg, file_info = await WhatsLinkService.check_file_size_limit(
@@ -110,7 +152,8 @@ def add_task():
         pikpak_service = get_pikpak_service()
         try:
             task_result = await pikpak_service.add_download(url)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"Failed to add download to PikPak for {url}: {e}")
             return jsonify({"error": f"PikPak Error: {e!s}"}), 500
 
         # Log to Supabase with WhatsLink metadata and user email
@@ -166,7 +209,7 @@ def get_tasks():
 
         return jsonify(result)
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error(f"Failed to fetch tasks: {e}")
         return jsonify({"error": str(e)}), 500
 
@@ -180,7 +223,7 @@ def get_task_by_id(task_id: int):
         if not task:
             return jsonify({"error": "Task not found"}), 404
         return jsonify(task)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error(f"Failed to fetch task {task_id}: {e}")
         return jsonify({"error": str(e)}), 500
 
