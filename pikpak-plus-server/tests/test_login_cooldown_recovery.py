@@ -176,17 +176,62 @@ def test_clear_persistence_is_non_destructive_to_supabase(mock_service, monkeypa
 
 
 def test_is_auth_error_filtering(mock_service):
-    """Test that _is_auth_error matches true auth errors and ignores generic 'invalid' messages."""
+    """Test that _is_auth_error matches true auth errors and ignores generic 'invalid' messages or captcha challenges."""
     assert mock_service._is_auth_error("Unauthorized: 401") is True
     assert mock_service._is_auth_error("Token is invalid or expired") is True
-    assert mock_service._is_auth_error("Verification code is invalid") is True
     assert mock_service._is_auth_error("invalid_grant: bad token") is True
+
+    # Captcha verification failure should NOT trigger auth recovery (OAuth token rotation)
+    assert mock_service._is_auth_error("Verification code is invalid") is False
 
     # Generic non-auth errors with 'invalid' should NOT trigger auth recovery
     assert mock_service._is_auth_error("Invalid file ID") is False
     assert mock_service._is_auth_error("Invalid URL format") is False
     assert mock_service._is_auth_error("Invalid parameter: limit must be an integer") is False
     assert mock_service._is_auth_error("Invalid torrent hash") is False
+
+
+@pytest.mark.asyncio
+async def test_captcha_action_mismatch_prevention():
+    """Test that client does not attach an action-mismatched captcha token to requests."""
+    from PikPakAPI import PikPakApi
+
+    client = PikPakApi(access_token="fake_token")
+    # Simulate a captcha token generated for GET:/drive/v1/about
+    client.captcha_token = "token_for_about_quota"
+    client.captcha_action = "GET:/drive/v1/about"
+
+    # When getting raw headers with captcha_token set, it's present
+    request_headers = client.get_headers()
+    assert "X-Captcha-Token" in request_headers
+
+    # When sending a request to POST /drive/v1/files, _send_request should strip the mismatched token
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.content = b'{}'
+    mock_resp.json.return_value = {"upload_type": "UPLOAD_TYPE_URL"}
+
+    sent_headers = {}
+
+    async def fake_request(method, url, **kwargs):
+        nonlocal sent_headers
+        sent_headers = kwargs.get("headers", {})
+        return mock_resp
+
+    client._httpx_client = MagicMock()
+    client._httpx_client.is_closed = False
+    client._httpx_client.request = fake_request
+
+    await client._send_request(
+        "POST",
+        "https://api-drive.mypikpak.com/drive/v1/files",
+        data={"url": "magnet:..."},
+        params=None,
+        headers=None,
+    )
+    assert (
+        "X-Captcha-Token" not in sent_headers
+    ), "Mismatched captcha token must not be sent to POST /drive/v1/files"
 
 
 @pytest.mark.asyncio

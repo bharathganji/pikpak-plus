@@ -7,8 +7,10 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 from types import TracebackType
 from typing import Any, Self
+from urllib.parse import urlparse
 
 import httpx
 
@@ -76,6 +78,7 @@ class BaseClient:
         self.initial_backoff: float = request_initial_backoff
         self.device_id: str | None = device_id
         self.captcha_token: str | None = None
+        self.captcha_action: str | None = None
         self.captcha_expires_at: float | None = None
         self.captcha_tokens: dict[str, Any] = {}
         self.user_agent: str | None = None
@@ -129,8 +132,9 @@ class BaseClient:
 
     async def aclose(self) -> None:
         """Close the underlying HTTPX client session."""
-        if not self._is_closed and self._httpx_client is not None and not self._httpx_client.is_closed:
-            await self._httpx_client.aclose()
+        if not self._is_closed:
+            if self._httpx_client is not None and not self._httpx_client.is_closed:
+                await self._httpx_client.aclose()
             self._is_closed = True
 
     async def close(self) -> None:
@@ -231,11 +235,42 @@ class BaseClient:
             except PikPakRateLimitExceededException:
                 # Do NOT retry in an infinite loop on 429! Immediately raise to protect account.
                 raise
+            except PikPakCaptchaRequiredException as cap_error:
+                # If PikPak challenges with captcha requirement or invalid verification code, auto-init for action
+                if attempt < self.max_retries - 1:
+                    parsed_path = urlparse(url).path
+                    action = f"{method.upper()}:{parsed_path}"
+                    logger.warning(
+                        "Captcha challenge received for %s: %s (attempt %d/%d). Auto-initializing captcha token...",
+                        action,
+                        cap_error,
+                        attempt + 1,
+                        self.max_retries,
+                    )
+                    try:
+                        res = await self.captcha_init(action=action)
+                        cap_tok = res.get("captcha_token")
+                        if cap_tok:
+                            expires_in = res.get("expires_in", 300)
+                            self.captcha_tokens[action] = {
+                                "token": str(cap_tok),
+                                "expires_at": time.time() + float(expires_in),
+                            }
+                            self.captcha_token = str(cap_tok)
+                            self.captcha_action = action
+                            self.captcha_expires_at = time.time() + float(expires_in)
+                            continue
+                    except Exception as init_err:  # noqa: BLE001
+                        logger.error(
+                            "Failed to auto-initialize captcha for action %s: %s",
+                            action,
+                            init_err,
+                        )
+                raise
             except (
                 PikpakAuthenticationError,
                 PikpakNotFoundError,
                 PikpakRateLimitError,
-                PikPakCaptchaRequiredException,
             ):
                 raise
             except httpx.HTTPStatusError as error:
@@ -287,7 +322,28 @@ class BaseClient:
         params: dict[str, Any] | None,
         headers: dict[str, str] | None,
     ) -> httpx.Response:
-        req_headers = dict(headers) if headers is not None else self.get_headers()
+        req_headers = self.get_headers()
+        if headers is not None:
+            req_headers.update(headers)
+
+        parsed_path = urlparse(url).path
+        request_action = f"{method.upper()}:{parsed_path}"
+
+        # If a matching unexpired captcha token exists for this action, use it
+        if request_action in self.captcha_tokens:
+            info = self.captcha_tokens[request_action]
+            if info.get("expires_at") and time.time() < (info["expires_at"] - 10):
+                req_headers["X-Captcha-Token"] = str(info["token"])
+        elif (
+            self.captcha_token
+            and self.captcha_action
+            and self.captcha_action != request_action
+            and not (headers and "X-Captcha-Token" in headers)
+        ):
+            # Prevent sending a captcha token generated for a different action!
+            # Mismatched action causes PikPak to reject with "Verification code is invalid"
+            req_headers.pop("X-Captcha-Token", None)
+
         json_data = data if isinstance(data, dict) else None
         content_data = data if isinstance(data, (str, bytes)) else None
 
