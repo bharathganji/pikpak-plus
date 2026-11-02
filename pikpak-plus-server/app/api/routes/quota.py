@@ -9,6 +9,7 @@ from flask import Blueprint, jsonify
 from app.api.utils.async_helpers import run_async
 from app.api.utils.dependencies import get_cache_manager, get_pikpak_service
 from app.core.config import AppConfig
+from app.services.pikpak_service import RateLimitError
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ def _get_scheduler_status():
                 return json.loads(status_data)
         finally:
             redis_client.close()
-    except Exception as e:
+    except (redis.RedisError, json.JSONDecodeError, ValueError) as e:
         logger.error(f"Error fetching scheduler status: {e}")
     return {}
 
@@ -51,7 +52,7 @@ def _is_scheduler_running(scheduler_info):
             last_heartbeat.replace(UTC_ZULU_FORMAT, UTC_TIMEZONE_OFFSET))
         now = datetime.now(UTC)
         return (now - heartbeat_time).total_seconds() < 180
-    except Exception:
+    except (ValueError, TypeError):
         return False
 
 
@@ -127,9 +128,9 @@ async def _get_quota_data():
     """Main function to get quota data with proper separation of concerns"""
     cache_key = "quota_info"
     cache_manager = get_cache_manager()
-    cached_quota = cache_manager.get(cache_key)
+    cached_quota = cache_manager.get(cache_key) if cache_manager else None
 
-    if cached_quota is not None:
+    if cached_quota is not None and cache_manager:
         return _handle_cached_quota(cached_quota, cache_manager, cache_key)
 
     return await _handle_cache_miss(cache_key, cache_manager)
@@ -138,7 +139,7 @@ async def _get_quota_data():
 def _handle_cached_quota(cached_quota, cache_manager, cache_key):
     """Handle the case when quota data is found in cache"""
     logger.info("Returning cached quota information")
-    remaining_ttl = cache_manager.get_ttl(cache_key)
+    remaining_ttl = cache_manager.get_ttl(cache_key) if cache_manager else 0
     logger.info(f"Remaining TTL for quota cache: {remaining_ttl} seconds")
 
     quota_with_refresh = _add_refresh_info(cached_quota.copy(), remaining_ttl)
@@ -154,6 +155,8 @@ async def _handle_cache_miss(cache_key, cache_manager):
 
     # Get both quota types
     pikpak_service = get_pikpak_service()
+    if not pikpak_service:
+        return jsonify({"error": "Service unavailable"}), 503
     storage_quota = await pikpak_service.get_quota_info()
     transfer_quota = await pikpak_service.get_transfer_quota()
 
@@ -165,9 +168,10 @@ async def _handle_cache_miss(cache_key, cache_manager):
     }
 
     # Cache the result for 3 hours (without refresh_info)
-    cache_manager.set(cache_key, quota_data_to_cache,
-                      ttl=AppConfig.QUOTA_CACHE_TTL)
-    logger.info("Successfully retrieved and cached quota information (3 hours)")
+    if cache_manager:
+        cache_manager.set(cache_key, quota_data_to_cache,
+                          ttl=AppConfig.QUOTA_CACHE_TTL)
+        logger.info("Successfully retrieved and cached quota information (3 hours)")
 
     quota_data = _add_refresh_info(
         quota_data_to_cache, AppConfig.QUOTA_CACHE_TTL)
@@ -181,7 +185,20 @@ def get_quota():
     async def _async_get_quota():
         try:
             return await _get_quota_data()
-        except Exception as e:
+        except RateLimitError as e:
+            logger.warning(f"Quota rate limited or in cooldown: {e}")
+            cache_manager = get_cache_manager()
+            if cache_manager:
+                cached_quota = cache_manager.get("quota_info")
+                if cached_quota:
+                    logger.info("Serving stale quota cache during rate limit cooldown")
+                    return _handle_cached_quota(cached_quota, cache_manager, "quota_info")
+            return jsonify({
+                "error": "Rate limit cooldown active",
+                "message": str(e),
+                "retry_after": 30
+            }), 429
+        except Exception as e:  # noqa: BLE001
             logger.error(f"Failed to get quota: {e}")
             return jsonify({"error": str(e)}), 500
 
@@ -208,6 +225,6 @@ def cleanup_status():
         }
         return jsonify(result)
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error(f"Failed to fetch cleanup status: {e}")
         return jsonify({"error": str(e)}), 500

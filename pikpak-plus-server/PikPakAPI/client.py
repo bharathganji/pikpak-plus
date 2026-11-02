@@ -93,25 +93,43 @@ class BaseClient:
         self.throttler: Throttler = throttler if throttler is not None else Throttler()
 
         # Client session configuration
-        client_kwargs: dict[str, Any] = {
+        self._client_kwargs: dict[str, Any] = {
             "timeout": DEFAULT_REQUEST_TIMEOUT,
             "follow_redirects": True,
         }
         if httpx_client_args:
-            client_kwargs.update(httpx_client_args)
+            self._client_kwargs.update(httpx_client_args)
 
-        self._httpx_client = httpx.AsyncClient(**client_kwargs)
+        self._httpx_client: httpx.AsyncClient | None = None
+        self._httpx_client_loop: asyncio.AbstractEventLoop | None = None
         self._is_closed: bool = False
 
     @property
     def httpx_client(self) -> httpx.AsyncClient:
-        if self._is_closed or self._httpx_client.is_closed:
+        if self._is_closed:
             raise PikpakException("Client session has been closed.")
+        try:
+            current_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            current_loop = None
+
+        if (
+            self._httpx_client is None
+            or self._httpx_client.is_closed
+            or (
+                current_loop is not None
+                and self._httpx_client_loop is not None
+                and self._httpx_client_loop != current_loop
+            )
+        ):
+            self._httpx_client = httpx.AsyncClient(**self._client_kwargs)
+            self._httpx_client_loop = current_loop
+
         return self._httpx_client
 
     async def aclose(self) -> None:
         """Close the underlying HTTPX client session."""
-        if not self._is_closed and not self._httpx_client.is_closed:
+        if not self._is_closed and self._httpx_client is not None and not self._httpx_client.is_closed:
             await self._httpx_client.aclose()
             self._is_closed = True
 

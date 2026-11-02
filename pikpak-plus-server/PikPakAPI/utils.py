@@ -10,37 +10,54 @@ class AsyncRLock:
     Reentrant asyncio lock.
     Allows the same asyncio Task to acquire the lock multiple times
     without deadlocking, while serializing concurrent tasks.
+    Automatically binds to the active event loop to support multi-threaded Flask run_async.
     """
 
     def __init__(self) -> None:
-        self._lock = asyncio.Lock()
+        self._lock: asyncio.Lock | None = None
+        self._loop: asyncio.AbstractEventLoop | None = None
         self._owner: asyncio.Task[Any] | None = None
         self._count: int = 0
 
+    def _get_lock(self) -> asyncio.Lock:
+        try:
+            current_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            current_loop = None
+
+        if self._lock is None or (current_loop is not None and self._loop != current_loop):
+            self._lock = asyncio.Lock()
+            self._loop = current_loop
+            self._owner = None
+            self._count = 0
+        return self._lock
+
     def locked(self) -> bool:
         """Return True if the lock is held, False otherwise."""
-        return self._lock.locked()
+        return self._get_lock().locked()
 
     async def acquire(self) -> bool:
         """Acquire the lock with reentrancy for the owning task."""
+        lock = self._get_lock()
         current = asyncio.current_task()
         if self._owner is not None and self._owner == current:
             self._count += 1
             return True
-        await self._lock.acquire()
+        await lock.acquire()
         self._owner = current
         self._count = 1
         return True
 
     def release(self) -> None:
         """Release the lock, decrementing recursion depth."""
+        lock = self._get_lock()
         current = asyncio.current_task()
         if self._owner != current:
             raise RuntimeError("Cannot release un-acquired lock")
         self._count -= 1
         if self._count == 0:
             self._owner = None
-            self._lock.release()
+            lock.release()
 
     async def __aenter__(self) -> Self:
         await self.acquire()

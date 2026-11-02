@@ -24,7 +24,7 @@ class TokenManager:
             supabase_key = AppConfig.SUPABASE_KEY or ""
             self.supabase = create_client(supabase_url, supabase_key)
             logger.info("TokenManager initialized with Supabase")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(
                 f"Failed to connect to Supabase for TokenManager: {e}")
             self.supabase = None
@@ -45,7 +45,7 @@ class TokenManager:
             else:
                 logger.warning("No tokens found in Supabase")
                 return None
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(f"Failed to get tokens from Supabase: {e}")
             return None
 
@@ -60,7 +60,7 @@ class TokenManager:
             data['updated_at'] = datetime.now(UTC).isoformat()
             self.supabase.table('pikpak_tokens').upsert(data).execute()
             logger.info("Successfully updated tokens in Supabase")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(f"Failed to update tokens in Supabase: {e}")
 
     def get_credentials(self) -> dict[str, str] | None:
@@ -142,7 +142,7 @@ class TokenManager:
     def get_all_tokens(self) -> dict[str, Any | None]:
         """
         Get all tokens including access, refresh, user_id, and expiration timestamp.
-        Note: Captcha tokens are managed via Redis, not Supabase
+        Supabase is the single persistent source of truth.
 
         Returns:
             Dict with token fields
@@ -244,7 +244,7 @@ class TokenManager:
                 if decoded and decoded.get('exp'):
                     login_lock.set_token_valid_until(float(decoded['exp']))
             logger.info("Synchronized token expiration with Redis DistributedLoginLock")
-        except Exception as redis_exc:
+        except Exception as redis_exc:  # noqa: BLE001
             logger.warning(f"Could not sync Redis login lock on token refresh: {redis_exc}")
 
     def clear_tokens(self) -> None:
@@ -263,7 +263,7 @@ class TokenManager:
             return
         try:
             self.supabase.table('pikpak_tokens').delete().eq('id', 1).execute()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(f"Failed to clear tokens in Supabase: {e}")
 
     def close(self):
