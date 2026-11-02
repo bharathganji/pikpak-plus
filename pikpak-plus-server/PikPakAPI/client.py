@@ -161,7 +161,9 @@ class BaseClient:
         )
         return self.user_agent
 
-    def get_headers(self, access_token: str | None = None) -> dict[str, str]:
+    def get_headers(
+        self, access_token: str | None = None, action: str | None = None
+    ) -> dict[str, str]:
         headers: dict[str, str] = {
             "User-Agent": (
                 self.build_custom_user_agent()
@@ -173,10 +175,17 @@ class BaseClient:
         token = access_token or self.access_token
         if token:
             headers["Authorization"] = f"Bearer {token}"
-        if self.captcha_token:
-            headers["X-Captcha-Token"] = self.captcha_token
         if self.device_id:
             headers["X-Device-Id"] = self.device_id
+
+        # Attach action-matching captcha token if available
+        if action and action in self.captcha_tokens:
+            info = self.captcha_tokens[action]
+            if info.get("expires_at") and time.time() < (info["expires_at"] - 10):
+                headers["X-Captcha-Token"] = str(info["token"])
+        elif self.captcha_token and (not self.captcha_action or self.captcha_action == action or action is None):
+            headers["X-Captcha-Token"] = self.captcha_token
+
         return headers
 
     async def refresh_access_token(self, force: bool = False) -> dict[str, Any]:
@@ -322,27 +331,12 @@ class BaseClient:
         params: dict[str, Any] | None,
         headers: dict[str, str] | None,
     ) -> httpx.Response:
-        req_headers = self.get_headers()
-        if headers is not None:
-            req_headers.update(headers)
-
         parsed_path = urlparse(url).path
         request_action = f"{method.upper()}:{parsed_path}"
 
-        # If a matching unexpired captcha token exists for this action, use it
-        if request_action in self.captcha_tokens:
-            info = self.captcha_tokens[request_action]
-            if info.get("expires_at") and time.time() < (info["expires_at"] - 10):
-                req_headers["X-Captcha-Token"] = str(info["token"])
-        elif (
-            self.captcha_token
-            and self.captcha_action
-            and self.captcha_action != request_action
-            and not (headers and "X-Captcha-Token" in headers)
-        ):
-            # Prevent sending a captcha token generated for a different action!
-            # Mismatched action causes PikPak to reject with "Verification code is invalid"
-            req_headers.pop("X-Captcha-Token", None)
+        req_headers = self.get_headers(action=request_action)
+        if headers is not None:
+            req_headers.update(headers)
 
         json_data = data if isinstance(data, dict) else None
         content_data = data if isinstance(data, (str, bytes)) else None
