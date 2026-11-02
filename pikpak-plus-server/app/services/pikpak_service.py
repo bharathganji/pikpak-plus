@@ -573,6 +573,7 @@ class PikPakService:
         client = self._get_client()
 
         async def _do_add():
+            await self._ensure_valid_captcha_token(action="POST:/drive/v1/files")
             result = await client.offline_download(url)
             logger.info(f"PikPak Task Result for {url}: {result}")
             return result
@@ -667,6 +668,7 @@ class PikPakService:
         client = self._get_client()
 
         async def _do_get_quota():
+            await self._ensure_valid_captcha_token(action="GET:/drive/v1/about")
             result = await client.get_quota_info()
             logger.info("Retrieved quota info from PikPak")
             return result
