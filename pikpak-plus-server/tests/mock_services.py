@@ -162,6 +162,7 @@ class MemorySupabaseService:
                 "url": url,
                 "task": task_result,
                 "file_info": file_info,
+                "whatslink": file_info,
             },
             "user_email": user_email.strip().lower() if user_email else None,
             "created_at": datetime.now(UTC).isoformat(),
@@ -229,11 +230,55 @@ class MemorySupabaseService:
         return self.delete_user_tasks_bulk(email, [task_id]) > 0
 
     def check_existing_task_by_hash(self, file_hash: str) -> dict[str, Any] | None:
-        for a in self.actions:
-            url = a.get("url", "")
+        for a in reversed(self.actions):
+            url = a.get("url") or (a.get("data", {}) or {}).get("url", "")
             if file_hash.lower() in url.lower():
                 return a
         return None
+
+    def find_existing_task_record_by_hash(self, file_hash: str) -> dict[str, Any] | None:
+        for a in reversed(self.actions):
+            if a.get("action") == "add":
+                url = a.get("url") or (a.get("data", {}) or {}).get("url", "")
+                if file_hash.lower() in url.lower():
+                    return a
+        return None
+
+    def user_has_task_by_hash(self, user_email: str, file_hash: str) -> bool:
+        normalized_email = user_email.strip().lower() if user_email else ""
+        if not normalized_email:
+            return False
+        for a in self.actions:
+            if (
+                a.get("action") == "add"
+                and (a.get("user_email") or "").strip().lower() == normalized_email
+            ):
+                url = a.get("url") or (a.get("data", {}) or {}).get("url", "")
+                if file_hash.lower() in url.lower():
+                    return True
+        return False
+
+    def link_existing_task_to_user(
+        self,
+        url: str,
+        existing_data: dict[str, Any],
+        user_email: str,
+    ) -> dict[str, Any] | None:
+        action_id = len(self.actions) + 1
+        normalized_email = user_email.strip().lower() if user_email else None
+        record = {
+            "id": action_id,
+            "action": "add",
+            "url": url,
+            "data": {
+                **existing_data,
+                "url": url,
+            },
+            "user_email": normalized_email,
+            "created_at": datetime.now(UTC).isoformat(),
+        }
+        self.actions.append(record)
+        return record
 
     # Shares
     def store_share(
