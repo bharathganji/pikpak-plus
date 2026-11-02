@@ -64,7 +64,7 @@ class DistributedLoginLock:
                 logger.debug(
                     "Failed to acquire lock - another worker holds it")
             return self._lock_acquired
-        except Exception as e:
+        except (redis.RedisError, ValueError, TypeError) as e:
             logger.error(f"Failed to acquire login lock: {e}")
             return False
 
@@ -76,42 +76,52 @@ class DistributedLoginLock:
             self.redis.delete(self.LOCK_KEY)
             self._lock_acquired = False
             logger.debug("Released distributed login lock")
-        except Exception as e:
+        except (redis.RedisError, ValueError, TypeError) as e:
             logger.error(f"Failed to release login lock: {e}")
 
     def is_locked(self) -> bool:
         """Check if the login lock is currently held."""
         try:
             return self.redis.exists(self.LOCK_KEY) > 0
-        except Exception as e:
+        except (redis.RedisError, ValueError, TypeError) as e:
             logger.error(f"Failed to check lock status: {e}")
             return False
 
     def is_in_cooldown(self) -> bool:
         """
-        Check if we're still in login cooldown period.
+        Check if we're still in login cooldown period based on Redis TTL.
 
         Returns:
             True if a login occurred within the cooldown period.
         """
         try:
-            last_login = self.redis.get(self.COOLDOWN_KEY)
-            if not last_login:
-                return False
-
-            last_login_time = float(last_login)
-            elapsed = time.time() - last_login_time
-            in_cooldown = elapsed < self.COOLDOWN_SECONDS
-
-            if in_cooldown:
-                remaining = self.COOLDOWN_SECONDS - elapsed
-                logger.debug(
-                    f"Login cooldown active, {remaining:.1f}s remaining")
-
-            return in_cooldown
-        except Exception as e:
+            ttl = self.redis.ttl(self.COOLDOWN_KEY)
+            if ttl > 0:
+                logger.debug(f"Login cooldown active, {ttl}s remaining")
+                return True
+            return False
+        except (redis.RedisError, ValueError, TypeError) as e:
             logger.error(f"Failed to check cooldown: {e}")
             return False
+
+    def get_cooldown_remaining(self) -> float:
+        """
+        Get remaining cooldown seconds, or 0.0 if not in cooldown.
+        """
+        try:
+            ttl = self.redis.ttl(self.COOLDOWN_KEY)
+            return max(0.0, float(ttl)) if ttl > 0 else 0.0
+        except (redis.RedisError, ValueError, TypeError) as e:
+            logger.debug(f"Failed to get cooldown TTL: {e}")
+            return 0.0
+
+    def clear_cooldown(self) -> None:
+        """Clear login cooldown (useful when valid token is restored)."""
+        try:
+            self.redis.delete(self.COOLDOWN_KEY)
+            logger.debug("Cleared login cooldown")
+        except (redis.RedisError, ValueError, TypeError) as e:
+            logger.error(f"Failed to clear cooldown: {e}")
 
     def set_login_completed(self) -> None:
         """Record that a login was successfully completed."""
@@ -119,29 +129,28 @@ class DistributedLoginLock:
             self.redis.set(
                 self.COOLDOWN_KEY,
                 str(time.time()),
-                ex=self.COOLDOWN_SECONDS + 10  # Keep a bit longer than cooldown
+                ex=self.COOLDOWN_SECONDS
             )
             logger.debug("Recorded login completion timestamp")
-        except Exception as e:
+        except (redis.RedisError, ValueError, TypeError) as e:
             logger.error(f"Failed to set login timestamp: {e}")
 
-    def set_rate_limit_cooldown(self) -> None:
+    def set_rate_limit_cooldown(self, cooldown_seconds: int = 300) -> None:
         """
         Set a longer cooldown after hitting rate limit.
 
         This prevents all workers from hammering the API when rate limited.
         Uses a 5-minute cooldown instead of the normal 2-minute cooldown.
         """
-        RATE_LIMIT_COOLDOWN = 300  # 5 minutes
         try:
             self.redis.set(
                 self.COOLDOWN_KEY,
                 str(time.time()),
-                ex=RATE_LIMIT_COOLDOWN + 10
+                ex=cooldown_seconds
             )
             logger.warning(
-                f"Rate limit detected - setting {RATE_LIMIT_COOLDOWN}s cooldown for ALL workers")
-        except Exception as e:
+                f"Rate limit detected - setting {cooldown_seconds}s cooldown for ALL workers")
+        except (redis.RedisError, ValueError, TypeError) as e:
             logger.error(f"Failed to set rate limit cooldown: {e}")
 
     def set_token_valid_until(self, expires_at: float) -> None:
@@ -156,7 +165,7 @@ class DistributedLoginLock:
             ttl = max(1, int(expires_at - time.time()))
             self.redis.set(self.VALID_TOKEN_KEY, str(expires_at), ex=ttl)
             logger.debug(f"Set token valid until {expires_at}")
-        except Exception as e:
+        except (redis.RedisError, ValueError, TypeError) as e:
             logger.error(f"Failed to set token validity: {e}")
 
     def is_token_still_valid(self, buffer_seconds: int = 300) -> bool:
@@ -181,7 +190,7 @@ class DistributedLoginLock:
                 logger.debug(f"Token still valid for {remaining:.0f}s")
                 return True
             return False
-        except Exception as e:
+        except (redis.RedisError, ValueError, TypeError) as e:
             logger.error(f"Failed to check token validity: {e}")
             return False
 
@@ -217,8 +226,8 @@ class DistributedLoginLock:
         if self._redis:
             try:
                 self._redis.close()
-            except Exception:
-                pass
+            except (redis.RedisError, OSError) as e:
+                logger.debug(f"Ignored error closing Redis connection: {e}")
             self._redis = None
 
     def __enter__(self):

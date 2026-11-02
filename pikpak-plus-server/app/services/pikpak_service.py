@@ -92,7 +92,7 @@ class PikPakService:
         attempting login simultaneously.
 
         Args:
-            force_refresh: If True, clears persistence and forces a fresh login
+            force_refresh: If True, forces token refresh or login
         """
         if not self.client:
             raise RuntimeError(PIKPAK_CLIENT_NOT_INITIALIZED)
@@ -115,26 +115,50 @@ class PikPakService:
                 await self._ensure_valid_captcha_token()
                 return client
 
-        # Step 3: Check cooldown - if a login just happened, wait and reload
+        # Step 3: Check cooldown - if a login or rate limit cooldown is active
         if not force_refresh and login_lock.is_in_cooldown():
             logger.info("Login cooldown active, reloading tokens from Supabase")
             await self._reload_tokens_from_supabase()
             if await self._try_use_existing_token():
+                login_lock.clear_cooldown()
                 await self._ensure_valid_captcha_token()
                 return client
-            # If still no valid token after cooldown reload, we need to wait or abort
+
+            # If still no valid token after cooldown reload, check if lock is held
             logger.warning("No valid token after cooldown, waiting for lock release")
             if login_lock.is_locked():
                 await login_lock.wait_for_lock_release(timeout_seconds=30)
                 await self._reload_tokens_from_supabase()
                 if await self._try_use_existing_token():
+                    login_lock.clear_cooldown()
                     await self._ensure_valid_captcha_token()
                     return client
 
-            # Still in cooldown with no token - DON'T try to login, abort and retry later
-            # This is critical to prevent bypassing the rate limit cooldown
+            # If a refresh token is available, we CAN refresh even during signin cooldown!
+            # The token refresh endpoint (/v1/auth/token) has separate quotas and does NOT hit the login rate limit.
+            if client.refresh_token:
+                logger.info("Refresh token available during cooldown, attempting proactive token refresh")
+                try:
+                    await self.refresh_token_if_needed()
+                    login_lock.clear_cooldown()
+                    await self._ensure_valid_captcha_token()
+                    return client
+                except Exception as ref_err:  # noqa: BLE001
+                    logger.warning(f"Refresh during cooldown failed: {ref_err}")
+                    if "has been refresh" in str(ref_err).lower():
+                        logger.info(
+                            "Refresh token was already rotated by concurrent process, reloading from Supabase..."
+                        )
+                        await self._reload_tokens_from_supabase()
+                        if await self._try_use_existing_token():
+                            login_lock.clear_cooldown()
+                            await self._ensure_valid_captcha_token()
+                            return client
+
+            # Still in cooldown with no valid token or refresh token - abort and retry later
+            remaining = login_lock.get_cooldown_remaining()
             raise RateLimitError(
-                "Login cooldown active but no valid token available. "
+                f"Login cooldown active ({remaining:.0f}s remaining) but no valid token available. "
                 "Will retry after cooldown expires."
             )
 
@@ -168,11 +192,33 @@ class PikPakService:
                     await self._ensure_valid_captcha_token()
                     return client
 
-                # Clear persistence if forcing refresh
-                if force_refresh:
-                    self._clear_persistence()
+                # Step 5a: PikPak OAuth Refresh: Try token refresh if refresh_token exists
+                if client.refresh_token:
+                    try:
+                        logger.info("Attempting token refresh before full login...")
+                        await client.refresh_access_token()
+                        login_lock.set_login_completed()
+                        if self.client.access_token:
+                            decoded = decode_token(self.client.access_token)
+                            if decoded and decoded.get("exp"):
+                                login_lock.set_token_valid_until(float(decoded["exp"]))
+                        await self._ensure_valid_captcha_token()
+                        return client
+                    except Exception as refresh_exc:  # noqa: BLE001
+                        logger.warning(
+                            f"Token refresh rejected: {refresh_exc}, falling back to full login"
+                        )
+                        if "has been refresh" in str(refresh_exc).lower():
+                            logger.info(
+                                "Refresh token was already rotated by concurrent process, reloading from Supabase..."
+                            )
+                            await self._reload_tokens_from_supabase()
+                            if await self._try_use_existing_token():
+                                login_lock.set_login_completed()
+                                await self._ensure_valid_captcha_token()
+                                return client
 
-                # Perform full login
+                # Step 5b: Perform full login if refresh failed or no refresh token
                 client = await self._perform_login()
 
                 # Record successful login in Redis
@@ -200,18 +246,20 @@ class PikPakService:
             token_mgr = get_token_manager()
             tokens = token_mgr.get_all_tokens()
 
-            if tokens.get("access_token"):
-                client.access_token = tokens["access_token"]
-                client.refresh_token = tokens.get("refresh_token")
+            if tokens.get("access_token") or tokens.get("refresh_token"):
+                if tokens.get("access_token"):
+                    client.access_token = tokens["access_token"]
+                if tokens.get("refresh_token"):
+                    client.refresh_token = tokens["refresh_token"]
 
                 # Load user_id from Supabase (or extract from JWT)
                 if tokens.get("user_id"):
                     client.user_id = tokens["user_id"]
-                else:
+                elif client.access_token:
                     self._extract_user_id_from_token()
 
                 # Synchronize expires_at so ensure_authenticated recognizes token validity
-                if hasattr(client, "_extract_exp_from_jwt"):
+                if hasattr(client, "_extract_exp_from_jwt") and client.access_token:
                     try:
                         raw_tok = client.access_token
                         if isinstance(raw_tok, str):
@@ -311,17 +359,22 @@ class PikPakService:
         if not self.client:
             return False
         client = self.client
-        if not client.access_token:
-            return False
 
-        # Check if access token (JWT) is expired or expiring soon (within 5 minutes)
-        if not is_token_expired(client.access_token, buffer_seconds=300):
+        # Check if access token (JWT) is valid (> 5 minutes before expiry)
+        if client.access_token and not is_token_expired(client.access_token, buffer_seconds=300):
             # Extract user_id if not already set (required for captcha_init)
             self._extract_user_id_from_token()
             logger.debug("Client has valid access token, skipping login")
             return True
 
-        logger.info("Access token expired or expiring soon, checking refresh token...")
+        # If access token is expired or missing, check if refresh_token is available
+        if not client.refresh_token:
+            from app.core.token_manager import get_token_manager
+            tokens = get_token_manager().get_all_tokens()
+            if tokens.get("refresh_token"):
+                client.refresh_token = tokens["refresh_token"]
+                client.access_token = client.access_token or tokens.get("access_token")
+                client.user_id = client.user_id or tokens.get("user_id")
 
         if not client.refresh_token:
             logger.info("No refresh token available, will attempt login")
@@ -336,32 +389,24 @@ class PikPakService:
             return False
 
     def _clear_persistence(self) -> None:
-        """Clear all persisted tokens and state"""
-        logger.warning("Forcing PikPak login refresh - clearing persistence")
-        try:
-            # Clear TokenManager
-            from app.core.token_manager import get_token_manager
-
-            token_mgr = get_token_manager()
-            token_mgr.clear_tokens()
-
-            # Reset client state
-            if self.client:
-                client = self.client
-                client.access_token = None
-                client.refresh_token = None
-                client.encoded_token = None
-                client.captcha_token = None
-                client.captcha_expires_at = None
-                client.captcha_tokens = {}
-                client.user_id = None
-
-        except Exception as e:  # noqa: BLE001
-            logger.error(f"Failed to clear persistence: {e}")
+        """Clear client in-memory tokens and state (non-destructive to Supabase fallback)"""
+        logger.warning("Resetting in-memory PikPak client state")
+        if self.client:
+            client = self.client
+            client.access_token = None
+            client.encoded_token = None
+            client.captcha_token = None
+            client.captcha_expires_at = None
+            client.captcha_tokens = {}
 
     async def _perform_login(self) -> PikPakApi:
         """Perform full login and save tokens"""
         client = self._get_client()
+        if not client.username or not client.password:
+            raise RateLimitError(
+                "PikPak login credentials (username/password) are not configured, "
+                "and valid access/refresh tokens are not available in Supabase."
+            )
         try:
             logger.info("Performing PikPak login...")
             await client.login()
@@ -410,14 +455,15 @@ class PikPakService:
 
             token_mgr = get_token_manager()
             token_mgr.set_tokens(
-                access_token=client.access_token, refresh_token=client.refresh_token
+                access_token=client.access_token,
+                refresh_token=client.refresh_token,
+                user_id=client.user_id,
             )
             logger.info("Successfully refreshed and saved tokens to Supabase")
 
-        except Exception as e:  # noqa: BLE001
-            logger.warning(f"Token refresh failed: {e}, attempting full login...")
-            # If refresh fails, try full login
-            await self.ensure_logged_in(force_refresh=True)
+        except Exception as e:
+            logger.warning(f"Token refresh failed: {e}")
+            raise
 
     async def _execute_protected(self, operation: Callable, *args, **kwargs) -> Any:
         """Execute operation with circuit breaker and timeout protection"""
@@ -431,12 +477,17 @@ class PikPakService:
         return await protected_operation()
 
     def _is_auth_error(self, error_str: str) -> bool:
-        """Check if error is related to authentication"""
+        """Check if error is specifically related to authentication."""
+        lower = error_str.lower()
         return (
-            "Verification code is invalid" in error_str
-            or "invalid" in error_str.lower()
+            "verification code is invalid" in lower
+            or "token is invalid" in lower
+            or "invalid_token" in lower
+            or "token expired" in lower
+            or "unauthorized" in lower
             or "401" in error_str
-            or "Unauthorized" in error_str
+            or "authentication failed" in lower
+            or "invalid_grant" in lower
         )
 
     async def _try_recover_auth(
@@ -507,6 +558,15 @@ class PikPakService:
 
                 # Calculate backoff
                 if (
+                    isinstance(e, RateLimitError)
+                    or "login cooldown" in str(e).lower()
+                    or "login cooldown" in error_str.lower()
+                ):
+                    login_lock = get_login_lock()
+                    remaining = login_lock.get_cooldown_remaining()
+                    delay = max(15.0, min(remaining, 30.0))
+                    logger.warning(f"Login cooldown active, backing off for {delay:.1f}s")
+                elif (
                     "operation is too frequent" in str(e).lower()
                     or "too frequent" in error_str.lower()
                 ):
