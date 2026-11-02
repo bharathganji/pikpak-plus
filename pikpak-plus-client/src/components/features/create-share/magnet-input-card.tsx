@@ -105,9 +105,9 @@ export function MagnetInputCard({
   const getLinkTypeColor = (type?: string) => {
     switch (type) {
       case "magnet":
-        return "bg-blue-500/10 text-blue-600 border-blue-500/20 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30";
+        return "bg-blue-500/10 text-blue-700 border-blue-500/30 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/40 font-semibold";
       case "e2dk":
-        return "bg-purple-500/10 text-purple-600 border-purple-500/20 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30";
+        return "bg-purple-500/10 text-purple-700 border-purple-500/30 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/40 font-semibold";
       default:
         return "bg-muted text-muted-foreground border-border/60";
     }
@@ -142,18 +142,27 @@ export function MagnetInputCard({
       </CardHeader>
       <CardContent className="space-y-3 px-4 pt-0.5 pb-4">
         {/* Info Banner */}
-        <div className="flex items-start gap-2.5 text-xs bg-blue-50/70 text-blue-950 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-100 dark:border-blue-900/60 p-3 rounded-lg border">
-          <Info className="h-4 w-4 mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
-          <span>
+        <div
+          role="region"
+          aria-label="Supported link formats"
+          className="flex items-start gap-2.5 text-xs sm:text-sm leading-relaxed bg-blue-500/[0.07] text-foreground border border-blue-500/20 dark:bg-blue-950/40 dark:border-blue-900/60 dark:text-blue-100 p-3 sm:p-3.5 rounded-lg transition-colors"
+        >
+          <Info className="h-4 w-4 mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+          <span className="flex-1 min-w-0">
             Enter a{" "}
-            <strong className="font-semibold text-blue-950 dark:text-white">
+            <strong className="font-semibold text-foreground dark:text-white">
               magnet link
             </strong>{" "}
-            (magnet:?xt=urn:btih:...) or an{" "}
-            <strong className="font-semibold text-blue-950 dark:text-white">
+            <code className="font-mono text-[11px] sm:text-xs bg-background/80 dark:bg-background/60 text-foreground px-1.5 py-0.5 rounded-md border border-border/70 dark:border-border/50 font-medium select-all shadow-2xs">
+              magnet:?xt=urn:btih:...
+            </code>{" "}
+            or an{" "}
+            <strong className="font-semibold text-foreground dark:text-white">
               E2DK link
             </strong>{" "}
-            (ed2k://|file|...|/){" "}
+            <code className="font-mono text-[11px] sm:text-xs bg-background/80 dark:bg-background/60 text-foreground px-1.5 py-0.5 rounded-md border border-border/70 dark:border-border/50 font-medium select-all shadow-2xs">
+              ed2k://|file|...|/
+            </code>
           </span>
         </div>
 
@@ -198,7 +207,7 @@ export function MagnetInputCard({
               message.includes("failed") ||
               message.includes("exceeds")
                 ? "border-destructive/30 bg-destructive/5 text-destructive"
-                : "border-emerald-500/30 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400"
+                : "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
             }`}
           >
             <div className="flex items-start gap-2">

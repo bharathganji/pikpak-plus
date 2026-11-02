@@ -59,22 +59,22 @@ export function WebDAVEmptyState({
 }: EmptyStateProps) {
   return (
     <Alert
+      variant={isTrafficIssue ? "warning" : "default"}
       className={
         isTrafficIssue
-          ? "border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100 shadow-xs"
+          ? "shadow-xs"
           : "border-border/60 bg-card/60 shadow-xs"
       }
-      variant={isTrafficIssue ? undefined : "default"}
     >
       {isTrafficIssue ? (
-        <WifiOff className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+        <WifiOff className="h-4 w-4" />
       ) : (
         <AlertCircle className="h-4 w-4 text-muted-foreground" />
       )}
       <AlertDescription
         className={
           isTrafficIssue
-            ? "text-amber-950 dark:text-amber-100 text-sm font-medium"
+            ? "text-sm font-medium"
             : "text-muted-foreground text-sm font-medium"
         }
       >
@@ -91,9 +91,9 @@ interface TrafficWarningProps {
 
 export function WebDAVTrafficWarning({ message }: TrafficWarningProps) {
   return (
-    <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100 shadow-xs">
-      <WifiOff className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-      <AlertDescription className="text-amber-950 dark:text-amber-100 text-sm font-medium">
+    <Alert variant="warning" className="shadow-xs">
+      <WifiOff className="h-4 w-4" />
+      <AlertDescription className="text-sm font-medium">
         {message}
       </AlertDescription>
     </Alert>

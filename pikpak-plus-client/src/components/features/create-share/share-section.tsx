@@ -127,17 +127,17 @@ export function ShareSection({
             <span className="font-medium">Task Failed</span>
           </div>
         ) : hasFileId ? (
-          <div className="flex items-center gap-2 text-sm bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 p-2.5 rounded-lg shadow-2xs">
+          <div className="flex items-center gap-2 text-sm bg-emerald-500/10 text-emerald-800 dark:text-emerald-200 border border-emerald-500/30 p-2.5 rounded-lg shadow-2xs font-medium">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-            <span className="font-medium">Ready to Share</span>
+            <span>Ready to Share</span>
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-sm bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 p-2.5 rounded-lg shadow-2xs">
+          <div className="flex items-center gap-2 text-sm bg-amber-500/10 text-amber-900 dark:text-amber-100 border border-amber-500/30 p-2.5 rounded-lg shadow-2xs">
             <Clock className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-            <div className="flex-1">
-              <span className="font-medium">Task in Progress</span>
+            <div className="flex-1 font-medium">
+              <span>Task in Progress</span>
               {taskProgress > 0 && (
-                <span className="ml-2 text-xs opacity-90">
+                <span className="ml-2 text-xs font-semibold text-amber-800 dark:text-amber-200">
                   ({taskProgress}% complete)
                 </span>
               )}

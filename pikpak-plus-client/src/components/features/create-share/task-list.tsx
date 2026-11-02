@@ -117,7 +117,7 @@ export const TaskList = React.memo(function TaskList(
     content = (
       <div className="text-center py-6 text-destructive">
         <p className="font-medium text-sm">Error loading tasks</p>
-        <p className="text-xs opacity-80 mt-1">{error}</p>
+        <p className="text-xs text-destructive/90 font-medium mt-1">{error}</p>
       </div>
     );
   } else if (emptyMessage) {
