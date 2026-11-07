@@ -42,6 +42,8 @@
 
   --font-sans: var(--font-sans);
 
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
@@ -381,17 +383,62 @@
     animation: shimmer 3s ease-in-out infinite;
   }
 
-  /* Glass Effect */
+  /* Modern Acrylic Glass Utilities */
   .glass {
     background: hsl(var(--background) / 0.8);
-    backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
   }
 
+  /* Acrylic Glass Header */
+  .glass-header {
+    background-color: hsl(var(--background) / 0.82);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid hsl(var(--border) / 0.65);
+  }
+
+  /* Glass Bento Card */
   .glass-card {
-    background: hsl(var(--card) / 0.7);
-    backdrop-filter: blur(12px);
+    background-color: hsl(var(--card) / 0.88);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border: 1px solid hsl(var(--border) / 0.7);
+    box-shadow: 0 4px 20px -2px hsl(var(--foreground) / 0.04);
+  }
+
+  /* Glass Nav Pill Container */
+  .glass-nav {
+    background-color: hsl(var(--muted) / 0.75);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid hsl(var(--border) / 0.5);
+    backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--border) / 0.6);
+  }
+
+  /* Subtle ambient glowing aura */
+  .glow-primary {
+    box-shadow: 0 0 24px -4px hsl(var(--primary) / 0.25);
+  }
+
+  .glow-sm {
+    box-shadow: 0 0 12px -2px hsl(var(--primary) / 0.2);
+  }
+
+  /* Accessible Tap Target (44px min for mobile touch) */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Reduced Motion Accessibility Enforcement */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

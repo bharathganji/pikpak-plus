@@ -43,7 +43,7 @@ export function GitHubButton({
       variant="outline"
       size="sm"
       asChild
-      className={cn("gap-2 h-9", className)}
+      className={cn("gap-2 min-h-[44px] touch-target", className)}
     >
       <a
         href={`https://github.com/${repo}`}
