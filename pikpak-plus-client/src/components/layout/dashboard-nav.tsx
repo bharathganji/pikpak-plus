@@ -12,6 +12,7 @@ export const DASHBOARD_NAV_ITEMS = [
     shortLabel: "Create",
     icon: Share2,
     exact: true,
+    description: "Submit magnets and manage active cloud tasks",
   },
   {
     href: "/dashboard/downloads",
@@ -19,6 +20,7 @@ export const DASHBOARD_NAV_ITEMS = [
     shortLabel: "Downloads",
     icon: Download,
     exact: false,
+    description: "WebDAV configuration and storage quota",
   },
   {
     href: "/dashboard/activity",
@@ -26,6 +28,7 @@ export const DASHBOARD_NAV_ITEMS = [
     shortLabel: "Activity",
     icon: History,
     exact: false,
+    description: "Personal download history and generated shares",
   },
 ];
 
@@ -35,9 +38,13 @@ export function DashboardNav() {
   return (
     <nav
       aria-label="Dashboard views"
-      className="w-full max-w-6xl mb-6 pb-2 border-b border-border/40"
+      className="w-full max-w-6xl mb-6 sm:mb-8"
     >
-      <div className="grid w-full grid-cols-3 max-w-2xl mx-auto p-1 bg-muted/60 rounded-xl border border-border/50 shadow-xs backdrop-blur-xs">
+      <div
+        role="tablist"
+        aria-label="Dashboard navigation tabs"
+        className="grid w-full grid-cols-3 max-w-2xl mx-auto p-1.5 glass-nav rounded-2xl shadow-xs gap-1"
+      >
         {DASHBOARD_NAV_ITEMS.map((item) => {
           const isActive = item.exact
             ? pathname === item.href
@@ -49,17 +56,32 @@ export function DashboardNav() {
               key={item.href}
               href={item.href}
               prefetch={true}
+              role="tab"
+              aria-selected={isActive}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "inline-flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200 select-none",
+                "group relative inline-flex items-center justify-center gap-2 py-2.5 px-3 min-h-[44px] rounded-xl text-sm font-medium transition-all duration-200 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
                 isActive
-                  ? "bg-background text-foreground shadow-xs font-semibold ring-1 ring-border/20"
-                  : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+                  ? "bg-background text-foreground shadow-sm font-semibold border border-border/80 ring-1 ring-primary/20"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
               )}
             >
-              <Icon className="h-4 w-4 shrink-0 transition-transform duration-200" />
-              <span className="hidden sm:inline">{item.label}</span>
-              <span className="sm:hidden">{item.shortLabel}</span>
+              <Icon
+                className={cn(
+                  "h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-110",
+                  isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                )}
+              />
+              <span className="hidden sm:inline tracking-tight">{item.label}</span>
+              <span className="sm:hidden tracking-tight">{item.shortLabel}</span>
+
+              {/* Active pill subtle indicator dot */}
+              {isActive && (
+                <span
+                  aria-hidden="true"
+                  className="hidden md:inline-block w-1.5 h-1.5 rounded-full bg-primary animate-fade-in"
+                />
+              )}
             </Link>
           );
         })}
