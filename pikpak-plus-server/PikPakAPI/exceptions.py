@@ -22,7 +22,9 @@ class PikpakException(Exception):
         self.details = details
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(message={self.message!r}, code={self.code!r})"
+        return (
+            f"{self.__class__.__name__}(message={self.message!r}, code={self.code!r})"
+        )
 
 
 class PikpakRetryException(PikpakException):
@@ -35,6 +37,10 @@ class PikpakAuthenticationError(PikpakException):
 
 class PikpakNotFoundError(PikpakException):
     """Raised when the requested file, folder, task, or share is not found."""
+
+
+class PikpakInsufficientStorageError(PikpakException):
+    """Raised when PikPak storage space/quota is full or insufficient."""
 
 
 class PikpakRateLimitError(PikpakException):
@@ -168,14 +174,16 @@ class PikPakCircuitBreakerOpenError(PikPakRateLimitExceededException):
         code: int | None = 8,
         details: object | None = None,
     ) -> None:
-        super().__init__(message=message, retry_after=retry_after, code=code, details=details)
+        super().__init__(
+            message=message, retry_after=retry_after, code=code, details=details
+        )
         self.state = state
 
 
 # Backward-compatibility and ergonomic naming aliases
+PikPakInsufficientStorageError = PikpakInsufficientStorageError
 PikpakRateLimitExceededException = PikPakRateLimitExceededException
 PikPakCaptchaRequiredException = PikpakCaptchaRequiredException
 PikpakCircuitBreakerOpenError = PikPakCircuitBreakerOpenError
 PikPakAuthError = PikpakAuthenticationError
 PikpakAuthError = PikpakAuthenticationError
-

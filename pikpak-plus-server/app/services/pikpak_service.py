@@ -8,7 +8,7 @@ from random import uniform
 from types import TracebackType
 from typing import Any, Self
 
-from PikPakAPI import PikPakApi
+from PikPakAPI import PikPakApi, PikpakInsufficientStorageError
 from pybreaker import CircuitBreaker
 
 from app.core.client import get_or_create_client
@@ -132,7 +132,9 @@ class PikPakService:
             # If a refresh token is available, we CAN refresh even during signin cooldown!
             # The token refresh endpoint (/v1/auth/token) has separate quotas and does NOT hit the login rate limit.
             if client.refresh_token:
-                logger.info("Refresh token available during cooldown, attempting proactive token refresh")
+                logger.info(
+                    "Refresh token available during cooldown, attempting proactive token refresh"
+                )
                 try:
                     await self.refresh_token_if_needed()
                     login_lock.clear_cooldown()
@@ -346,7 +348,9 @@ class PikPakService:
         client = self.client
 
         # Check if access token (JWT) is valid (> 5 minutes before expiry)
-        if client.access_token and not is_token_expired(client.access_token, buffer_seconds=300):
+        if client.access_token and not is_token_expired(
+            client.access_token, buffer_seconds=300
+        ):
             # Extract user_id if not already set (required for captcha_init)
             self._extract_user_id_from_token()
             logger.debug("Client has valid access token, skipping login")
@@ -355,6 +359,7 @@ class PikPakService:
         # If access token is expired or missing, check if refresh_token is available
         if not client.refresh_token:
             from app.core.token_manager import get_token_manager
+
             tokens = get_token_manager().get_all_tokens()
             if tokens.get("refresh_token"):
                 client.refresh_token = tokens["refresh_token"]
@@ -533,6 +538,9 @@ class PikPakService:
                 await self.ensure_logged_in()
                 return await self._execute_protected(operation, *args, **kwargs)
 
+            except PikpakInsufficientStorageError:
+                # Storage space exhaustion is non-retryable without cleanup
+                raise
             except Exception as e:  # noqa: BLE001
                 should_return, result, error_str = await self._handle_attempt_exception(
                     e, attempt, max_retries, operation, *args, **kwargs
@@ -549,7 +557,9 @@ class PikPakService:
                     login_lock = get_login_lock()
                     remaining = login_lock.get_cooldown_remaining()
                     delay = max(15.0, min(remaining, 30.0))
-                    logger.warning(f"Login cooldown active, backing off for {delay:.1f}s")
+                    logger.warning(
+                        f"Login cooldown active, backing off for {delay:.1f}s"
+                    )
                 elif (
                     "operation is too frequent" in str(e).lower()
                     or "too frequent" in error_str.lower()

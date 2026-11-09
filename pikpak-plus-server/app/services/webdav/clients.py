@@ -1,4 +1,5 @@
 """WebDAV Client Manager"""
+
 import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -13,7 +14,9 @@ logger = logging.getLogger(__name__)
 class ClientManager:
     """Manages WebDAV client lifecycle"""
 
-    def __init__(self, pikpak_service, traffic_checker, ttl_hours: int = 24, cache_manager=None):
+    def __init__(
+        self, pikpak_service, traffic_checker, ttl_hours: int = 24, cache_manager=None
+    ):
         self.pikpak_service = pikpak_service
         self.traffic_checker = traffic_checker
         self.ttl_hours = ttl_hours
@@ -47,11 +50,12 @@ class ClientManager:
             # Check if downstream traffic is available
             if not await self.traffic_checker.is_downstream_traffic_available():
                 logger.warning(
-                    "Downstream traffic exhausted, skipping WebDAV client creation")
+                    "Downstream traffic exhausted, skipping WebDAV client creation"
+                )
                 return {
                     "success": False,
                     "message": "Downstream traffic quota exhausted",
-                    "clients": []
+                    "clients": [],
                 }
 
             # Clean up old clients first
@@ -64,22 +68,28 @@ class ClientManager:
             for planet_name in PLANET_NAMES:
                 try:
                     # Create WebDAV application
-                    result = await self.pikpak_service.create_webdav_application(planet_name)
+                    result = await self.pikpak_service.create_webdav_application(
+                        planet_name
+                    )
 
                     # Extract credentials from result
-                    username = result.get('username', '')
-                    password = result.get('password', '')
+                    username = result.get("username", "")
+                    password = result.get("password", "")
 
                     # Set client as read-only by default
                     try:
-                        read_only_result = await self.pikpak_service.modify_webdav_application(
-                            username, password, {"read_only": True}
+                        read_only_result = (
+                            await self.pikpak_service.modify_webdav_application(
+                                username, password, {"read_only": True}
+                            )
                         )
                         logger.info(
-                            f"Set WebDAV client {planet_name} as read-only: {read_only_result}")
-                    except Exception as e:
+                            f"Set WebDAV client {planet_name} as read-only: {read_only_result}"
+                        )
+                    except Exception as e:  # noqa: BLE001
                         logger.warning(
-                            f"Failed to set read-only for {planet_name}, but client creation succeeded: {e}")
+                            f"Failed to set read-only for {planet_name}, but client creation succeeded: {e}"
+                        )
 
                     # Build client info
                     created_at = datetime.now(UTC)
@@ -94,15 +104,16 @@ class ClientManager:
                         "createdAt": created_at.isoformat() + "Z",
                         "expiresAt": expires_at.isoformat() + "Z",
                         "ttlHours": self.ttl_hours,
-                        "readOnly": True  # Mark as read-only in client info
+                        "readOnly": True,  # Mark as read-only in client info
                     }
 
                     created_clients.append(client_info)
                     logger.info(f"Created WebDAV client: {planet_name}")
 
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001
                     logger.error(
-                        f"Failed to create WebDAV client for {planet_name}: {e}")
+                        f"Failed to create WebDAV client for {planet_name}: {e}"
+                    )
                     continue
 
             # Store active clients and timestamp
@@ -115,31 +126,30 @@ class ClientManager:
                 webdav_result = {
                     "available": True,
                     "message": f"Created {len(created_clients)} WebDAV clients",
-                    "clients": created_clients
+                    "clients": created_clients,
                 }
                 # Cache for the duration specified in WEBDAV_GENERATION_INTERVAL_HOURS (24 hours)
-                webdav_cache_ttl_seconds = AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS * 3600
+                webdav_cache_ttl_seconds = (
+                    AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS * 3600
+                )
                 self.cache_manager.set(
-                    cache_key, webdav_result, ttl=webdav_cache_ttl_seconds)
+                    cache_key, webdav_result, ttl=webdav_cache_ttl_seconds
+                )
                 logger.info(
-                    f"Caching WebDAV clients for {AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS} hours ({webdav_cache_ttl_seconds} seconds) matching WEBDAV_GENERATION_INTERVAL_HOURS")
+                    f"Caching WebDAV clients for {AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS} hours ({webdav_cache_ttl_seconds} seconds) matching WEBDAV_GENERATION_INTERVAL_HOURS"
+                )
 
-            logger.info(
-                f"Successfully created {len(created_clients)} WebDAV clients")
+            logger.info(f"Successfully created {len(created_clients)} WebDAV clients")
 
             return {
                 "success": True,
                 "message": f"Created {len(created_clients)} WebDAV clients",
-                "clients": created_clients
+                "clients": created_clients,
             }
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(f"Failed to create daily WebDAV clients: {e}")
-            return {
-                "success": False,
-                "message": f"Error: {e!s}",
-                "clients": []
-            }
+            return {"success": False, "message": f"Error: {e!s}", "clients": []}
 
     async def cleanup_expired_clients(self) -> int:
         """
@@ -153,39 +163,46 @@ class ClientManager:
         try:
             # Get current WebDAV applications
             result = await self.pikpak_service.get_webdav_applications()
-            applications = result.get('applications', [])
+            applications = result.get("applications", [])
 
             deleted_count = 0
 
             for app in applications:
                 try:
-                    username = app.get('username', '')
-                    password = app.get('password', '')
+                    username = app.get("username", "")
+                    password = app.get("password", "")
 
                     if username and password:
-                        await self.pikpak_service.delete_webdav_application(username, password)
+                        await self.pikpak_service.delete_webdav_application(
+                            username, password
+                        )
                         deleted_count += 1
                         logger.info(f"Deleted WebDAV client: {username}")
 
-                except Exception as e:
-                    logger.error(
-                        f"Failed to delete WebDAV client {username}: {e}")
+                except Exception as e:  # noqa: BLE001
+                    logger.error(f"Failed to delete WebDAV client {username}: {e}")
                     continue
 
-            logger.info(
-                f"Cleaned up {deleted_count} WebDAV clients (daily refresh)")
+            logger.info(f"Cleaned up {deleted_count} WebDAV clients (daily refresh)")
 
             # Clear the cache since clients have been deleted
             if self.cache_manager:
                 cache_key = "webdav_active_clients"
                 # Use TTL of 0 to effectively delete the key
-                self.cache_manager.set(cache_key, {
-                                       "available": True, "message": "No WebDAV clients currently active. They will be created on the next scheduled run.", "clients": []}, ttl=1)  # Expire immediately
+                self.cache_manager.set(
+                    cache_key,
+                    {
+                        "available": True,
+                        "message": "No WebDAV clients currently active. They will be created on the next scheduled run.",
+                        "clients": [],
+                    },
+                    ttl=1,
+                )  # Expire immediately
                 logger.info("Cleared WebDAV clients cache after cleanup")
 
             return deleted_count
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(f"Failed to cleanup WebDAV clients: {e}")
             return 0
 
@@ -196,31 +213,35 @@ class ClientManager:
         cache_key = "webdav_active_clients"
         cached_result = None
 
-        logger.info(
-            f"Cache manager exists: {self.cache_manager is not None}")
+        logger.debug(f"Cache manager exists: {self.cache_manager is not None}")
 
         if self.cache_manager:
             cached_result = self.cache_manager.get(cache_key)
             if cached_result is not None:
-                logger.debug("Cache hit for active WebDAV clients")
-                logger.info(f"Cached result: {cached_result}")
+                client_count = len(cached_result.get("clients", []))
+                logger.debug(
+                    f"Cache hit for active WebDAV clients ({client_count} clients)"
+                )
 
         # If not in cache, check memory
         if cached_result is None and self.active_clients:
-            logger.info(
-                f"Found {len(self.active_clients)} clients in memory")
+            logger.debug(f"Found {len(self.active_clients)} clients in memory")
             cached_result = {
                 "available": True,
                 "message": f"{len(self.active_clients)} active clients",
-                "clients": self.active_clients
+                "clients": self.active_clients,
             }
             # Cache it for future requests
             if self.cache_manager:
-                webdav_cache_ttl_seconds = AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS * 3600
+                webdav_cache_ttl_seconds = (
+                    AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS * 3600
+                )
                 self.cache_manager.set(
-                    cache_key, cached_result, ttl=webdav_cache_ttl_seconds)
-                logger.info(
-                    f"Cached clients from memory for {AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS} hours ({webdav_cache_ttl_seconds} seconds)")
+                    cache_key, cached_result, ttl=webdav_cache_ttl_seconds
+                )
+                logger.debug(
+                    f"Cached clients from memory for {AppConfig.WEBDAV_GENERATION_INTERVAL_HOURS} hours ({webdav_cache_ttl_seconds} seconds)"
+                )
 
         return cached_result
 
@@ -233,41 +254,45 @@ class ClientManager:
         """
         # If we have clients (from cache or memory)
         if cached_result and cached_result.get("clients"):
-            logger.info(
-                f"Returning {len(cached_result['clients'])} clients from cache/memory")
+            logger.debug(
+                f"Returning {len(cached_result['clients'])} clients from cache/memory"
+            )
             # Update availability based on traffic status
             if not traffic_available:
                 # Traffic exhausted but clients exist - show them with warning
-                logger.info(
-                    "Traffic exhausted but returning existing clients with warning")
+                logger.debug(
+                    "Traffic exhausted but returning existing clients with warning"
+                )
                 return {
                     "available": False,
                     "message": "Downstream traffic quota exhausted. WebDAV clients exist but cannot be used until traffic is available.",
-                    "clients": cached_result["clients"]
+                    "clients": cached_result["clients"],
                 }
             else:
                 # Traffic available and clients exist - all good
                 return {
                     "available": True,
-                    "message": cached_result.get("message", f"{len(cached_result['clients'])} active clients"),
-                    "clients": cached_result["clients"]
+                    "message": cached_result.get(
+                        "message", f"{len(cached_result['clients'])} active clients"
+                    ),
+                    "clients": cached_result["clients"],
                 }
 
         # No clients exist
-        logger.info("No clients found in cache or memory")
+        logger.debug("No clients found in cache or memory")
         if not traffic_available:
             # No traffic and no clients
-            logger.info(
-                "No traffic available and no clients - returning empty result")
+            logger.debug("No traffic available and no clients - returning empty result")
             return {
                 "available": False,
                 "message": "Downstream traffic quota exhausted. No WebDAV clients available.",
-                "clients": []
+                "clients": [],
             }
         else:
             # Traffic available but no clients yet - create them immediately
-            logger.info(
-                "Traffic available but no clients - triggering immediate creation")
+            logger.debug(
+                "Traffic available but no clients - triggering immediate creation"
+            )
 
             # Trigger creation in background (or await it if we want immediate result)
             # Since the user wants them "on load", we should await it here
@@ -277,13 +302,13 @@ class ClientManager:
                 return {
                     "available": True,
                     "message": creation_result.get("message"),
-                    "clients": creation_result.get("clients")
+                    "clients": creation_result.get("clients"),
                 }
             else:
                 return {
                     "available": False,
                     "message": f"Failed to create clients: {creation_result.get('message')}",
-                    "clients": []
+                    "clients": [],
                 }
 
     async def get_active_clients(self) -> dict[str, Any]:
@@ -294,21 +319,21 @@ class ClientManager:
             dict: Active clients or message if none available
         """
         try:
-            logger.info("=== WebDAV Service get_active_clients Debug ===")
+            logger.debug("=== WebDAV Service get_active_clients Debug ===")
             # First, try to get existing clients from cache or memory
             cached_result = self._get_cached_clients()
 
             # Now check if downstream traffic is available
-            logger.info("Checking downstream traffic availability...")
-            traffic_available = await self.traffic_checker.is_downstream_traffic_available()
-            logger.info(f"Traffic available: {traffic_available}")
+            logger.debug("Checking downstream traffic availability...")
+            traffic_available = (
+                await self.traffic_checker.is_downstream_traffic_available()
+            )
+            logger.debug(f"Traffic available: {traffic_available}")
 
-            return await self._resolve_client_availability(cached_result, traffic_available)
+            return await self._resolve_client_availability(
+                cached_result, traffic_available
+            )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(f"Failed to get active clients: {e}")
-            return {
-                "available": False,
-                "message": f"Error: {e!s}",
-                "clients": []
-            }
+            return {"available": False, "message": f"Error: {e!s}", "clients": []}
