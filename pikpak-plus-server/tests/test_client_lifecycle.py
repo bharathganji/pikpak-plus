@@ -1,10 +1,10 @@
 """
 Tests for client session lifecycle, async context managers, error mapping, and serialization.
 """
+
 from __future__ import annotations
 
 import pytest
-
 from PikPakAPI import (
     PikPakApi,
     PikpakAuthenticationError,
@@ -73,6 +73,31 @@ async def test_error_mapping_429(mock_api, client):
 
 
 @pytest.mark.asyncio
+async def test_error_mapping_insufficient_storage_does_not_trip_circuit_breaker(
+    mock_api, client
+):
+    from PikPakAPI.exceptions import PikpakInsufficientStorageError
+    from PikPakAPI.throttler import CircuitState
+
+    mock_api.post("https://api-drive.mypikpak.com/drive/v1/files").respond(
+        status_code=200,
+        json={
+            "error_code": 8,
+            "error_description": "Storage space is not enough.",
+        },
+    )
+
+    with pytest.raises(PikpakInsufficientStorageError) as exc_info:
+        await client.offline_download(
+            "magnet:?xt=urn:btih:d08842472665427b6f649f08fb0ce3a8c7843d69"
+        )
+
+    assert "Storage space is not enough" in str(exc_info.value)
+    # Ensure Circuit Breaker remains CLOSED and was NOT tripped
+    assert client.throttler.state == CircuitState.CLOSED
+
+
+@pytest.mark.asyncio
 async def test_serialization_to_and_from_dict():
     client = PikPakApi(
         access_token=MOCK_JWT,
@@ -112,6 +137,7 @@ def test_sdk_version_no_trailing_whitespace():
 def test_none_type_serialization_compatibility():
     """Defect 4 Regression Test: Python 3.8/3.9 NoneType compatibility."""
     import PikPakAPI
+
     assert hasattr(PikPakAPI, "NoneType")
     client = PikPakAPI.PikPakApi(access_token=MOCK_JWT)
     serialized = client.to_dict()

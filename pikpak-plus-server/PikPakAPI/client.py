@@ -25,6 +25,7 @@ from .exceptions import (
     PikpakAuthenticationError,
     PikPakCaptchaRequiredException,
     PikpakException,
+    PikpakInsufficientStorageError,
     PikpakNotFoundError,
     PikpakRateLimitError,
     PikPakRateLimitExceededException,
@@ -183,7 +184,9 @@ class BaseClient:
             info = self.captcha_tokens[action]
             if info.get("expires_at") and time.time() < (info["expires_at"] - 10):
                 headers["X-Captcha-Token"] = str(info["token"])
-        elif self.captcha_token and (not self.captcha_action or self.captcha_action == action or action is None):
+        elif self.captcha_token and (
+            not self.captcha_action or self.captcha_action == action or action is None
+        ):
             headers["X-Captcha-Token"] = self.captcha_token
 
         return headers
@@ -291,7 +294,9 @@ class BaseClient:
                         f"Authentication failed: {error}"
                     ) from error
                 if status_code == 429:
-                    retry_after = _parse_retry_after(error.response.headers.get("Retry-After"))
+                    retry_after = _parse_retry_after(
+                        error.response.headers.get("Retry-After")
+                    )
                     self.throttler.record_429(retry_after)
                     raise PikPakRateLimitExceededException(
                         f"HTTP 429 Rate Limit Exceeded: PikPak anti-abuse protection triggered. Cooldown for {retry_after}s.",
@@ -396,7 +401,9 @@ class BaseClient:
                     body = response.json()
                     if isinstance(body, dict):
                         error_desc = str(
-                            body.get("error_description") or body.get("error") or error_desc
+                            body.get("error_description")
+                            or body.get("error")
+                            or error_desc
                         )
                 except (ValueError, json.JSONDecodeError):
                     pass
@@ -443,7 +450,11 @@ class BaseClient:
             error_desc = str(json_data.get("error_description", str(json_data)))
 
             # CAPTCHA defense check
-            if error_code == 1001 or "captcha" in error_type.lower() or "captcha" in error_desc.lower():
+            if (
+                error_code == 1001
+                or "captcha" in error_type.lower()
+                or "captcha" in error_desc.lower()
+            ):
                 raise PikPakCaptchaRequiredException.from_response(
                     json_data, captcha_token=self.captcha_token
                 )
@@ -462,10 +473,30 @@ class BaseClient:
             if error_code == 5 or error_type == "not_found":
                 raise PikpakNotFoundError(error_desc)
 
+            # Check if this error is specifically storage space exhaustion
+            is_storage_full = (
+                "space" in error_type.lower()
+                or "space_not_enough" in error_type.lower()
+                or "space" in error_desc.lower()
+                or "storage space" in error_desc.lower()
+            )
+            if is_storage_full:
+                int_code = (
+                    int(error_code)
+                    if isinstance(error_code, int)
+                    or (isinstance(error_code, str) and error_code.isdigit())
+                    else None
+                )
+                raise PikpakInsufficientStorageError(
+                    error_desc, code=int_code, details=json_data
+                )
+
             if error_code == 8 or error_type == "rate_limit":
                 self.throttler.record_429(60.0)
                 raise PikPakRateLimitExceededException(
-                    f"Rate limit exceeded: {error_desc}", retry_after=60.0, details=json_data
+                    f"Rate limit exceeded: {error_desc}",
+                    retry_after=60.0,
+                    details=json_data,
                 )
 
             int_code = (

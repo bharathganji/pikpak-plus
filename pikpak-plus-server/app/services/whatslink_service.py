@@ -1,10 +1,12 @@
 """WhatsLink Service Module"""
+
 import logging
 from typing import Any
 
 import aiohttp
 
 logger = logging.getLogger(__name__)
+
 
 class WhatsLinkService:
     """Service for WhatsLink.info API operations"""
@@ -45,20 +47,24 @@ class WhatsLinkService:
             - screenshots: List of screenshots
             - error: Error message if request failed
         """
+        client_timeout = aiohttp.ClientTimeout(total=timeout)
         try:
             logger.info(f"Checking file info for URL: {url}")
-            session = WhatsLinkService.get_session()
-            async with session.get(
-                WhatsLinkService.BASE_URL,
-                params={"url": url},
-                timeout=timeout
-            ) as response:
+            async with (
+                aiohttp.ClientSession(timeout=client_timeout) as session,
+                session.get(
+                    WhatsLinkService.BASE_URL,
+                    params={"url": url},
+                ) as response,
+            ):
                 if response.status == 200:
                     data = await response.json()
                     logger.info(f"WhatsLink response for {url}: {data}")
                     return data
                 else:
-                    logger.warning(f"WhatsLink returned status {response.status} for {url}")
+                    logger.warning(
+                        f"WhatsLink returned status {response.status} for {url}"
+                    )
                     return {"error": f"WhatsLink API returned status {response.status}"}
 
         except TimeoutError:
@@ -67,12 +73,14 @@ class WhatsLinkService:
         except aiohttp.ClientError as e:
             logger.error(f"WhatsLink API error for {url}: {e}")
             return {"error": f"WhatsLink API error: {e!s}"}
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(f"Unexpected error checking file info for {url}: {e}")
             return {"error": f"Unexpected error: {e!s}"}
 
     @staticmethod
-    async def check_file_size_limit(url: str, max_size_gb: float) -> tuple[bool, str | None, dict[str, Any] | None]:
+    async def check_file_size_limit(
+        url: str, max_size_gb: float
+    ) -> tuple[bool, str | None, dict[str, Any] | None]:
         """
         Check if file size is within the allowed limit
 
@@ -101,7 +109,7 @@ class WhatsLinkService:
             return True, None, file_info
 
         # Convert bytes to GB
-        size_gb = size_bytes / (1024 ** 3)
+        size_gb = size_bytes / (1024**3)
         logger.info(f"File size for {url}: {size_gb:.2f} GB (limit: {max_size_gb} GB)")
 
         if size_gb > max_size_gb:

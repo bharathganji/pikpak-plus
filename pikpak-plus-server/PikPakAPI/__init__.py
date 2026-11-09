@@ -36,6 +36,8 @@ from .exceptions import (
     PikPakCircuitBreakerOpenError,
     PikpakCircuitBreakerOpenError,
     PikpakException,
+    PikPakInsufficientStorageError,
+    PikpakInsufficientStorageError,
     PikpakNotFoundError,
     PikpakRateLimitError,
     PikPakRateLimitExceededException,
@@ -154,7 +156,13 @@ class PikPakApi(
         filtered_data = {key: data[key] for key in params if key in data}
         client = cls(**filtered_data)
         for k, v in data.items():
-            if k not in ("_httpx_client", "_is_closed", "_auth_lock", "session_store", "throttler"):
+            if k not in (
+                "_httpx_client",
+                "_is_closed",
+                "_auth_lock",
+                "session_store",
+                "throttler",
+            ):
                 setattr(client, k, v)
         return client
 
@@ -199,12 +207,14 @@ __all__ = [
     "PikPakAuthError",
     "PikPakCaptchaRequiredException",
     "PikPakCircuitBreakerOpenError",
+    "PikPakInsufficientStorageError",
     "PikPakRateLimitExceededException",
     "PikpakAuthError",
     "PikpakAuthenticationError",
     "PikpakCaptchaRequiredException",
     "PikpakCircuitBreakerOpenError",
     "PikpakException",
+    "PikpakInsufficientStorageError",
     "PikpakNotFoundError",
     "PikpakRateLimitError",
     "PikpakRateLimitExceededException",

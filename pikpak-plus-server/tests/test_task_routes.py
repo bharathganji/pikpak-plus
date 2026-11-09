@@ -2,9 +2,12 @@
 Integration tests for Task Management routes.
 Covers: POST /add, GET /tasks, GET /task/<id>, DELETE /admin/tasks/<id>.
 """
+
 from __future__ import annotations
 
-VALID_MAGNET = "magnet:?xt=urn:btih:d08842472665427b6f649f08fb0ce3a8c7843d69&dn=test.mkv"
+VALID_MAGNET = (
+    "magnet:?xt=urn:btih:d08842472665427b6f649f08fb0ce3a8c7843d69&dn=test.mkv"
+)
 
 
 def test_add_task_success(test_client, auth_headers):
@@ -32,7 +35,10 @@ def test_add_task_blocked_user(test_client, memory_supabase):
         {"email": "blocked@example.com", "is_admin": False},
         AppConfig.JWT_SECRET_KEY,
     )
-    headers = {"Authorization": f"Bearer {blocked_token}", "Content-Type": "application/json"}
+    headers = {
+        "Authorization": f"Bearer {blocked_token}",
+        "Content-Type": "application/json",
+    }
     res = test_client.post("/add", headers=headers, json={"url": VALID_MAGNET})
     assert res.status_code == 403
     assert res.get_json()["error"] == "Account blocked"
@@ -45,7 +51,9 @@ def test_add_task_invalid_payload(test_client, auth_headers):
     assert res.status_code == 400
 
     # Invalid URL scheme
-    res = test_client.post("/add", headers=auth_headers, json={"url": "ftp://not-supported-link"})
+    res = test_client.post(
+        "/add", headers=auth_headers, json={"url": "ftp://not-supported-link"}
+    )
     assert res.status_code == 400
 
 
@@ -104,7 +112,9 @@ def test_get_task_by_id(test_client, memory_supabase):
     assert res404.status_code == 404
 
 
-def test_delete_task_admin_only(test_client, admin_headers, auth_headers, memory_supabase):
+def test_delete_task_admin_only(
+    test_client, admin_headers, auth_headers, memory_supabase
+):
     """Test task deletion requires admin privileges and cleans up content."""
     action = memory_supabase.log_action(
         url="magnet:?xt=urn:btih:delete_me",
@@ -169,7 +179,9 @@ def test_multi_user_mediator_deduplication(test_client, memory_supabase):
     assert tasks_b["count"] == 1
     assert len(tasks_b["data"]) == 1
     assert tasks_b["data"][0]["user_email"] == "user_b@example.com"
-    assert tasks_b["data"][0]["data"]["task"]["task"]["id"] == data_a["task"]["task"]["id"]
+    assert (
+        tasks_b["data"][0]["data"]["task"]["task"]["id"] == data_a["task"]["task"]["id"]
+    )
 
     # 4. User A calls GET /tasks: must also find their task
     res_tasks_a = test_client.get("/tasks?page=1&limit=25", headers=user_a_headers)
@@ -180,17 +192,23 @@ def test_multi_user_mediator_deduplication(test_client, memory_supabase):
     assert tasks_a["data"][0]["user_email"] == "user_a@example.com"
 
 
-def test_duplicate_task_same_user_prevents_duplicate_records(test_client, memory_supabase):
+def test_duplicate_task_same_user_prevents_duplicate_records(
+    test_client, memory_supabase
+):
     """Test that submitting the same task twice by the same user returns 'Task already exists' without duplicate records."""
     user_b_headers = _make_user_headers("user_b@example.com")
 
     # First add succeeds
-    res_first = test_client.post("/add", headers=user_b_headers, json={"url": VALID_MAGNET})
+    res_first = test_client.post(
+        "/add", headers=user_b_headers, json={"url": VALID_MAGNET}
+    )
     assert res_first.status_code == 200
     assert res_first.get_json()["message"] == "Task added successfully"
 
     # Second add by same user returns "Task already exists"
-    res_second = test_client.post("/add", headers=user_b_headers, json={"url": VALID_MAGNET})
+    res_second = test_client.post(
+        "/add", headers=user_b_headers, json={"url": VALID_MAGNET}
+    )
     assert res_second.status_code == 200
     assert res_second.get_json()["message"] == "Task already exists"
 
@@ -234,7 +252,9 @@ def test_multi_user_independent_deletion(test_client, memory_supabase):
 
 def test_e2dk_multi_user_mediator_deduplication(test_client, memory_supabase):
     """Test E2DK link deduplication across multiple users."""
-    e2dk_link = "ed2k://|file|sample_video.mkv|104857600|a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4|/"
+    e2dk_link = (
+        "ed2k://|file|sample_video.mkv|104857600|a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4|/"
+    )
     user_a_headers = _make_user_headers("user_a@example.com")
     user_b_headers = _make_user_headers("user_b@example.com")
 
@@ -255,3 +275,26 @@ def test_e2dk_multi_user_mediator_deduplication(test_client, memory_supabase):
     assert res_tasks_b.get_json()["count"] == 1
 
 
+def test_add_task_insufficient_storage(test_client, auth_headers, monkeypatch):
+    """Test adding a task when PikPak storage is full returns 507 with STORAGE_FULL code."""
+    from app.api.routes import tasks as tasks_module
+    from PikPakAPI.exceptions import PikpakInsufficientStorageError
+
+    mock_service = tasks_module.get_pikpak_service()
+
+    async def mock_add_download(url):
+        raise PikpakInsufficientStorageError("Storage space is not enough.", code=8)
+
+    monkeypatch.setattr(mock_service, "add_download", mock_add_download)
+
+    res = test_client.post(
+        "/add",
+        headers=auth_headers,
+        json={
+            "url": "magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567&dn=storage_test"
+        },
+    )
+    assert res.status_code == 507
+    data = res.get_json()
+    assert data["code"] == "STORAGE_FULL"
+    assert "storage is full" in data["error"].lower()

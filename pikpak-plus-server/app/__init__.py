@@ -69,8 +69,8 @@ apscheduler_logger.setLevel(logging.WARNING)
 logging.getLogger("werkzeug").setLevel(logging.WARNING)
 
 # Reduce WebDAV debug noise
-webdav_logger = logging.getLogger("PikPakAPI.webdav")
-webdav_logger.setLevel(logging.INFO)
+logging.getLogger("app.api.routes.webdav").setLevel(logging.INFO)
+logging.getLogger("app.services.webdav").setLevel(logging.INFO)
 
 # Filter duplicate worker startup logs - only log from primary worker
 _worker_initialized = threading.Event()
