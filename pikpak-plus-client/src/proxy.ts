@@ -15,7 +15,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Determine Health Status
+  // 2. Determine Server Health Status (strictly server down / connection failure)
   let isHealthy = false;
   try {
     const apiUrl = getServerApiUrl();
@@ -37,15 +37,42 @@ export async function proxy(request: NextRequest) {
     isHealthy = false;
   }
 
-  // 3. Handle Redirection
-  // Scenario A: Server is DOWN, force Maintenance Page
-  if (!isHealthy) {
-    if (pathname !== "/maintenance" && pathname !== "/faq") {
+  const isUnderMaintenance = !isHealthy;
+
+  // 3. Handle Redirection & Googlebot Indexing Safety
+  // CRITICAL SEO PRESERVATION (Google Search Central Guidelines):
+  // When the server is down during extended or long-term maintenance,
+  // Google Search Central officially recommends serving an indexable home page (/)
+  // with HTTP 200 OK, full metadata, and a maintenance alert banner, rather than
+  // redirecting to a maintenance URL (302/307) which causes Google to overwrite
+  // the home page title/snippet with maintenance copy or de-index the page.
+  // Public informational routes (/, /faq, /robots.txt, /sitemap.xml) remain accessible.
+  if (isUnderMaintenance) {
+    const isPublicMaintenanceSafe =
+      pathname === "/" ||
+      pathname === "/faq" ||
+      pathname === "/maintenance" ||
+      pathname === "/robots.txt" ||
+      pathname === "/sitemap.xml";
+
+    if (!isPublicMaintenanceSafe) {
       const url = new URL("/maintenance", request.nextUrl);
       return NextResponse.redirect(url);
     }
+
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-maintenance-mode", "active");
+    requestHeaders.set("x-maintenance-reason", "server_offline");
+
+    const response = NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
+    response.headers.set("x-maintenance-mode", "active");
+    return response;
   } else if (pathname === "/maintenance") {
-    // Scenario B: Server is UP, recover from Maintenance Page
+    // Scenario B: Server is UP and healthy, recover from Maintenance Page
     const url = new URL("/", request.nextUrl);
     return NextResponse.redirect(url);
   }
@@ -70,7 +97,8 @@ export async function proxy(request: NextRequest) {
   }
 
   // Case B: Authenticated user accesses auth page or landing page -> immediate server redirect
-  if ((isAuthPage || pathname === "/") && token) {
+  // (Only redirect to dashboard when NOT under maintenance, preserving homepage access)
+  if (!isUnderMaintenance && (isAuthPage || pathname === "/") && token) {
     const fromParam = request.nextUrl.searchParams.get("from");
     const target =
       fromParam &&

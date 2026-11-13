@@ -29,7 +29,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function Header() {
+export interface HeaderProps {
+  isMaintenance?: boolean;
+}
+
+export function Header({ isMaintenance = false }: HeaderProps = {}) {
   const { user, isAdmin, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -85,9 +89,21 @@ export function Header() {
           </Link>
 
           {/* Unofficial / Plus indicator badge */}
-          <div className="hidden lg:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Service Online</span>
+          <div
+            className={`hidden lg:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${
+              isMaintenance
+                ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30"
+                : "bg-primary/10 text-primary border border-primary/20"
+            }`}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                isMaintenance
+                  ? "bg-amber-500 animate-pulse"
+                  : "bg-emerald-500 animate-pulse"
+              }`}
+            />
+            <span>{isMaintenance ? "Maintenance Mode" : "Service Online"}</span>
           </div>
         </div>
 
@@ -125,7 +141,9 @@ export function Header() {
                 >
                   <DropdownMenuLabel className="font-normal px-2.5 py-2">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Account</p>
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+                        Account
+                      </p>
                       <p className="text-sm font-medium leading-none text-foreground truncate">
                         {user.email}
                       </p>
