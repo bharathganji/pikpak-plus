@@ -1,7 +1,7 @@
 /**
  * Test Suite: SEO Maintenance Mode & Google Indexing Preservation
  *
- * Verifies that during scheduled maintenance (including extended windows such as 10 days),
+ * Verifies that during server downtime / extended maintenance,
  * Googlebot indexing for the homepage (/) is NOT negatively impacted, adhering strictly
  * to Google Search Central guidelines:
  *
@@ -9,10 +9,10 @@
  * 2. Homepage exports canonical URL (https://pikpak-plus.com) and explicit index/follow directives.
  * 3. Homepage embeds Schema.org JSON-LD structured data for permanent search identity.
  * 4. Homepage displays an informative, accessible MaintenanceBanner during maintenance.
- * 5. /maintenance route exports strict robots noindex, nofollow metadata to prevent search engine indexing.
- * 6. robots.ts disallows /maintenance while explicitly allowing /.
- * 7. Next.js 16 Edge Proxy (proxy.ts) preserves public safe routes (/, /faq, /robots.txt, /sitemap.xml).
- * 8. Centralized maintenance configuration supports configurable window duration (defaulting to 10 days).
+ * 5. Maintenance mode is strictly driven by server health (server down / connection failure).
+ * 6. /maintenance route exports strict robots noindex, nofollow metadata to prevent search engine indexing.
+ * 7. robots.ts disallows /maintenance while explicitly allowing /.
+ * 8. Next.js 16 Edge Proxy (proxy.ts) preserves public safe routes (/, /faq, /robots.txt, /sitemap.xml).
  */
 
 import assert from "node:assert/strict";
@@ -150,7 +150,7 @@ async function runAll() {
   });
 
   await runTest(
-    "Homepage: Integrates MaintenanceBanner during maintenance mode",
+    "Homepage: Integrates MaintenanceBanner when server is down",
     () => {
       assert.match(
         homeSource,
@@ -161,6 +161,11 @@ async function runAll() {
         homeSource,
         /\{isMaintenanceMode\s*&&\s*<MaintenanceBanner\s*\/>\}/,
         "Homepage must render MaintenanceBanner when isMaintenanceMode is active",
+      );
+      assert.match(
+        homeSource,
+        /headersList\.get\(["']x-maintenance-mode["']\)\s*===\s*["']active["']/,
+        "Homepage must check x-maintenance-mode header set by proxy health check",
       );
     },
   );
@@ -201,7 +206,7 @@ async function runAll() {
 
   // --- Suite 4: Edge Proxy Maintenance Bypass for Homepage & Safe Routes ---
   await runTest(
-    "Proxy: Homepage / is NOT redirected during maintenance",
+    "Proxy: Homepage / is NOT redirected during server downtime",
     () => {
       assert.match(
         proxySource,
@@ -216,6 +221,14 @@ async function runAll() {
     },
   );
 
+  await runTest("Proxy: Strictly checks server down via health check", () => {
+    assert.match(
+      proxySource,
+      /const\s+isUnderMaintenance\s*=\s*!isHealthy;/,
+      "proxy.ts must determine maintenance mode strictly from server health check",
+    );
+  });
+
   await runTest("Proxy: Sets x-maintenance-mode header downstream", () => {
     assert.match(
       proxySource,
@@ -225,18 +238,18 @@ async function runAll() {
   });
 
   await runTest(
-    "Proxy: Recovers from /maintenance back to / when system is healthy",
+    "Proxy: Recovers from /maintenance back to / when server is healthy",
     () => {
       assert.match(
         proxySource,
         /else\s+if\s*\(pathname\s*===\s*["']\/maintenance["']\)\s*\{[\s\S]*?const url = new URL\(["']\/["'],\s*request\.nextUrl\);[\s\S]*?return NextResponse\.redirect\(url\);/,
-        "proxy.ts must redirect from /maintenance to / when server is healthy and not in maintenance",
+        "proxy.ts must redirect from /maintenance to / when server is healthy",
       );
     },
   );
 
   await runTest(
-    "Proxy: Prevents forced dashboard redirects during maintenance",
+    "Proxy: Prevents forced dashboard redirects during server downtime",
     () => {
       assert.match(
         proxySource,
@@ -247,13 +260,21 @@ async function runAll() {
   );
 
   // --- Suite 5: Maintenance Configuration & Banner UX ---
-  await runTest("Config: Defaults to 10-day maintenance window", () => {
-    assert.match(
-      maintenanceConfigSource,
-      /process\.env\.NEXT_PUBLIC_MAINTENANCE_DURATION\)\s*\|\|\s*["']10 Days["']/,
-      "maintenance-config.ts must default to a 10 Days maintenance duration",
-    );
-  });
+  await runTest(
+    "Config: Exports standard messaging without hardcoded durations",
+    () => {
+      assert.match(
+        maintenanceConfigSource,
+        /export\s+function\s+getMaintenanceConfig\(\)/,
+        "maintenance-config.ts must export getMaintenanceConfig",
+      );
+      assert.doesNotMatch(
+        maintenanceConfigSource,
+        /10\s*days/i,
+        "maintenance-config.ts must not contain '10 days'",
+      );
+    },
+  );
 
   await runTest(
     "Banner: Provides accessible role='status' and FAQ/Telegram links",
@@ -272,6 +293,11 @@ async function runAll() {
         maintenanceBannerSource,
         /config\.telegramUrl/,
         "MaintenanceBanner must link to Telegram updates",
+      );
+      assert.doesNotMatch(
+        maintenanceBannerSource,
+        /10\s*days/i,
+        "MaintenanceBanner must not contain '10 days'",
       );
     },
   );

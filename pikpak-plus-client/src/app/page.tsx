@@ -31,7 +31,7 @@ import {
  * SEO & Search Engine Indexing Preservation Metadata
  *
  * CRITICAL (Google Search Central Guidelines):
- * Even during an extended maintenance window (such as 10 days of maintenance),
+ * Even during an extended maintenance window when the server is down,
  * the homepage must remain accessible with HTTP 200 OK, canonical URL, and complete
  * metadata so Googlebot continues indexing the site without de-indexing or replacing
  * snippets with temporary error/maintenance pages.
@@ -104,11 +104,8 @@ const jsonLdData = {
 
 export default async function Home() {
   const headersList = await headers();
-  const isMaintenanceMode =
-    headersList.get("x-maintenance-mode") === "active" ||
-    (typeof process !== "undefined" &&
-      (process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "true" ||
-        process.env.MAINTENANCE_MODE === "true"));
+  // Strictly driven by server down status passed from proxy health check
+  const isMaintenanceMode = headersList.get("x-maintenance-mode") === "active";
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-background text-foreground overflow-x-hidden w-full selection:bg-primary/20">

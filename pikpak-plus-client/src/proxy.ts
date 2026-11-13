@@ -15,40 +15,33 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Check explicit maintenance configuration
-  const isExplicitMaintenance =
-    process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "true" ||
-    process.env.MAINTENANCE_MODE === "true";
+  // 2. Determine Server Health Status (strictly server down / connection failure)
+  let isHealthy = false;
+  try {
+    const apiUrl = getServerApiUrl();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
 
-  // 3. Determine Health Status if not explicitly in maintenance mode
-  let isHealthy = !isExplicitMaintenance;
-  if (!isExplicitMaintenance) {
-    try {
-      const apiUrl = getServerApiUrl();
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
+    const res = await fetch(`${apiUrl}/health/live`, {
+      method: "GET",
+      signal: controller.signal,
+      cache: "no-store",
+    });
 
-      const res = await fetch(`${apiUrl}/health/live`, {
-        method: "GET",
-        signal: controller.signal,
-        cache: "no-store",
-      });
-
-      clearTimeout(timeoutId);
-      isHealthy = res.ok;
-    } catch (error) {
-      if (process.env.NODE_ENV === "development") {
-        console.error("Health Check Error:", error);
-      }
-      isHealthy = false;
+    clearTimeout(timeoutId);
+    isHealthy = res.ok;
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("Health Check Error:", error);
     }
+    isHealthy = false;
   }
 
-  const isUnderMaintenance = isExplicitMaintenance || !isHealthy;
+  const isUnderMaintenance = !isHealthy;
 
-  // 4. Handle Redirection & Googlebot Indexing Safety
+  // 3. Handle Redirection & Googlebot Indexing Safety
   // CRITICAL SEO PRESERVATION (Google Search Central Guidelines):
-  // When site maintenance is performed for extended periods (such as 10 days),
+  // When the server is down during extended or long-term maintenance,
   // Google Search Central officially recommends serving an indexable home page (/)
   // with HTTP 200 OK, full metadata, and a maintenance alert banner, rather than
   // redirecting to a maintenance URL (302/307) which causes Google to overwrite
@@ -69,10 +62,7 @@ export async function proxy(request: NextRequest) {
 
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-maintenance-mode", "active");
-    requestHeaders.set(
-      "x-maintenance-reason",
-      isExplicitMaintenance ? "scheduled" : "server_offline",
-    );
+    requestHeaders.set("x-maintenance-reason", "server_offline");
 
     const response = NextResponse.next({
       request: {
@@ -82,12 +72,12 @@ export async function proxy(request: NextRequest) {
     response.headers.set("x-maintenance-mode", "active");
     return response;
   } else if (pathname === "/maintenance") {
-    // Scenario B: Server is UP and not in maintenance, recover from Maintenance Page
+    // Scenario B: Server is UP and healthy, recover from Maintenance Page
     const url = new URL("/", request.nextUrl);
     return NextResponse.redirect(url);
   }
 
-  // 5. Server-Side Authentication Guarding (Eliminates login/dashboard screen flash)
+  // 4. Server-Side Authentication Guarding (Eliminates login/dashboard screen flash)
   const token = request.cookies.get("access_token")?.value;
   const isProtectedRoute =
     pathname.startsWith("/dashboard") || pathname.startsWith("/admin");
@@ -107,7 +97,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Case B: Authenticated user accesses auth page or landing page -> immediate server redirect
-  // (Only redirect to dashboard when NOT in maintenance mode, preserving homepage access)
+  // (Only redirect to dashboard when NOT under maintenance, preserving homepage access)
   if (!isUnderMaintenance && (isAuthPage || pathname === "/") && token) {
     const fromParam = request.nextUrl.searchParams.get("from");
     const target =

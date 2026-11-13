@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, Clock, ArrowRight, ExternalLink } from "lucide-react";
+import { AlertTriangle, ArrowRight, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getMaintenanceConfig } from "@/lib/maintenance-config";
 
@@ -10,10 +10,6 @@ export interface MaintenanceBannerProps {
   title?: string;
   /** Optional custom message override */
   message?: string;
-  /** Optional custom duration override (e.g., '10 Days') */
-  duration?: string;
-  /** Optional target end date override */
-  endDate?: string | null;
   /** Optional extra CSS classes */
   className?: string;
 }
@@ -22,8 +18,7 @@ export interface MaintenanceBannerProps {
  * MaintenanceBanner Component
  *
  * In accordance with Google Search Central guidelines for long-term site maintenance
- * (e.g. 10 days of scheduled maintenance), this banner alerts visitors without
- * impacting search indexing:
+ * when the server is down, this banner alerts visitors without impacting search indexing:
  * - Homepage continues returning HTTP 200 OK with full canonical metadata.
  * - Visible informative announcement clarifies that backend services are in maintenance.
  * - Visitors can still browse documentation, FAQ, and join Telegram for live status updates.
@@ -31,15 +26,11 @@ export interface MaintenanceBannerProps {
 export function MaintenanceBanner({
   title,
   message,
-  duration,
-  endDate,
   className = "",
 }: MaintenanceBannerProps) {
   const config = getMaintenanceConfig();
   const displayTitle = title || config.title;
   const displayMessage = message || config.message;
-  const displayDuration = duration || config.estimatedDuration;
-  const displayEndDate = endDate || config.endDate;
 
   return (
     <aside
@@ -63,17 +54,6 @@ export function MaintenanceBanner({
                   <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
                   Scheduled Maintenance
                 </span>
-                {displayDuration && (
-                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground font-medium">
-                    <Clock className="h-3.5 w-3.5" />
-                    Window: {displayDuration}
-                  </span>
-                )}
-                {displayEndDate && (
-                  <span className="text-xs text-muted-foreground font-medium">
-                    • Expected Return: {displayEndDate}
-                  </span>
-                )}
               </div>
 
               <h2 className="text-base sm:text-lg font-bold tracking-tight text-foreground">

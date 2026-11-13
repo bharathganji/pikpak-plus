@@ -33,15 +33,10 @@ export interface HeaderProps {
   isMaintenance?: boolean;
 }
 
-export function Header({ isMaintenance: isMaintenanceProp }: HeaderProps = {}) {
+export function Header({ isMaintenance = false }: HeaderProps = {}) {
   const { user, isAdmin, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-
-  const isEnvMaintenance =
-    typeof process !== "undefined" &&
-    process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "true";
-  const isMaintenance = isMaintenanceProp ?? isEnvMaintenance;
 
   const [loggingOut, setLoggingOut] = useState(false);
 

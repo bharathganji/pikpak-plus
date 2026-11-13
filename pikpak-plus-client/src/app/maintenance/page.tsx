@@ -39,7 +39,7 @@ export default function MaintenancePage() {
 
       <div className="inline-flex items-center gap-1.5 px-3 py-1 mb-4 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
         <Clock className="w-3.5 h-3.5" />
-        <span>Maintenance Mode Active • {config.estimatedDuration} Window</span>
+        <span>Maintenance Mode Active • Services Standby</span>
       </div>
 
       <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3 text-foreground max-w-xl">
